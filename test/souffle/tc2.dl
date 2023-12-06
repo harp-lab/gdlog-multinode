@@ -1,0 +1,16 @@
+.decl edge(from:number, to:number)
+.input edge(IO=file, filename="../../../dataset/vsp_finan512_scagr7-2c_rlfddd/vsp_finan512_scagr7-2c_rlfddd.mtx", deliminator="\t")
+
+
+
+.decl path(from:number, to:number)
+.decl path2(from:number, to:number)
+
+path(from, to) :- edge(from, to).
+// path(from, to) :- path(from, mid), path(mid, to).
+
+path2(from, to) :- path(from, mid), path(mid, to).
+
+.printsize path
+.printsize path2
+

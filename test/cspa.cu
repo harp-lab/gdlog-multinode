@@ -27,7 +27,7 @@ long int get_row_size(const char *data_path) {
     return i;
 }
 
-enum ColumnT { U64, U32 };
+// enum ColumnT { U64, U32 };
 
 column_type *get_relation_from_file(const char *file_path, int total_rows,
                                     int total_columns, char separator,

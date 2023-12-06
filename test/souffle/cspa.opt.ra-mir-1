@@ -1,0 +1,147 @@
+(PROGRAM
+ ((RELATION assign ((ATTRIBUTE src INT) (ATTRIBUTE dest INT)))
+  (RELATION dereference ((ATTRIBUTE src INT) (ATTRIBUTE dest INT)))
+  (RELATION MemoryAlias ((ATTRIBUTE src INT) (ATTRIBUTE dest INT)))
+  (RELATION ValueAlias ((ATTRIBUTE src INT) (ATTRIBUTE dest INT)))
+  (RELATION ValueFlow ((ATTRIBUTE src INT) (ATTRIBUTE dest INT)))
+  (RELATION tmp ((ATTRIBUTE src INT) (ATTRIBUTE dest INT))))
+ ((SCC
+   stratum_MemoryAlias
+   (RUN-ONCE
+    (ONCE-RULE
+     "MemoryAlias(x,x) :- \n   assign(_,x).\nin file cspa.dl [38:1-38:35]"
+     ((COPY
+       (REL assign FULL)
+       (REL MemoryAlias FULL)
+       ((TUPLE t0 1) (TUPLE t0 1))))
+     #hash((t0 . (REL assign FULL))))
+    (ONCE-RULE
+     "MemoryAlias(x,x) :- \n   assign(x,_).\nin file cspa.dl [39:1-39:35]"
+     ((COPY
+       (REL assign FULL)
+       (REL MemoryAlias FULL)
+       ((TUPLE t0 0) (TUPLE t0 0))))
+     #hash((t0 . (REL assign FULL))))
+    (ONCE-RULE
+     "ValueFlow(y,x) :- \n   assign(y,x).\nin file cspa.dl [34:1-34:33]"
+     ((COPY
+       (REL assign FULL)
+       (REL ValueFlow FULL)
+       ((TUPLE t0 0) (TUPLE t0 1))))
+     #hash((t0 . (REL assign FULL))))
+    (ONCE-RULE
+     "ValueFlow(x,x) :- \n   assign(x,_).\nin file cspa.dl [35:1-35:33]"
+     ((COPY
+       (REL assign FULL)
+       (REL ValueFlow FULL)
+       ((TUPLE t0 0) (TUPLE t0 0))))
+     #hash((t0 . (REL assign FULL))))
+    (ONCE-RULE
+     "ValueFlow(x,x) :- \n   assign(_,x).\nin file cspa.dl [36:1-36:33]"
+     ((COPY
+       (REL assign FULL)
+       (REL ValueFlow FULL)
+       ((TUPLE t0 1) (TUPLE t0 1))))
+     #hash((t0 . (REL assign FULL)))))
+   (FIXPOINT-LOOP
+    ((RECURSIVE
+      "MemoryAlias(x,w) :- \n   dereference(y,x),\n   ValueAlias(y,z),\n   dereference(z,w).\nin file cspa.dl [29:1-29:77]"
+      ((FULL-SCAN (REL ValueAlias DELTA) t0)
+       (SCAN (REL dereference FULL) t1 ((= (TUPLE t1 0) (TUPLE t0 0))))
+       (SCAN (REL dereference FULL) t2 ((= (TUPLE t2 0) (TUPLE t0 1))))
+       (GENERATE (REL MemoryAlias NEW) ((TUPLE t1 1) (TUPLE t2 1))))
+      #hash((t0 . (REL ValueAlias DELTA))
+            (t1 . (REL dereference FULL))
+            (t2 . (REL dereference FULL))))
+     (RECURSIVE
+      "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   ValueFlow(z,y).\nin file cspa.dl [26:1-26:54]"
+      ((FULL-SCAN (REL ValueFlow DELTA) t0)
+       (SCAN (REL ValueFlow FULL) t1 ((= (TUPLE t1 0) (TUPLE t0 0))))
+       (GENERATE (REL ValueAlias NEW) ((TUPLE t0 1) (TUPLE t1 1))))
+      #hash((t0 . (REL ValueFlow DELTA)) (t1 . (REL ValueFlow FULL))))
+     (RECURSIVE
+      "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   ValueFlow(z,y).\nin file cspa.dl [26:1-26:54]"
+      ((FULL-SCAN (REL ValueFlow DELTA) t0)
+       (SCAN (REL ValueFlow FULL) t1 ((= (TUPLE t1 0) (TUPLE t0 0))))
+       (GENERATE (REL ValueAlias NEW) ((TUPLE t1 1) (TUPLE t0 1))))
+      #hash((t0 . (REL ValueFlow DELTA)) (t1 . (REL ValueFlow FULL))))
+     (RECURSIVE
+      "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   MemoryAlias(z,w),\n   ValueFlow(w,y).\nin file cspa.dl [31:1-31:73]"
+      ((FULL-SCAN (REL ValueFlow DELTA) t0)
+       (SCAN (REL MemoryAlias FULL) t1 ((= (TUPLE t1 0) (TUPLE t0 0))))
+       (SCAN (REL ValueFlow FULL) t2 ((= (TUPLE t2 0) (TUPLE t1 1))))
+       (GENERATE (REL ValueAlias NEW) ((TUPLE t0 1) (TUPLE t2 1))))
+      #hash((t0 . (REL ValueFlow DELTA))
+            (t1 . (REL MemoryAlias FULL))
+            (t2 . (REL ValueFlow FULL))))
+     (RECURSIVE
+      "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   MemoryAlias(z,w),\n   ValueFlow(w,y).\nin file cspa.dl [31:1-31:73]"
+      ((FULL-SCAN (REL MemoryAlias DELTA) t0)
+       (SCAN (REL ValueFlow FULL) t1 ((= (TUPLE t1 0) (TUPLE t0 0))))
+       (SCAN (REL ValueFlow FULL) t2 ((= (TUPLE t2 0) (TUPLE t0 1))))
+       (GENERATE (REL ValueAlias NEW) ((TUPLE t1 1) (TUPLE t2 1))))
+      #hash((t0 . (REL MemoryAlias DELTA))
+            (t1 . (REL ValueFlow FULL))
+            (t2 . (REL ValueFlow FULL))))
+     (RECURSIVE
+      "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   MemoryAlias(z,w),\n   ValueFlow(w,y).\nin file cspa.dl [31:1-31:73]"
+      ((FULL-SCAN (REL ValueFlow DELTA) t0)
+       (SCAN (REL MemoryAlias FULL) t1 ((= (TUPLE t1 1) (TUPLE t0 0))))
+       (SCAN (REL ValueFlow FULL) t2 ((= (TUPLE t2 0) (TUPLE t1 0))))
+       (GENERATE (REL ValueAlias NEW) ((TUPLE t2 1) (TUPLE t0 1))))
+      #hash((t0 . (REL ValueFlow DELTA))
+            (t1 . (REL MemoryAlias FULL))
+            (t2 . (REL ValueFlow FULL))))
+     (RECURSIVE
+      "ValueFlow(x,y) :- \n   ValueFlow(x,z),\n   ValueFlow(z,y).\nin file cspa.dl [25:1-25:53]"
+      ((FULL-SCAN (REL ValueFlow DELTA) t0)
+       (SCAN (REL ValueFlow FULL) t1 ((= (TUPLE t1 0) (TUPLE t0 1))))
+       (GENERATE (REL ValueFlow NEW) ((TUPLE t0 0) (TUPLE t1 1))))
+      #hash((t0 . (REL ValueFlow DELTA)) (t1 . (REL ValueFlow FULL))))
+     (RECURSIVE
+      "ValueFlow(x,y) :- \n   ValueFlow(x,z),\n   ValueFlow(z,y).\nin file cspa.dl [25:1-25:53]"
+      ((FULL-SCAN (REL ValueFlow DELTA) t0)
+       (SCAN (REL ValueFlow FULL) t1 ((= (TUPLE t1 1) (TUPLE t0 0))))
+       (GENERATE (REL ValueFlow NEW) ((TUPLE t1 0) (TUPLE t0 1))))
+      #hash((t0 . (REL ValueFlow DELTA)) (t1 . (REL ValueFlow FULL))))
+     (RECURSIVE
+      "ValueFlow(x,y) :- \n   assign(x,z),\n   MemoryAlias(z,y).\nin file cspa.dl [27:1-27:52]"
+      ((FULL-SCAN (REL MemoryAlias DELTA) t0)
+       (SCAN (REL assign FULL) t1 ((= (TUPLE t1 1) (TUPLE t0 0))))
+       (GENERATE (REL ValueFlow NEW) ((TUPLE t1 0) (TUPLE t0 1))))
+      #hash((t0 . (REL MemoryAlias DELTA)) (t1 . (REL assign FULL))))))
+   (FIXPOINT-CHECK MemoryAlias ValueAlias ValueFlow)
+   (GC MemoryAlias ValueAlias ValueFlow assign dereference)
+   (IO
+    (MemoryAlias ((= IO "stdoutprintsize") (= operation "printsize")))
+    (ValueAlias ((= IO "stdoutprintsize") (= operation "printsize")))
+    (ValueFlow ((= IO "stdoutprintsize") (= operation "printsize")))))
+  (SCC
+   stratum_assign
+   (RUN-ONCE)
+   (FIXPOINT-LOOP)
+   (FIXPOINT-CHECK)
+   (GC)
+   (IO
+    (assign
+     ((= IO "file")
+      (= deliminator "\t")
+      (= fact-dir ".")
+      (= operation "input")))))
+  (SCC
+   stratum_dereference
+   (RUN-ONCE)
+   (FIXPOINT-LOOP)
+   (FIXPOINT-CHECK)
+   (GC)
+   (IO
+    (dereference
+     ((= IO "file")
+      (= deliminator "\t")
+      (= fact-dir ".")
+      (= operation "input")))))
+  (SCC stratum_tmp (RUN-ONCE) (FIXPOINT-LOOP) (FIXPOINT-CHECK) (GC) (IO)))
+ ((EXECUTE stratum_assign)
+  (EXECUTE stratum_dereference)
+  (EXECUTE stratum_MemoryAlias)
+  (EXECUTE stratum_tmp)))

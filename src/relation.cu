@@ -4,6 +4,7 @@
 #include "../include/relation.cuh"
 #include "../include/timer.cuh"
 #include "../include/tuple.cuh"
+#include <fstream>
 #include <iostream>
 #include <thrust/sort.h>
 #include <thrust/unique.h>
@@ -32,19 +33,25 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
                 bool collison_flag = false;
                 while (true) {
                     if (existing_value < i) {
-                        // occupied entry, but no need for swap, just check if collision
-                        if (!tuple_eq(target->tuples[existing_value], cur_tuple, target->index_column_size)) {
+                        // occupied entry, but no need for swap, just check if
+                        // collision
+                        if (!tuple_eq(target->tuples[existing_value], cur_tuple,
+                                      target->index_column_size)) {
                             // collision, find nex available entry
                             collison_flag = true;
                             break;
                         } else {
-                            // no collision but existing tuple is smaller, in this case, not need to swap, just return(break; break)
+                            // no collision but existing tuple is smaller, in
+                            // this case, not need to swap, just return(break;
+                            // break)
                             break;
                         }
                     }
-                    if (existing_value > i && existing_value != EMPTY_HASH_ENTRY) {
+                    if (existing_value > i &&
+                        existing_value != EMPTY_HASH_ENTRY) {
                         // occupied entry, may need for swap
-                        if (!tuple_eq(target->tuples[existing_value], cur_tuple, target->index_column_size)) {
+                        if (!tuple_eq(target->tuples[existing_value], cur_tuple,
+                                      target->index_column_size)) {
                             // collision, find nex available entry
                             collison_flag = true;
                             break;
@@ -62,7 +69,7 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
                                       existing_value, i);
                     }
                 }
-                if(!collison_flag){
+                if (!collison_flag) {
                     break;
                 }
             }
@@ -334,10 +341,8 @@ void Relation::flush_delta(int grid_size, int block_size) {
     checkCuda(cudaMemset(tuple_full_buf, 0, tuple_full_buf_mem_size));
     checkCuda(cudaDeviceSynchronize());
     tuple_type *end_tuple_full_buf = thrust::merge(
-        thrust::device,
-        delta->tuples, delta->tuples + delta->tuple_counts,
-        tuple_full, tuple_full + current_full_size,
-        tuple_full_buf,
+        thrust::device, delta->tuples, delta->tuples + delta->tuple_counts,
+        tuple_full, tuple_full + current_full_size, tuple_full_buf,
         tuple_indexed_less(delta->index_column_size, delta->arity));
     checkCuda(cudaDeviceSynchronize());
     current_full_size = end_tuple_full_buf - tuple_full_buf;
@@ -667,4 +672,47 @@ void load_relation(Relation *target, std::string name, int arity,
     load_relation_container(target->full, arity, data, data_row_size,
                             index_column_size, dependent_column_size, 0.8,
                             grid_size, block_size, detail_time);
+}
+
+long int get_row_size(const char *data_path) {
+    std::ifstream f;
+    f.open(data_path);
+    char c;
+    long i = 0;
+    while (f.get(c))
+        if (c == '\n')
+            ++i;
+    f.close();
+    return i;
+}
+
+void Relation::init_relation_from_file(const char *file_path, int total_columns,
+                                       char separator, ColumnT ct,
+                                       int grid_size, int block_size) {
+    u64 total_rows = get_row_size(file_path);
+    column_type *data =
+        (column_type *)malloc(total_rows * total_columns * sizeof(column_type));
+    FILE *data_file = fopen(file_path, "r");
+    for (int i = 0; i < total_rows; i++) {
+        for (int j = 0; j < total_columns; j++) {
+            if (j != (total_columns - 1)) {
+                if (ct == U64) {
+                    fscanf(data_file, "%lld%c", &data[(i * total_columns) + j],
+                           &separator);
+                } else {
+                    fscanf(data_file, "%ld%c", &data[(i * total_columns) + j],
+                           &separator);
+                }
+            } else {
+                if (ct == U64) {
+                    fscanf(data_file, "%lld", &data[(i * total_columns) + j]);
+                } else {
+                    fscanf(data_file, "%ld", &data[(i * total_columns) + j]);
+                }
+            }
+        }
+    }
+
+    init_relation(data, total_rows, index_column_size, dependent_column_size,
+                  0.8, grid_size, block_size);
 }

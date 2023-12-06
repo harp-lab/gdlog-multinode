@@ -1,0 +1,62 @@
+PROGRAM
+ DECLARATION
+  edge(from:i:number,to:i:number) 
+  path(from:i:number,to:i:number) 
+  @delta_path(from:i:number,to:i:number) 
+  @new_path(from:i:number,to:i:number) 
+ END DECLARATION
+ SUBROUTINE edge
+  IO edge (IO="file",attributeNames="from\tto",auxArity="0",deliminator="\t",fact-dir=".",filename="../../../dataset/vsp_finan512_scagr7-2c_rlfddd/vsp_finan512_scagr7-2c_rlfddd.mtx",name="edge",operation="input",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"from\", \"to\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+ END SUBROUTINE
+ SUBROUTINE path
+  DEBUG "path(from,to) :- \n   edge(from,to).\nin file tc.dl [9:1-9:34]"
+   QUERY
+    IF (NOT ISEMPTY(edge))
+     FOR t0 IN edge
+      INSERT (t0.0, t0.1) INTO path
+   END QUERY
+  END DEBUG
+  QUERY
+   FOR t0 IN path
+    INSERT (t0.0, t0.1) INTO @delta_path
+  END QUERY
+  LET VARIABLE(loop_counter) := UNSIGNED(1)
+  LOOP
+   DEBUG "path(from,to) :- \n   path(from,mid),\n   path(mid,to).\nin file tc.dl [10:1-10:50]"
+    QUERY
+     IF ((NOT ISEMPTY(@delta_path)) AND (NOT ISEMPTY(path)))
+      FOR t0 IN @delta_path
+       FOR t1 IN path ON INDEX t1.0 = t0.1
+        IF ((NOT (t0.0,t1.1) IN path) AND (NOT (t0.1,t1.1) IN @delta_path))
+         INSERT (t0.0, t1.1) INTO @new_path
+    END QUERY
+   END DEBUG
+   DEBUG "path(from,to) :- \n   path(from,mid),\n   path(mid,to).\nin file tc.dl [10:1-10:50]"
+    QUERY
+     IF ((NOT ISEMPTY(path)) AND (NOT ISEMPTY(@delta_path)))
+      FOR t0 IN path
+       FOR t1 IN @delta_path ON INDEX t1.0 = t0.1
+        IF (NOT (t0.0,t1.1) IN path)
+         INSERT (t0.0, t1.1) INTO @new_path
+    END QUERY
+   END DEBUG
+   EXIT ISEMPTY(@new_path)
+   QUERY
+    FOR t0 IN @new_path
+     INSERT (t0.0, t0.1) INTO path
+   END QUERY
+   SWAP (@delta_path, @new_path)
+   CLEAR @new_path
+   ASSIGN VARIABLE(loop_counter) := (VARIABLE(loop_counter)+UNSIGNED(1))
+  END LOOP
+  CLEAR @delta_path
+  CLEAR @new_path
+  IO path (IO="stdoutprintsize",attributeNames="from\tto",auxArity="0",name="path",operation="printsize",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"from\", \"to\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  CLEAR edge
+  CLEAR path
+ END SUBROUTINE
+ BEGIN MAIN
+  CALL stratum_edge
+  CALL stratum_path
+ END MAIN
+END PROGRAM

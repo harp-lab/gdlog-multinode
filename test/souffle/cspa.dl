@@ -8,12 +8,12 @@
 //1,2 2,1
 .decl ValueFlow(src: number, dest: number)
 .printsize ValueFlow
-.output ValueFlow
+// .output ValueFlow
 
 // 1,2 2,1
 .decl ValueAlias(src: number, dest: number)
 .printsize ValueAlias
-.output ValueAlias
+// .output ValueAlias
 
 // 1,2
 .decl MemoryAlias(src: number, dest: number)

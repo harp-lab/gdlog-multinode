@@ -1,0 +1,38 @@
+PROGRAM
+ DECLARATION
+  edge(from:i:number,to:i:number) 
+  path(from:i:number,to:i:number) 
+  path2(from:i:number,to:i:number) 
+ END DECLARATION
+ SUBROUTINE edge
+  IO edge (IO="file",attributeNames="from\tto",auxArity="0",deliminator="\t",fact-dir=".",filename="../../../dataset/vsp_finan512_scagr7-2c_rlfddd/vsp_finan512_scagr7-2c_rlfddd.mtx",name="edge",operation="input",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"from\", \"to\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+ END SUBROUTINE
+ SUBROUTINE path
+  DEBUG "path(from,to) :- \n   edge(from,to).\nin file tc2.dl [9:1-9:34]"
+   QUERY
+    IF (NOT ISEMPTY(edge))
+     FOR t0 IN edge
+      INSERT (t0.0, t0.1) INTO path
+   END QUERY
+  END DEBUG
+  IO path (IO="stdoutprintsize",attributeNames="from\tto",auxArity="0",name="path",operation="printsize",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"from\", \"to\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  CLEAR edge
+ END SUBROUTINE
+ SUBROUTINE path2
+  DEBUG "path2(from,to) :- \n   path(from,mid),\n   path(mid,to).\nin file tc2.dl [12:1-12:51]"
+   QUERY
+    IF (NOT ISEMPTY(path))
+     FOR t0 IN path
+      FOR t1 IN path ON INDEX t1.0 = t0.1
+       INSERT (t0.0, t1.1) INTO path2
+   END QUERY
+  END DEBUG
+  IO path2 (IO="stdoutprintsize",attributeNames="from\tto",auxArity="0",name="path2",operation="printsize",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"from\", \"to\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  CLEAR path
+ END SUBROUTINE
+ BEGIN MAIN
+  CALL stratum_edge
+  CALL stratum_path
+  CALL stratum_path2
+ END MAIN
+END PROGRAM

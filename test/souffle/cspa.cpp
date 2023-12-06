@@ -834,21 +834,7 @@ IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll
 } catch (std::exception& e) {std::cerr << e.what();exit(1);}
 }
 if (performIO) {
-try {std::map<std::string, std::string> directiveMap({{"IO","file"},{"attributeNames","src\tdest"},{"auxArity","0"},{"name","ValueAlias"},{"operation","output"},{"output-dir","."},{"params","{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}"},{"types","{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}"}});
-if (outputDirectory == "-"){directiveMap["IO"] = "stdout"; directiveMap["headers"] = "true";}
-else if (!outputDirectory.empty()) {directiveMap["output-dir"] = outputDirectory;}
-IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll(*rel_ValueAlias_37462775fdb0331f);
-} catch (std::exception& e) {std::cerr << e.what();exit(1);}
-}
-if (performIO) {
 try {std::map<std::string, std::string> directiveMap({{"IO","stdoutprintsize"},{"attributeNames","src\tdest"},{"auxArity","0"},{"name","ValueFlow"},{"operation","printsize"},{"params","{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}"},{"types","{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}"}});
-if (outputDirectory == "-"){directiveMap["IO"] = "stdout"; directiveMap["headers"] = "true";}
-else if (!outputDirectory.empty()) {directiveMap["output-dir"] = outputDirectory;}
-IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll(*rel_ValueFlow_13166cf449369285);
-} catch (std::exception& e) {std::cerr << e.what();exit(1);}
-}
-if (performIO) {
-try {std::map<std::string, std::string> directiveMap({{"IO","file"},{"attributeNames","src\tdest"},{"auxArity","0"},{"name","ValueFlow"},{"operation","output"},{"output-dir","."},{"params","{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}"},{"types","{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}"}});
 if (outputDirectory == "-"){directiveMap["IO"] = "stdout"; directiveMap["headers"] = "true";}
 else if (!outputDirectory.empty()) {directiveMap["output-dir"] = outputDirectory;}
 IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll(*rel_ValueFlow_13166cf449369285);
@@ -1148,15 +1134,7 @@ try {std::map<std::string, std::string> directiveMap({{"IO","stdoutprintsize"},{
 if (!outputDirectoryArg.empty()) {directiveMap["output-dir"] = outputDirectoryArg;}
 IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll(*rel_ValueAlias_37462775fdb0331f);
 } catch (std::exception& e) {std::cerr << e.what();exit(1);}
-try {std::map<std::string, std::string> directiveMap({{"IO","file"},{"attributeNames","src\tdest"},{"auxArity","0"},{"name","ValueAlias"},{"operation","output"},{"output-dir","."},{"params","{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}"},{"types","{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}"}});
-if (!outputDirectoryArg.empty()) {directiveMap["output-dir"] = outputDirectoryArg;}
-IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll(*rel_ValueAlias_37462775fdb0331f);
-} catch (std::exception& e) {std::cerr << e.what();exit(1);}
 try {std::map<std::string, std::string> directiveMap({{"IO","stdoutprintsize"},{"attributeNames","src\tdest"},{"auxArity","0"},{"name","ValueFlow"},{"operation","printsize"},{"params","{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}"},{"types","{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}"}});
-if (!outputDirectoryArg.empty()) {directiveMap["output-dir"] = outputDirectoryArg;}
-IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll(*rel_ValueFlow_13166cf449369285);
-} catch (std::exception& e) {std::cerr << e.what();exit(1);}
-try {std::map<std::string, std::string> directiveMap({{"IO","file"},{"attributeNames","src\tdest"},{"auxArity","0"},{"name","ValueFlow"},{"operation","output"},{"output-dir","."},{"params","{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}"},{"types","{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}"}});
 if (!outputDirectoryArg.empty()) {directiveMap["output-dir"] = outputDirectoryArg;}
 IOSystem::getInstance().getWriter(directiveMap, symTable, recordTable)->writeAll(*rel_ValueFlow_13166cf449369285);
 } catch (std::exception& e) {std::cerr << e.what();exit(1);}
@@ -1208,18 +1186,6 @@ rwOperation["IO"] = "stdout";
 rwOperation["name"] = "ValueAlias";
 rwOperation["types"] = "{\"relation\": {\"arity\": 2, \"auxArity\": 0, \"types\": [\"i:number\", \"i:number\"]}}";
 IOSystem::getInstance().getWriter(rwOperation, symTable, recordTable)->writeAll(*rel_ValueAlias_37462775fdb0331f);
-} catch (std::exception& e) {std::cerr << e.what();exit(1);}
-try {std::map<std::string, std::string> rwOperation;
-rwOperation["IO"] = "stdout";
-rwOperation["name"] = "ValueAlias";
-rwOperation["types"] = "{\"relation\": {\"arity\": 2, \"auxArity\": 0, \"types\": [\"i:number\", \"i:number\"]}}";
-IOSystem::getInstance().getWriter(rwOperation, symTable, recordTable)->writeAll(*rel_ValueAlias_37462775fdb0331f);
-} catch (std::exception& e) {std::cerr << e.what();exit(1);}
-try {std::map<std::string, std::string> rwOperation;
-rwOperation["IO"] = "stdout";
-rwOperation["name"] = "ValueFlow";
-rwOperation["types"] = "{\"relation\": {\"arity\": 2, \"auxArity\": 0, \"types\": [\"i:number\", \"i:number\"]}}";
-IOSystem::getInstance().getWriter(rwOperation, symTable, recordTable)->writeAll(*rel_ValueFlow_13166cf449369285);
 } catch (std::exception& e) {std::cerr << e.what();exit(1);}
 try {std::map<std::string, std::string> rwOperation;
 rwOperation["IO"] = "stdout";
@@ -1282,7 +1248,7 @@ R"()",
 R"()",
 false,
 R"()",
-32);
+8);
 if (!opt.parse(argc,argv)) return 1;
 souffle::Sf_cspa obj;
 #if defined(_OPENMP) 

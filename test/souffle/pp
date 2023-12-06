@@ -1,0 +1,2 @@
+./build/bin/ddisasm --interpreter --profile /workspace/prof/ --debug-dir /workspace/facts/ --asm /workspace/ls.asm /workspace/ls
+souffle --show=transformed-ram -MARCH_AMD64 --fact-dir /workspace/facts/disassembly --output-dir /workspace/facts/disassembly --jobs 1 --library-dir /usr/local/src/ddisasm/build/bin/../lib ./src/datalog/main.dl --profile /workspace/prof/disassembly.prof  > /workspace/x86.ram

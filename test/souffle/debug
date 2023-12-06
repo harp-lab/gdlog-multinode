@@ -1,0 +1,5 @@
+running pass: flatten-nested-query
+nothing populated for cond: (ISEMPTY +disconnected0)
+nothing populated for cond: (NOT (ISEMPTY base_address))
+nothing populated for cond: (ISEMPTY +disconnected1)
+nothing populated for cond: (NOT (ISEMPTY symbolic_operand))

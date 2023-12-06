@@ -1,0 +1,235 @@
+PROGRAM
+ DECLARATION
+  assign(src:i:number,dest:i:number) 
+  dereference(src:i:number,dest:i:number) 
+  MemoryAlias(src:i:number,dest:i:number) 
+  @delta_MemoryAlias(src:i:number,dest:i:number) 
+  @new_MemoryAlias(src:i:number,dest:i:number) 
+  ValueAlias(src:i:number,dest:i:number) 
+  @delta_ValueAlias(src:i:number,dest:i:number) 
+  @new_ValueAlias(src:i:number,dest:i:number) 
+  ValueFlow(src:i:number,dest:i:number) 
+  @delta_ValueFlow(src:i:number,dest:i:number) 
+  @new_ValueFlow(src:i:number,dest:i:number) 
+  tmp(src:i:number,dest:i:number) 
+ END DECLARATION
+ SUBROUTINE MemoryAlias
+  DEBUG "MemoryAlias(x,x) :- \n   assign(_,x).\nin file cspa.dl [38:1-38:35]"
+   QUERY
+    FOR t0 IN assign
+     IF (NOT ISEMPTY(assign))
+      INSERT (t0.1, t0.1) INTO MemoryAlias
+   END QUERY
+  END DEBUG
+  DEBUG "MemoryAlias(x,x) :- \n   assign(x,_).\nin file cspa.dl [39:1-39:35]"
+   QUERY
+    FOR t0 IN assign
+     IF (NOT ISEMPTY(assign))
+      INSERT (t0.0, t0.0) INTO MemoryAlias
+   END QUERY
+  END DEBUG
+  DEBUG "ValueFlow(y,x) :- \n   assign(y,x).\nin file cspa.dl [34:1-34:33]"
+   QUERY
+    FOR t0 IN assign
+     IF (NOT ISEMPTY(assign))
+      INSERT (t0.0, t0.1) INTO ValueFlow
+   END QUERY
+  END DEBUG
+  DEBUG "ValueFlow(x,x) :- \n   assign(x,_).\nin file cspa.dl [35:1-35:33]"
+   QUERY
+    FOR t0 IN assign
+     IF (NOT ISEMPTY(assign))
+      INSERT (t0.0, t0.0) INTO ValueFlow
+   END QUERY
+  END DEBUG
+  DEBUG "ValueFlow(x,x) :- \n   assign(_,x).\nin file cspa.dl [36:1-36:33]"
+   QUERY
+    FOR t0 IN assign
+     IF (NOT ISEMPTY(assign))
+      INSERT (t0.1, t0.1) INTO ValueFlow
+   END QUERY
+  END DEBUG
+  QUERY
+   FOR t0 IN MemoryAlias
+    INSERT (t0.0, t0.1) INTO @delta_MemoryAlias
+  END QUERY
+  QUERY
+   FOR t0 IN ValueAlias
+    INSERT (t0.0, t0.1) INTO @delta_ValueAlias
+  END QUERY
+  QUERY
+   FOR t0 IN ValueFlow
+    INSERT (t0.0, t0.1) INTO @delta_ValueFlow
+  END QUERY
+  LET VARIABLE(loop_counter) := UNSIGNED(1)
+  LOOP
+   DEBUG "MemoryAlias(x,w) :- \n   dereference(y,x),\n   ValueAlias(y,z),\n   dereference(z,w).\nin file cspa.dl [29:1-29:77]"
+    QUERY
+     FOR t0 IN dereference
+      IF (NOT ISEMPTY(dereference))
+       FOR t1 IN @delta_ValueAlias
+        IF (NOT ISEMPTY(@delta_ValueAlias))
+         FOR t2 IN dereference
+          IF (NOT ISEMPTY(dereference))
+           IF (t1.1 = t2.0)
+            IF (t0.0 = t1.0)
+             IF (NOT (t0.1,t2.1) IN MemoryAlias)
+              INSERT (t0.1, t2.1) INTO @new_MemoryAlias
+    END QUERY
+   END DEBUG
+   DEBUG "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   ValueFlow(z,y).\nin file cspa.dl [26:1-26:54]"
+    QUERY
+     FOR t0 IN @delta_ValueFlow
+      IF (NOT ISEMPTY(@delta_ValueFlow))
+       FOR t1 IN ValueFlow
+        IF (NOT ISEMPTY(ValueFlow))
+         IF (t0.0 = t1.0)
+          IF (NOT (t0.0,t1.1) IN @delta_ValueFlow)
+           IF (NOT (t0.1,t1.1) IN ValueAlias)
+            INSERT (t0.1, t1.1) INTO @new_ValueAlias
+    END QUERY
+   END DEBUG
+   DEBUG "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   ValueFlow(z,y).\nin file cspa.dl [26:1-26:54]"
+    QUERY
+     FOR t0 IN ValueFlow
+      IF (NOT ISEMPTY(ValueFlow))
+       FOR t1 IN @delta_ValueFlow
+        IF (NOT ISEMPTY(@delta_ValueFlow))
+         IF (t0.0 = t1.0)
+          IF (NOT (t0.1,t1.1) IN ValueAlias)
+           INSERT (t0.1, t1.1) INTO @new_ValueAlias
+    END QUERY
+   END DEBUG
+   DEBUG "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   MemoryAlias(z,w),\n   ValueFlow(w,y).\nin file cspa.dl [31:1-31:73]"
+    QUERY
+     FOR t0 IN @delta_ValueFlow
+      IF (NOT ISEMPTY(@delta_ValueFlow))
+       FOR t1 IN MemoryAlias
+        IF (NOT ISEMPTY(MemoryAlias))
+         FOR t2 IN ValueFlow
+          IF (NOT ISEMPTY(ValueFlow))
+           IF (t0.0 = t1.0)
+            IF (t1.1 = t2.0)
+             IF (NOT (t1.1,t2.1) IN @delta_ValueFlow)
+              IF (NOT (t0.0,t1.1) IN @delta_MemoryAlias)
+               IF (NOT (t0.1,t2.1) IN ValueAlias)
+                INSERT (t0.1, t2.1) INTO @new_ValueAlias
+    END QUERY
+   END DEBUG
+   DEBUG "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   MemoryAlias(z,w),\n   ValueFlow(w,y).\nin file cspa.dl [31:1-31:73]"
+    QUERY
+     FOR t0 IN ValueFlow
+      IF (NOT ISEMPTY(ValueFlow))
+       FOR t1 IN @delta_MemoryAlias
+        IF (NOT ISEMPTY(@delta_MemoryAlias))
+         FOR t2 IN ValueFlow
+          IF (NOT ISEMPTY(ValueFlow))
+           IF (t0.0 = t1.0)
+            IF (t1.1 = t2.0)
+             IF (NOT (t1.1,t2.1) IN @delta_ValueFlow)
+              IF (NOT (t0.1,t2.1) IN ValueAlias)
+               INSERT (t0.1, t2.1) INTO @new_ValueAlias
+    END QUERY
+   END DEBUG
+   DEBUG "ValueAlias(x,y) :- \n   ValueFlow(z,x),\n   MemoryAlias(z,w),\n   ValueFlow(w,y).\nin file cspa.dl [31:1-31:73]"
+    QUERY
+     FOR t0 IN ValueFlow
+      IF (NOT ISEMPTY(ValueFlow))
+       FOR t1 IN MemoryAlias
+        IF (NOT ISEMPTY(MemoryAlias))
+         FOR t2 IN @delta_ValueFlow
+          IF (NOT ISEMPTY(@delta_ValueFlow))
+           IF (t0.0 = t1.0)
+            IF (t1.1 = t2.0)
+             IF (NOT (t0.1,t2.1) IN ValueAlias)
+              INSERT (t0.1, t2.1) INTO @new_ValueAlias
+    END QUERY
+   END DEBUG
+   DEBUG "ValueFlow(x,y) :- \n   ValueFlow(x,z),\n   ValueFlow(z,y).\nin file cspa.dl [25:1-25:53]"
+    QUERY
+     FOR t0 IN @delta_ValueFlow
+      IF (NOT ISEMPTY(@delta_ValueFlow))
+       FOR t1 IN ValueFlow
+        IF (NOT ISEMPTY(ValueFlow))
+         IF (t0.1 = t1.0)
+          IF (NOT (t0.1,t1.1) IN @delta_ValueFlow)
+           IF (NOT (t0.0,t1.1) IN ValueFlow)
+            INSERT (t0.0, t1.1) INTO @new_ValueFlow
+    END QUERY
+   END DEBUG
+   DEBUG "ValueFlow(x,y) :- \n   ValueFlow(x,z),\n   ValueFlow(z,y).\nin file cspa.dl [25:1-25:53]"
+    QUERY
+     FOR t0 IN ValueFlow
+      IF (NOT ISEMPTY(ValueFlow))
+       FOR t1 IN @delta_ValueFlow
+        IF (NOT ISEMPTY(@delta_ValueFlow))
+         IF (t0.1 = t1.0)
+          IF (NOT (t0.0,t1.1) IN ValueFlow)
+           INSERT (t0.0, t1.1) INTO @new_ValueFlow
+    END QUERY
+   END DEBUG
+   DEBUG "ValueFlow(x,y) :- \n   assign(x,z),\n   MemoryAlias(z,y).\nin file cspa.dl [27:1-27:52]"
+    QUERY
+     FOR t0 IN assign
+      IF (NOT ISEMPTY(assign))
+       FOR t1 IN @delta_MemoryAlias
+        IF (NOT ISEMPTY(@delta_MemoryAlias))
+         IF (t0.1 = t1.0)
+          IF (NOT (t0.0,t1.1) IN ValueFlow)
+           INSERT (t0.0, t1.1) INTO @new_ValueFlow
+    END QUERY
+   END DEBUG
+   EXIT ((ISEMPTY(@new_MemoryAlias) AND ISEMPTY(@new_ValueAlias)) AND ISEMPTY(@new_ValueFlow))
+   QUERY
+    FOR t0 IN @new_MemoryAlias
+     INSERT (t0.0, t0.1) INTO MemoryAlias
+   END QUERY
+   SWAP (@delta_MemoryAlias, @new_MemoryAlias)
+   CLEAR @new_MemoryAlias
+   QUERY
+    FOR t0 IN @new_ValueAlias
+     INSERT (t0.0, t0.1) INTO ValueAlias
+   END QUERY
+   SWAP (@delta_ValueAlias, @new_ValueAlias)
+   CLEAR @new_ValueAlias
+   QUERY
+    FOR t0 IN @new_ValueFlow
+     INSERT (t0.0, t0.1) INTO ValueFlow
+   END QUERY
+   SWAP (@delta_ValueFlow, @new_ValueFlow)
+   CLEAR @new_ValueFlow
+   ASSIGN VARIABLE(loop_counter) := (VARIABLE(loop_counter)+UNSIGNED(1))
+  END LOOP
+  CLEAR @delta_MemoryAlias
+  CLEAR @new_MemoryAlias
+  CLEAR @delta_ValueAlias
+  CLEAR @new_ValueAlias
+  CLEAR @delta_ValueFlow
+  CLEAR @new_ValueFlow
+  IO MemoryAlias (IO="stdoutprintsize",attributeNames="src\tdest",auxArity="0",name="MemoryAlias",operation="printsize",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  IO ValueAlias (IO="stdoutprintsize",attributeNames="src\tdest",auxArity="0",name="ValueAlias",operation="printsize",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  IO ValueAlias (IO="file",attributeNames="src\tdest",auxArity="0",name="ValueAlias",operation="output",output-dir=".",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  IO ValueFlow (IO="stdoutprintsize",attributeNames="src\tdest",auxArity="0",name="ValueFlow",operation="printsize",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  IO ValueFlow (IO="file",attributeNames="src\tdest",auxArity="0",name="ValueFlow",operation="output",output-dir=".",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+  CLEAR MemoryAlias
+  CLEAR ValueAlias
+  CLEAR ValueFlow
+  CLEAR assign
+  CLEAR dereference
+ END SUBROUTINE
+ SUBROUTINE assign
+  IO assign (IO="file",attributeNames="src\tdest",auxArity="0",deliminator="\t",fact-dir=".",name="assign",operation="input",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+ END SUBROUTINE
+ SUBROUTINE dereference
+  IO dereference (IO="file",attributeNames="src\tdest",auxArity="0",deliminator="\t",fact-dir=".",name="dereference",operation="input",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+ END SUBROUTINE
+ SUBROUTINE tmp
+  IO tmp (IO="stdoutprintsize",attributeNames="src\tdest",auxArity="0",name="tmp",operation="printsize",params="{\"records\": {}, \"relation\": {\"arity\": 2, \"params\": [\"src\", \"dest\"]}}",types="{\"ADTs\": {}, \"records\": {}, \"relation\": {\"arity\": 2, \"types\": [\"i:number\", \"i:number\"]}}")
+ END SUBROUTINE
+ BEGIN MAIN
+  CALL stratum_assign
+  CALL stratum_dereference
+  CALL stratum_MemoryAlias
+  CALL stratum_tmp
+ END MAIN
+END PROGRAM

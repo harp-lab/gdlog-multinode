@@ -21,6 +21,8 @@ struct MEntity {
     tuple_size_t value;
 };
 
+enum ColumnT { U64, U32 };
+
 #define EMPTY_HASH_ENTRY ULONG_MAX
 /**
  * @brief a C-style hashset indexing based relation container.
@@ -252,11 +254,12 @@ enum MonotonicOrder { DESC, ASC, UNSPEC };
  *
  */
 struct Relation {
+
+    std::string name;
     int arity;
     // the first <index_column_size> columns of a relation will be use to
     // build relation index, and only indexed columns can be used to join
     int index_column_size;
-    std::string name;
 
     // the last <dependent_column_size> will be used a dependant columns,
     // these column can be used to store recurisve aggreagtion/choice
@@ -289,9 +292,60 @@ struct Relation {
      * @param block_size
      */
     void flush_delta(int grid_size, int block_size);
+
+    Relation(){};
+
+    Relation(std::string name, int arity, int index_column_size,
+             int dependent_column_size, bool index_flag = true,
+             bool tmp_flag = false)
+        : name(name), arity(arity), index_column_size(index_column_size),
+          dependent_column_size(dependent_column_size), index_flag(index_flag),
+          tmp_flag(tmp_flag) {
+        delta = new GHashRelContainer(arity, index_column_size,
+                                      dependent_column_size, tmp_flag);
+        newt = new GHashRelContainer(arity, index_column_size,
+                                     dependent_column_size, tmp_flag);
+        full = new GHashRelContainer(arity, index_column_size,
+                                     dependent_column_size, tmp_flag);
+    };
+
+    /**
+     * @brief load data (main memory) into FULL relation, this usually called
+     * when doing input IO
+     *
+     * @param data
+     * @param data_row_size
+     * @param index_column_size
+     * @param dependent_column_size
+     * @param index_map_load_factor
+     * @param grid_size
+     * @param block_size
+     * @param gpu_data_flag
+     * @param sorted_flag
+     * @param build_index_flag
+     * @param tuples_array_flag
+     */
+    void init_relation(column_type *data, tuple_size_t data_row_size,
+                       tuple_size_t index_column_size,
+                       int dependent_column_size, float index_map_load_factor,
+                       int grid_size, int block_size,
+                       bool gpu_data_flag = false, bool sorted_flag = false,
+                       bool build_index_flag = true,
+                       bool tuples_array_flag = true) {
+        float detail_time[5];
+        // everything must have a full
+        load_relation_container(full, arity, data, data_row_size,
+                                index_column_size, dependent_column_size, 0.8,
+                                grid_size, block_size, detail_time);
+    };
+
+    void init_relation_from_file(const char *file_path,
+                                 int total_columns, char separator,
+                                 ColumnT ct, int grid_size, int block_size);
 };
 
 /**
+ * @deprecated
  * @brief load tuples to FULL relation of target relation
  *
  * @param target target relation
