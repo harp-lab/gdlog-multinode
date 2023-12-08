@@ -47,6 +47,8 @@ file(GLOB source_file_test
     "${test_dir}/sort.cu"
 )
 
+add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/MVGpuBTree")
+
 add_library(gpu_ra "${source_file_gpu_ra}")
 target_compile_features(gpu_ra PUBLIC cxx_std_20)
 set_target_properties(gpu_ra PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
