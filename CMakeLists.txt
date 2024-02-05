@@ -112,29 +112,6 @@ endfunction()
 
 rapids_cpm_rmm()
 
-# CPMAddPackage(
-#   NAME cuco
-#   GITHUB_REPOSITORY NVIDIA/cuCollections
-#   GIT_TAG dev
-#   OPTIONS
-#      "BUILD_TESTS OFF"
-#      "BUILD_BENCHMARKS OFF"
-#      "BUILD_EXAMPLES OFF"
-# )
-
-# find_package(rmm REQUIRED PATHS ${PROJECT_SOURCE_DIR}/thirdparty/rmm/cmake)
-# find_package(rmm REQUIRED)
-
-# CPMAddPackage(
-#   NAME rmm
-#   GITHUB_REPOSITORY rapidsai/rmm
-#   GIT_TAG v24.04.00a
-#   OPTIONS
-#     "BUILD_TESTS OFF"
-#     "BUILD_BENCHMARKS OFF"
-#     "BUILD_EXAMPLES OFF"
-# )
-
 set(gpu_ra_src "${PROJECT_SOURCE_DIR}/src")
 set(gpu_ra_include "${PROJECT_SOURCE_DIR}/include")
 set(test_dir "${PROJECT_SOURCE_DIR}/test")
