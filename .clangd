@@ -3,6 +3,9 @@ CompileFlags:
     - -forward-unknown-to-host-compiler
     - -rdc=true
     - --generate-code*
+    - --expt-relaxed-constexpr
+    - --expt-extended-lambda
+    - --default-stream
   Add:
     - -xcuda
     - -std=c++20
