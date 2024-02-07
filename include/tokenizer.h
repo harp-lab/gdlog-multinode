@@ -59,12 +59,10 @@ class Tokenizer {
     public:
         Tokenizer(const std::string &input);
         Token next_token();
-        std::string token_string() const;
-        int token_int() const;
+        Token peak();
         void expect(Token expected);
-        void expect(const std::string &expected);
-        void expect(int expected);
         void expect_eof();
+        size_t get_pos() const;
 
 private:
         const std::string &input;

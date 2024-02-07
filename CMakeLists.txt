@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 project(gdlog LANGUAGES CXX CUDA)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+
 if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/gdlog_RAPIDS.cmake)
     file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-24.04/RAPIDS.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/gdlog_RAPIDS.cmake)
@@ -145,6 +147,7 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_src}/acopy.cu"
     "${gpu_ra_src}/join.cu"
     "${gpu_ra_src}/tokenizer.cpp"
+    "${gpu_ra_src}/ast.cpp"
 )
 
 file(GLOB source_file_tc

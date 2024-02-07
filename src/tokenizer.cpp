@@ -1,4 +1,5 @@
 #include "../include/tokenizer.h"
+#include <format>
 #include <stdexcept>
 
 namespace datalog {
@@ -17,6 +18,21 @@ Token Tokenizer::next_token() {
         return Token(TokenType::END, "");
     }
     char c = input[pos];
+    if (c == '"') {
+        token_start = pos;
+        pos++;
+        while (pos < input.size() && input[pos] != '"') {
+            pos++;
+        }
+        if (pos == input.size()) {
+            throw std::runtime_error(
+                std::format("At {} unexpected end of string", pos));
+        }
+        token_end = pos;
+        pos++;
+        return Token(TokenType::STRING,
+                     input.substr(token_start, token_end - token_start));
+    }
     while (is_whitespace(c)) {
         pos++;
         if (pos == input.size()) {
@@ -81,21 +97,10 @@ Token Tokenizer::next_token() {
             pos++;
             return Token(TokenType::NE, "!=");
         } else {
-            throw std::runtime_error("unexpected character");
+            // print what is unexpected character
+            throw std::runtime_error(
+                std::format("At {} unexpected character : {}", pos, c));
         }
-    } else if (c == '"') {
-        token_start = pos;
-        pos++;
-        while (pos < input.size() && input[pos] != '"') {
-            pos++;
-        }
-        if (pos == input.size()) {
-            throw std::runtime_error("unterminated string");
-        }
-        token_end = pos;
-        pos++;
-        return Token(TokenType::STRING,
-                     input.substr(token_start, token_end - token_start));
     } else if (c == 'r' && pos + 1 < input.size() && input[pos + 1] == 'e' &&
                pos + 2 < input.size() && input[pos + 2] == 'l' &&
                pos + 3 < input.size() && input[pos + 3] == 'a' &&
@@ -116,15 +121,43 @@ Token Tokenizer::next_token() {
     } else if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
         token_start = pos;
         while (pos < input.size() && (input[pos] >= 'a' && input[pos] <= 'z' ||
-                                      input[pos] >= 'A' && input[pos] <= 'Z')) {
+                                      input[pos] >= 'A' && input[pos] <= 'Z' ||
+                                      input[pos] >= '0' && input[pos] <= '9' ||
+                                      input[pos] == '_' || input[pos] == '-' ||
+                                      input[pos] == '.' || input[pos] == '/')) {
             pos++;
         }
         token_end = pos;
         return Token(TokenType::IDENTIFIER,
                      input.substr(token_start, token_end - token_start));
     } else {
-        throw std::runtime_error("unexpected character");
+        throw std::runtime_error(
+            std::format("At {} unexpected character : {}", pos, c));
     }
+}
+
+void Tokenizer::expect(Token expected) {
+    Token token = next_token();
+    if (token.type != expected.type || token.str != expected.str) {
+        throw std::runtime_error(
+            std::format("At {} expected token {} but got {}", pos, expected.str,
+                        token.str));
+    }
+}
+
+void Tokenizer::expect_eof() {
+    Token token = next_token();
+    if (token.type != TokenType::END) {
+        throw std::runtime_error(std::format(
+            "At {} expected end of file but got {}", pos, token.str));
+    }
+}
+
+Token Tokenizer::peak() {
+    size_t old_pos = pos;
+    Token token = next_token();
+    pos = old_pos;
+    return token;
 }
 
 } // namespace datalog
