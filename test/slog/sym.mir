@@ -1,0 +1,114 @@
+/slog/out/sym.slog 1:
+[((rel-arity $rule1-inter-body 2 db) Diff EA) <--
+  (= $_5 ((rel-arity next_address_in_data 2 db) EA EA_next))
+  (= $_6 ((rel-arity - 3 comp) EA_next EA Diff))]
+[((rel-arity $rule1-inter-body13 2 db) Diff EA) <--
+  (= $_79 ((rel-arity $rule1-inter-body12 3 db) Diff $/_res EA))
+  (= $_68 ((rel-arity $rule1-inter-body1 1 db) $/_res))]
+[((rel-arity $rule1-inter-body1 1 db) $/_res) <--
+  (= $_3 ((rel-arity == 2 db) $/_res $=0))
+  (= $_42 ((rel-arity = 2 comp) $=0 0))]
+[((rel-arity $rule1-inter-body10 2 db) Diff EA) <--
+  (= $_70 ((rel-arity $rule1-inter-body3 1 db) t2))
+  (= $_76 ((rel-arity $rule1-inter-body9 3 db) Diff t2 EA))]
+[((rel-arity $rule1-inter-body4 1 db) t1) <--
+  (= $_9 ((rel-arity code 1 db) Dest2))
+  (= $_8 ((rel-arity address_in_data_refined 2 db) t1 Dest2))]
+[((rel-arity $rule1-inter-body12 3 db) Diff $/_res EA) <--
+  (= $_78 ((rel-arity $rule1-inter-body11 2 db) $/_res EA))
+  (= $_77 ((rel-arity $rule1-inter-body10 2 db) Diff EA))]
+[((rel-arity $rule1-inter-body11 2 db) $/_res EA) <--
+  (= $_4 ((rel-arity / 3 comp) EA 8 $/_res))
+  (= $_74 ((rel-arity $rule1-inter-body7 1 db) EA))]
+[((rel-arity $rule1-inter-body5 4 db) Diff t1 $*_res EA) <--
+  (= $_11 ((rel-arity * 3 comp) 2 Diff $*_res))
+  (= $_69 ((rel-arity $rule1-inter-body2 3 db) Diff t1 EA))]
+[((rel-arity $rule1-inter-body2 3 db) Diff t1 EA) <--
+  (= $_67 ((rel-arity $rule1-inter-body 2 db) Diff EA))
+  (= $_7 ((rel-arity + 3 comp) EA Diff t1))]
+[((rel-arity $rule1-inter-body9 3 db) Diff t2 EA) <--
+  (= $_71 ((rel-arity $rule1-inter-body4 1 db) t1))
+  (= $_75 ((rel-arity $rule1-inter-body8 4 db) Diff t2 t1 EA))]
+[((rel-arity $rule1-inter-body3 1 db) t2) <--
+  (= $_14 ((rel-arity code 1 db) Dest3))
+  (= $_13 ((rel-arity address_in_data_refined 2 db) t2 Dest3))]
+[((rel-arity $rule1-inter-body7 1 db) EA) <--
+  (= $_1 ((rel-arity address_in_data_refined 2 db) EA Dest1))
+  (= $_2 ((rel-arity code 1 db) Dest1))]
+[((rel-arity $rule1-inter-body8 4 db) Diff t2 t1 EA) <--
+  (= $_12 ((rel-arity next_address_in_data 2 db) t1 t2))
+  (= $_73 ((rel-arity $rule1-inter-body6 4 db) Diff t2 t1 EA))]
+[((rel-arity address_array_aux 4 db) EA Diff $const1 EA) <--
+  (= $_82 ((rel-arity $rule1-inter-body13 2 db) Diff EA))
+  (= $_43 ((rel-arity = 2 comp) $const1 code))]
+[((rel-arity $rule1-inter-body6 4 db) Diff t2 t1 EA) <--
+  (= $_72 ((rel-arity $rule1-inter-body5 4 db) Diff t1 $*_res EA))
+  (= $_10 ((rel-arity + 3 comp) EA $*_res t2))]
+------------------------------------------------------
+/slog/out/sym.slog 2:
+[((rel-arity $rule2-inter-body1 1 db) $/_res1) <--
+  (= $_40 ((rel-arity = 2 comp) $=0 0))
+  (= $_18 ((rel-arity == 2 db) $/_res1 $=0))]
+[((rel-arity $rule2-inter-body10 5 db) Diff Dest1 Dest2 Dest3 EA) <--
+  (= $_53 ((rel-arity $rule2-inter-body9 6 db) Dest1 $/_res1 Diff Dest2 Dest3 EA))
+  (= $_45 ((rel-arity $rule2-inter-body1 1 db) $/_res1))]
+[((rel-arity $rule2-inter-body16 8 db) Begin End Diff $const Dest1 Dest2 Dest3 EA) <--
+  (= $_36 ((rel-arity <= 2 comp) Dest3 End))
+  (= $_59 ((rel-arity $rule2-inter-body15 8 db) Begin End Diff $const Dest1 Dest2 Dest3 EA))]
+[((rel-arity $rule2-inter-body19 6 db) Begin Diff $const Dest1 Dest2 EA) <--
+  (= $_62 ((rel-arity $rule2-inter-body18 7 db) Begin End Diff $const Dest1 Dest2 EA))
+  (= $_34 ((rel-arity <= 2 comp) Dest2 End))]
+[((rel-arity $rule2-inter-body8 3 db) Dest1 $/_res1 EA) <--
+  (= $_16 ((rel-arity address_in_data_refined 2 db) EA Dest1))
+  (= $_19 ((rel-arity / 3 comp) EA 8 $/_res1))]
+[((rel-arity $rule2-inter-body18 7 db) Begin End Diff $const Dest1 Dest2 EA) <--
+  (= $_61 ((rel-arity $rule2-inter-body17 7 db) Begin End Diff $const Dest1 Dest2 EA))
+  (= $_32 ((rel-arity <= 2 comp) Dest1 End))]
+[((rel-arity $rule2-inter-body9 6 db) Dest1 $/_res1 Diff Dest2 Dest3 EA) <--
+  (= $_51 ((rel-arity $rule2-inter-body7 4 db) Diff Dest2 Dest3 EA))
+  (= $_52 ((rel-arity $rule2-inter-body8 3 db) Dest1 $/_res1 EA))]
+[((rel-arity $rule2-inter-body5 4 db) Diff t2 t1 EA) <--
+  (= $_27 ((rel-arity next_address_in_data 2 db) t1 t2))
+  (= $_48 ((rel-arity $rule2-inter-body4 4 db) Diff t2 t1 EA))]
+[((rel-arity address_array_aux 4 db) EA Diff $const EA) <--
+  (= $_66 ((rel-arity $rule2-inter-body20 5 db) Begin Diff $const Dest2 EA))
+  (= $_33 ((rel-arity <= 2 comp) Begin Dest2))]
+[((rel-arity $rule2-inter-body13 5 db) Diff Dest1 Dest2 Dest3 EA) <--
+  (= $_56 ((rel-arity $rule2-inter-body12 5 db) Diff Dest1 Dest2 Dest3 EA))
+  (= $_17 ((rel-arity data_byte 2 db) Dest1 $_37))]
+[((rel-arity $rule2-inter-body17 7 db) Begin End Diff $const Dest1 Dest2 EA) <--
+  (= $_60 ((rel-arity $rule2-inter-body16 8 db) Begin End Diff $const Dest1 Dest2 Dest3 EA))
+  (= $_35 ((rel-arity <= 2 comp) Begin Dest3))]
+[((rel-arity $rule2-inter-body11 5 db) Diff Dest1 Dest2 Dest3 EA) <--
+  (= $_54 ((rel-arity $rule2-inter-body10 5 db) Diff Dest1 Dest2 Dest3 EA))
+  (= $_24 ((rel-arity data_byte 2 db) Dest2 $_38))]
+[((rel-arity $rule2-inter-body12 5 db) Diff Dest1 Dest2 Dest3 EA) <--
+  (= $_29 ((rel-arity data_byte 2 db) Dest3 $_39))
+  (= $_55 ((rel-arity $rule2-inter-body11 5 db) Diff Dest1 Dest2 Dest3 EA))]
+[((rel-arity $rule2-inter-body 2 db) Diff EA) <--
+  (= $_21 ((rel-arity - 3 comp) EA_next EA Diff))
+  (= $_20 ((rel-arity next_address_in_data 2 db) EA EA_next))]
+[((rel-arity $rule2-inter-body2 3 db) Diff t1 EA) <--
+  (= $_44 ((rel-arity $rule2-inter-body 2 db) Diff EA))
+  (= $_22 ((rel-arity + 3 comp) EA Diff t1))]
+[((rel-arity $rule2-inter-body3 4 db) Diff $*_res1 t1 EA) <--
+  (= $_46 ((rel-arity $rule2-inter-body2 3 db) Diff t1 EA))
+  (= $_26 ((rel-arity * 3 comp) 2 Diff $*_res1))]
+[((rel-arity $rule2-inter-body4 4 db) Diff t2 t1 EA) <--
+  (= $_47 ((rel-arity $rule2-inter-body3 4 db) Diff $*_res1 t1 EA))
+  (= $_25 ((rel-arity + 3 comp) EA $*_res1 t2))]
+[((rel-arity $rule2-inter-body20 5 db) Begin Diff $const Dest2 EA) <--
+  (= $_31 ((rel-arity <= 2 comp) Begin Dest1))
+  (= $_63 ((rel-arity $rule2-inter-body19 6 db) Begin Diff $const Dest1 Dest2 EA))]
+[((rel-arity $rule2-inter-body15 8 db) Begin End Diff $const Dest1 Dest2 Dest3 EA) <--
+  (= $_57 ((rel-arity $rule2-inter-body13 5 db) Diff Dest1 Dest2 Dest3 EA))
+  (= $_58 ((rel-arity $rule2-inter-body14 3 db) Begin End $const))]
+[((rel-arity $rule2-inter-body7 4 db) Diff Dest2 Dest3 EA) <--
+  (= $_28 ((rel-arity address_in_data_refined 2 db) t2 Dest3))
+  (= $_50 ((rel-arity $rule2-inter-body6 4 db) Diff t2 Dest2 EA))]
+[((rel-arity $rule2-inter-body14 3 db) Begin End $const) <--
+  (= $_30 ((rel-arity data_segment 2 db) Begin End))
+  (= $_41 ((rel-arity = 2 comp) $const data))]
+[((rel-arity $rule2-inter-body6 4 db) Diff t2 Dest2 EA) <--
+  (= $_23 ((rel-arity address_in_data_refined 2 db) t1 Dest2))
+  (= $_49 ((rel-arity $rule2-inter-body5 4 db) Diff t2 t1 EA))]
