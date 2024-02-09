@@ -1,13 +1,17 @@
 #include <iostream>
+#include <vector>
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
 #include <thrust/scan.h>
-#include <thrust/unique.h>
+#include <thrust/unique.h>  
+
 
 #include "../include/exception.cuh"
 #include "../include/print.cuh"
 #include "../include/relational_algebra.cuh"
 #include "../include/timer.cuh"
+
+
 
 void RelationalJoin::operator()() {
 
@@ -61,7 +65,8 @@ void RelationalJoin::operator()() {
     checkCuda(cudaMemset(result_counts_array, 0,
                          outer->tuple_counts * sizeof(tuple_size_t)));
 
-    // print_tuple_rows(outer, "inber");
+
+
     // checkCuda(cudaDeviceSynchronize());
     timer.start_timer();
     checkCuda(cudaDeviceSynchronize());

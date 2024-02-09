@@ -76,11 +76,15 @@ void test_tokenizer() {
 void test_parser() {
     std::string input =
         "("
-        "((relation foo (column1 int) (column int)))"
-        "[(foo X Y) <-- (bar X Z) (baz Z Y)]"
+        "  ((relation @foo (column1 int) (column int)))"
+        "  (stratum foo_stratum"
+        "      [(foo X Y) <--"
+        "          (bar X Z) (baz Z Y)"
+        "          (let W (+ X 1))"
+        "          (< W 10)])"
         ")";
     datalog::Parser parser(input);
-    datalog::ASTNode *node = parser.parse();
+    datalog::DatalogASTNode *node = parser.parse();
     assert(node->type == datalog::ASTNodeType::DATALOG_PROGRAM);
     datalog::DatalogProgram *program = dynamic_cast<datalog::DatalogProgram *>(node);
     assert(program->relation_definitions->size() == 1);
@@ -91,7 +95,11 @@ void test_parser() {
     datalog::ColumnDefinition *column1 = dynamic_cast<datalog::ColumnDefinition *>(relation_definition->columns->at(0));
     assert(column1->name == "column1");
     assert(column1->type == "int");
-    datalog::HornClause *horn_clause = dynamic_cast<datalog::HornClause *>(program->clauses->at(0));
+
+    datalog::Stratum *stratum = dynamic_cast<datalog::Stratum *>(program->stratums->at(0));
+    assert(stratum->name == "foo_stratum");
+    assert(stratum->horn_clauses->size() == 1);
+    datalog::HornClause *horn_clause = dynamic_cast<datalog::HornClause *>(stratum->horn_clauses->at(0));
     assert(horn_clause->head->name == "foo");
     assert(horn_clause->head->arguments->size() == 2);
     assert(horn_clause->body->size() == 2);
@@ -101,6 +109,19 @@ void test_parser() {
     relation_clause = dynamic_cast<datalog::RelationClause *>(horn_clause->body->at(1));
     assert(relation_clause->name == "baz");
     assert(relation_clause->arguments->size() == 3);
+
+    datalog::ArithmeticClause *arithmetic_clause = dynamic_cast<datalog::ArithmeticClause *>(horn_clause->body->at(2));
+    assert(arithmetic_clause->op == datalog::ArithmeticOp::ADD);
+    assert(arithmetic_clause->left->type == datalog::ASTNodeType::IDENTIFIER);
+    assert(arithmetic_clause->right->type == datalog::ASTNodeType::CONSTANT);
+    assert(arithmetic_clause->right->value == 1);
+
+    datalog::Constraint *constraint = dynamic_cast<datalog::Constraint *>(horn_clause->body->at(3));
+    assert(constraint->op == datalog::ComparisonOp::LT);
+    assert(constraint->left->type == datalog::ASTNodeType::IDENTIFIER);
+    assert(constraint->right->type == datalog::ASTNodeType::CONSTANT);
+    assert(constraint->right->value == 10);
+
     std::cout << "Parser Test Passed" << std::endl;
 }
 
