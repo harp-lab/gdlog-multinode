@@ -1,0 +1,68 @@
+
+.type address <: unsigned
+
+.decl address_array_aux(EA:address,Distance:unsigned,type:symbol,InitialEA:address)
+.output address_array_aux
+
+.decl address_in_data_refined(EA:address,Val:address)
+.input address_in_data_refined
+
+.decl next_address_in_data(EA:address,EA_next:address)
+.input next_address_in_data
+
+.decl data_segment(Begin:address,End:address)
+.input data_segment
+
+.decl code(ea:address)
+.input code
+
+.decl data_byte(ea:address,byte:unsigned)
+.input data_byte
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+address_array_aux(EA,Diff,"code",EA):-
+    address_in_data_refined(EA,Dest1),code(Dest1),
+    // ddress_in_data_refined(1,0) Join Code(0)
+    // => tmp1(EA, Dest1)
+    EA % 8 = 0,
+    // filter tmp1 [0] % 8 = 0
+    next_address_in_data(EA,EA_next),
+    // tmp1(0, 1) join next_address_in_data(0, 1)
+    // => tmp2(EA, EA_next)
+    Diff = EA_next-EA,
+    // => 
+    address_in_data_refined(EA+Diff,Dest2),code(Dest2),
+    next_address_in_data(EA+Diff,EA+(2*Diff)),
+    address_in_data_refined(EA+(2*Diff),Dest3),code(Dest3).
+
+
+address_array_aux(EA,Diff,"data",EA):-
+    address_in_data_refined(EA,Dest1),data_byte(Dest1,_),
+    EA % 8 = 0,
+    next_address_in_data(EA,EA_next),
+    Diff = EA_next-EA,
+    address_in_data_refined(EA+Diff,Dest2),data_byte(Dest2,_),
+    next_address_in_data(EA+Diff,EA+(2*Diff)),
+    address_in_data_refined(EA+(2*Diff),Dest3),data_byte(Dest3,_),
+    data_segment(Begin,End),
+    // a pointer array pointing to data, should point to the same section
+    Begin <= Dest1, Dest1 <= End,
+    Begin <= Dest2, Dest2 <= End,
+    Begin <= Dest3, Dest3 <= End.
+
+
+address_array_aux(EA+Diff,Diff,"code",InitialEA):-
+    address_array_aux(EA,Diff,"code",InitialEA),
+    next_address_in_data(EA,EA+Diff),
+    address_in_data_refined(EA+Diff,Dest),code(Dest).
+
+address_array_aux(EA+Diff,Diff,"data",InitialEA):-
+    address_array_aux(EA,Diff,"data",InitialEA),
+    address_in_data_refined(EA,Dest1),
+    next_address_in_data(EA,EA+Diff),
+    address_in_data_refined(EA+Diff,Dest2),data_byte(Dest2,_),
+    data_segment(Begin,End),
+    // a pointer array pointing to data, should point to the same section
+    Begin <= Dest1, Dest1 <= End,
+    Begin <= Dest2, Dest2 <= End.

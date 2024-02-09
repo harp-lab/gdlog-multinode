@@ -31,6 +31,7 @@ enum class TokenType {
     LARROW,
     IDENTIFIER,
     INT,
+    LET,
     STRING,
     EQ,
     NE,
@@ -51,26 +52,66 @@ struct Token {
     int value;
 };
 
-// define whitespace
+/**
+ * @brief Checks if a token is a comparison token.
+ * @param token The token to check.
+ * @return True if the token is a comparison token, false otherwise.
+ */
+bool is_comparison_token(Token &token);
+
+/**
+ * @brief Checks if a character is a whitespace character.
+ * @param c The character to check.
+ * @return True if the character is a whitespace character, false otherwise.
+ */
 bool is_whitespace(char c);
 
-// tokenize class
+/**
+ * @brief The Tokenizer class for tokenizing input strings.
+ */
 class Tokenizer {
     public:
+        /**
+         * @brief Constructs a Tokenizer object with the given input string.
+         * @param input The input string to tokenize.
+         */
         Tokenizer(const std::string &input);
-        Token next_token();
-        Token peak();
-        void expect(Token expected);
-        void expect_eof();
-        size_t get_pos() const;
 
-private:
+        /**
+         * @brief Retrieves the next token from the input string.
+         * @return The next token.
+         */
+        Token next_token();
+
+        /**
+         * @brief Retrieves the nth token from the input string without consuming it.
+         * @param n The index of the token to retrieve.
+         * @return The nth token.
+         */
+        Token peak(int n = 0);
+
+        /**
+         * @brief Expects the next token to be equal to the specified expected token.
+         * @param expected The expected token.
+         */
+        void expect(Token expected);
+
+        /**
+         * @brief Expects the end of the input string.
+         */
+        void expect_eof();
+
+        /**
+         * @brief Retrieves the current position in the input string.
+         * @return The current position.
+         */
+        size_t get_pos() const { return pos; };
+
+    private:
         const std::string &input;
         size_t pos;
         size_t token_start;
         size_t token_end;
-
 };
-
 
 } // namespace datalog
