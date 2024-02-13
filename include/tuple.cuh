@@ -1,6 +1,7 @@
 #pragma once
 // #include <cuda_runtime.h>
 #include <functional>
+#include <nvfunctional>
 
 using u64 = unsigned long long;
 using u32 = unsigned long;
@@ -20,14 +21,38 @@ using tuple_size_t = u64;
  */
 using t_data_internal = u64 *;
 
-typedef void (*tuple_generator_hook)(tuple_type, tuple_type, tuple_type);
+// typedef void (*tuple_generator_hook)(tuple_type, tuple_type, tuple_type);
 typedef void (*tuple_copy_hook)(tuple_type, tuple_type);
+// using tuple_copy_hook = nvstd::function<void(tuple_type, tuple_type)>;
 typedef bool (*tuple_predicate)(tuple_type);
 
-// struct tuple_generator_hook {
-//     __host__ __device__
-//     void operator()(tuple_type inner, tuple_type outer, tuple_type newt) {};
-// };
+
+struct TupleGenerator {
+    int reorder_map[10];
+    int arity;
+    int inner_arity;
+
+    TupleGenerator(int arity, int inner_arity, std::vector<int> &map) {
+        this->arity = arity;
+        this->inner_arity = inner_arity;
+        for (int i = 0; i < arity; i++) {
+            reorder_map[i] = map[i];
+        }
+    }
+
+    __host__ __device__ void operator()(tuple_type inner, tuple_type outer,
+                                        tuple_type result) {
+        for (int i = 0; i < arity; i++) {
+            if (reorder_map[i] < inner_arity) {
+                result[i] = inner[reorder_map[i]];
+            } else {
+                result[i] = outer[reorder_map[i] - inner_arity];
+            }
+        }
+    }
+};
+
+// using tuple_generator_hook = nvstd::function<void(tuple_type, tuple_type, tuple_type)>;
 
 /**
  * @brief TODO: remove this use comparator function

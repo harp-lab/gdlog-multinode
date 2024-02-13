@@ -9,6 +9,9 @@
 #include <thrust/sort.h>
 #include <thrust/unique.h>
 
+
+// 
+
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
     tuple_size_t index = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -148,80 +151,11 @@ __global__ void init_tuples_unsorted(tuple_type *tuples, column_type *raw_data,
     }
 }
 
-__global__ void get_join_result_size2(GHashRelContainer *inner_table,
-                                     GHashRelContainer *outer_table1,
-                                     GHashRelContainer *outertable2,
-                                     int join_column_counts,
-                                     tuple_generator_hook tp_gen,
-                                     tuple_predicate tp_pred,
-                                     tuple_size_t *join_result_size) {
-    u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= outer_table1->tuple_counts)
-        return;
-    u64 stride = blockDim.x * gridDim.x;
-
-    for (tuple_size_t i = index; i < outer_table1->tuple_counts; i += stride) {
-        tuple_type outer_tuple = outer_table1->tuples[i];
-
-        tuple_size_t current_size = 0;
-        join_result_size[i] = 0;
-        u64 hash_val = prefix_hash(outer_tuple, outer_table1->index_column_size);
-        // the index value "pointer" position in the index hash table
-        tuple_size_t index_position = hash_val % inner_table->index_map_size;
-        bool index_not_exists = false;
-        while (true) {
-            if (inner_table->index_map[index_position].key == hash_val &&
-                tuple_eq(
-                    outer_tuple,
-                    inner_table
-                        ->tuples[inner_table->index_map[index_position].value],
-                    outer_table1->index_column_size)) {
-                break;
-            } else if (inner_table->index_map[index_position].key ==
-                       EMPTY_HASH_ENTRY) {
-                index_not_exists = true;
-                break;
-            }
-            index_position = (index_position + 1) % inner_table->index_map_size;
-        }
-        if (index_not_exists) {
-            continue;
-        }
-        // pull all joined elements
-        tuple_size_t position = inner_table->index_map[index_position].value;
-        while (true) {
-            tuple_type cur_inner_tuple = inner_table->tuples[position];
-            bool cmp_res = tuple_eq(inner_table->tuples[position], outer_tuple,
-                                    join_column_counts);
-            if (cmp_res) {
-                // hack to apply filter
-                // TODO: this will cause max arity of a relation is 20
-                if (tp_gen != nullptr && tp_pred != nullptr) {
-                    column_type tmp[20] = {0};
-                    (*tp_gen)(cur_inner_tuple, outer_tuple, tmp);
-                    if ((*tp_pred)(tmp)) {
-                        current_size++;
-                    }
-                } else {
-                    current_size++;
-                }
-            } else {
-                break;
-            }
-            position = position + 1;
-            if (position > inner_table->tuple_counts - 1) {
-                // end of data arrary
-                break;
-            }
-        }
-        join_result_size[i] = current_size;
-    }
-}
-
+// template <typename tp_gen_t>
 __global__ void get_join_result_size(GHashRelContainer *inner_table,
                                      GHashRelContainer *outer_table,
                                      int join_column_counts,
-                                     tuple_generator_hook tp_gen,
+                                     TupleGenerator tp_gen,
                                      tuple_predicate tp_pred,
                                      tuple_size_t *join_result_size) {
     u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -265,9 +199,9 @@ __global__ void get_join_result_size(GHashRelContainer *inner_table,
             if (cmp_res) {
                 // hack to apply filter
                 // TODO: this will cause max arity of a relation is 20
-                if (tp_gen != nullptr && tp_pred != nullptr) {
+                if (tp_pred != nullptr) {
                     column_type tmp[20] = {0};
-                    (*tp_gen)(cur_inner_tuple, outer_tuple, tmp);
+                    tp_gen(cur_inner_tuple, outer_tuple, tmp);
                     if ((*tp_pred)(tmp)) {
                         current_size++;
                     }
@@ -287,9 +221,10 @@ __global__ void get_join_result_size(GHashRelContainer *inner_table,
     }
 }
 
+// template <typename tp_gen_t>
 __global__ void
 get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
-                int join_column_counts, tuple_generator_hook tp_gen,
+                int join_column_counts, TupleGenerator tp_gen,
                 tuple_predicate tp_pred, int output_arity,
                 column_type *output_raw_data, tuple_size_t *res_count_array,
                 tuple_size_t *res_offset, JoinDirection direction) {
@@ -345,15 +280,15 @@ get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
 
                 // for (int j = 0; j < output_arity; j++) {
                 // TODO: this will cause max arity of a relation is 20
-                if (tp_gen != nullptr && tp_pred != nullptr) {
+                if (tp_pred != nullptr) {
                     column_type tmp[20];
-                    (*tp_gen)(inner_tuple, outer_tuple, tmp);
+                    tp_gen(inner_tuple, outer_tuple, tmp);
                     if ((*tp_pred)(tmp)) {
-                        (*tp_gen)(inner_tuple, outer_tuple, new_tuple);
+                        tp_gen(inner_tuple, outer_tuple, new_tuple);
                         current_new_tuple_cnt++;
                     }
                 } else {
-                    (*tp_gen)(inner_tuple, outer_tuple, new_tuple);
+                    tp_gen(inner_tuple, outer_tuple, new_tuple);
                     current_new_tuple_cnt++;
                 }
                 if (current_new_tuple_cnt > res_count_array[i]) {
@@ -398,7 +333,7 @@ __global__ void get_copy_result(tuple_type *src_tuples,
     int stride = blockDim.x * gridDim.x;
     for (tuple_size_t i = index; i < tuple_counts; i += stride) {
         tuple_type dest_tp = dest_raw_data + output_arity * i;
-        (*tp_gen)(src_tuples[i], dest_tp);
+        tp_gen(src_tuples[i], dest_tp);
     }
 }
 

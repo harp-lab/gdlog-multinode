@@ -1,0 +1,65 @@
+
+; address_array_aux(EA,Diff,"code",EA):-
+;     address_in_data_refined(EA,Dest1),code(Dest1),
+;     // ddress_in_data_refined(1,0) Join Code(0)
+;     // => tmp1(EA, Dest1)
+;     EA % 8 = 0,
+;     // filter tmp1 [0] % 8 = 0
+;     next_address_in_data(EA,EA_next),
+;     // tmp1(0, 1) join next_address_in_data(0, 1)
+;     // => tmp2(EA, EA_next)
+;     Diff = EA_next-EA,
+;     // => 
+;     address_in_data_refined(EA+Diff,Dest2),code(Dest2),
+;     next_address_in_data(EA+Diff,EA+(2*Diff)),
+;     address_in_data_refined(EA+(2*Diff),Dest3),code(Dest3).
+
+
+[(address_array_aux EA Diff "code" EA) <--
+    (address_in_data_refined EA Dest1)
+    (code Dest1)
+    (== {/ EA 8} 0)
+    (next_address_in_data EA EA_next)
+    (= Diff {- EA_next EA})
+    (= t1 {+ EA Diff})
+    (address_in_data_refined t1 Dest2)
+    (code Dest2)
+    (= t2 {+ EA {* 2 Diff}})
+    (next_address_in_data t1 t2)
+    (address_in_data_refined t2 Dest3)
+    (code Dest3)]
+
+; address_array_aux(EA,Diff,"data",EA):-
+;     address_in_data_refined(EA,Dest1),data_byte(Dest1,_),
+;     EA % 8 = 0,
+;     next_address_in_data(EA,EA_next),
+;     Diff = EA_next-EA,
+;     address_in_data_refined(EA+Diff,Dest2),data_byte(Dest2,_),
+;     next_address_in_data(EA+Diff,EA+(2*Diff)),
+;     address_in_data_refined(EA+(2*Diff),Dest3),data_byte(Dest3,_),
+;     data_segment(Begin,End),
+;     // a pointer array pointing to data, should point to the same section
+;     Begin <= Dest1, Dest1 <= End,
+;     Begin <= Dest2, Dest2 <= End,
+;     Begin <= Dest3, Dest3 <= End.
+
+[(address_array_aux EA Diff "data" EA) <--
+    (address_in_data_refined EA Dest1)
+    (data_byte Dest1 _)
+    (== {/ EA 8} 0)
+    (next_address_in_data EA EA_next)
+    (= Diff {- EA_next EA})
+    (= t1 {+ EA Diff})
+    (address_in_data_refined t1 Dest2)
+    (data_byte Dest2 _)
+    (= t2 {+ EA {* 2 Diff}})
+    (next_address_in_data t1 t2)
+    (address_in_data_refined t2 Dest3)
+    (data_byte Dest3 _)
+    (data_segment Begin End)
+    (<= Begin Dest1)
+    (<= Dest1 End)
+    (<= Begin Dest2)
+    (<= Dest2 End)
+    (<= Begin Dest3)
+    (<= Dest3 End)]

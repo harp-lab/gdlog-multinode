@@ -196,7 +196,16 @@ void DatalogToMirVisitor::visit(datalog::RelationDefinition &node) {
     // name starts with @ is input relation
     relation->is_input = node.name[0] == '@';
     // init to true, change to false when it appears in a rule's head
-    relation->is_static = true;
+    relation->is_static = false;
+    for (auto &sr_pair : static_relations) {
+        auto stratum = sr_pair.first;
+        auto &static_relation_list = sr_pair.second;
+        if (std::find(static_relation_list.begin(), static_relation_list.end(),
+                      node.name) != static_relation_list.end()) {
+            relation->is_static = true;
+            break;
+        }
+    }
     // every relation start with a canonical index
     relation->indices = new MirNodeList();
     // a canonical index is a sequence of 0, 1, 2, 3, ... arity - 1
@@ -220,21 +229,30 @@ DatalogToMirVisitor::meta_var_in_clause(datalog::DatalogASTNode *node) {
         auto dl_body_clause = static_cast<datalog::Constraint *>(node);
         auto left = static_cast<datalog::MetaVariable *>(dl_body_clause->left);
         meta_vars.push_back(left->name);
-        meta_vars
-
+        auto right = dl_body_clause->right;
+        if (right->type == datalog::DatalogASTNodeType::META_VARIABLE) {
+            auto mv = static_cast<datalog::MetaVariable *>(right);
+            meta_vars.push_back(mv->name);
+        }
     } else if (node->type ==
                datalog::DatalogASTNodeType::ARITHMETIC_EXPRESSION) {
         auto dl_body_clause =
             static_cast<datalog::ArithmeticExpression *>(node);
         auto left = static_cast<datalog::MetaVariable *>(dl_body_clause->left);
-        auto right =
-            static_cast<datalog::MetaVariable *>(dl_body_clause->right);
+        // no need to collect meta var in left, as it must be in the output
+        auto right = dl_body_clause->right;
+        if (right->type == datalog::DatalogASTNodeType::META_VARIABLE) {
+            auto mv = static_cast<datalog::MetaVariable *>(right);
+            meta_vars.push_back(mv->name);
+        }
     } else if (node->type == datalog::DatalogASTNodeType::META_VARIABLE) {
         auto dl_body_clause = static_cast<datalog::MetaVariable *>(node);
-        current_body_meta_vars[node].push_back(dl_body_clause->name);
+        // current_body_meta_vars[node].push_back(dl_body_clause->name);
+        current_body_meta_vars.push_back(std::make_tuple(node, meta_vars));
     } else if (node->type == datalog::DatalogASTNodeType::CONSTANT) {
         // pass
     }
+    return meta_vars;
 }
 
 void DatalogToMirVisitor::visit(datalog::HornClause &node) {
@@ -247,18 +265,11 @@ void DatalogToMirVisitor::visit(datalog::HornClause &node) {
     current_rule->output = current_output_relation;
 
     auto total_input_clause_count = node.body->nodes.size();
-
     // collect meta vars in each body clause
     for (int i = 0; i < total_input_clause_count; i++) {
         auto body_clause = node.body->nodes[i];
-        if (body_clause->type == datalog::DatalogASTNodeType::RELATION_CLAUSE) {
-            auto dl_body_clause =
-                static_cast<datalog::RelationClause *>(body_clause);
-            for (auto &arg : dl_body_clause->variables->nodes) {
-                current_body_meta_vars[body_clause].push_back(
-                    static_cast<datalog::MetaVariable *>(arg)->name);
-            }
-        }
+        current_body_meta_vars.push_back(
+            std::make_tuple(body_clause, meta_var_in_clause(body_clause)));
     }
 
     // compile each body clause
@@ -284,13 +295,22 @@ void DatalogToMirVisitor::visit(datalog::RelationClause &node) {
             current_output_meta_vars.push_back(mv->name);
         }
         // mark the output relation as non-static
-        current_output_relation->is_static = false;
+        // current_output_relation->is_static = false;
         // mark it as updated in the current stratum
         current_stratum->updated_relations.push_back(current_output_relation);
     }
 
     auto total_input_clause_count = current_body_meta_vars.size();
-    auto cur_meta_var = current_body_meta_vars[&node];
+    // find cur_meta_var in list current_body_meta_vars
+    bool found_input_clause = false;
+    std::vector<std::string> cur_meta_var;
+    for (auto &input_clause : current_body_meta_vars) {
+        if (std::get<0>(input_clause) == &node) {
+            found_input_clause = true;
+            cur_meta_var = std::get<1>(input_clause);
+            break;
+        }
+    }
     if (tmp_left_relation == nullptr && total_input_clause_count == 1) {
         // a body clause, and this is the only one, interepret as a project
         // operation
@@ -321,10 +341,33 @@ void DatalogToMirVisitor::visit(datalog::RelationClause &node) {
         if (tmp_left_relation == nullptr) {
             std::runtime_error(std::format("relation {} not found", node.name));
         }
+
         // mark it as input relation in current rule
         current_rule->input_relations.push_back(tmp_left_relation);
+        std::vector<int> indexed_column_pos_list;
         // compute the index by refering to set interset will all meta var used
         // later
+        for (size_t i = 0; i < current_body_meta_vars.size(); i++) {
+            auto clasue_mv_pair = current_body_meta_vars[i];
+            auto clause = std::get<0>(clasue_mv_pair);
+            auto clause_meta_vars = std::get<1>(clasue_mv_pair);
+            if (clause == &node) {
+                for (size_t j = i + 1; j < current_body_meta_vars.size(); j++) {
+                    auto later_clasue_mv_pair = current_body_meta_vars[j];
+                    auto later_clause = std::get<0>(later_clasue_mv_pair);
+                    auto later_clause_meta_vars = std::get<1>(later_clasue_mv_pair);
+                    for (auto mv : clause_meta_vars) {
+                        auto pos = std::find(later_clause_meta_vars.begin(),
+                                             later_clause_meta_vars.end(), mv);
+                        if (pos != later_clause_meta_vars.end()) {
+                            // column used in join/ RA operation later
+                            // mark it as an indexed column
+                            indexed_column_pos_list.push_back(i);
+                        }
+                    }
+                }  
+            }
+        }
 
     } else if (tmp_left_relation != nullptr &&
                current_clause_pos != total_input_clause_count) {
@@ -337,6 +380,59 @@ void DatalogToMirVisitor::visit(datalog::MetaVariable &node) {
     auto col = new MirColumnMetaVar(node.name);
     current_meta_var = col;
     // current_meta_var_list.push_back(col);
+}
+
+
+void DatalogRelationVisitor::visit(datalog::RelationClause &node) {
+    if (processing_input_relation) {
+        // visiting the input relation of a horn clause
+        // check if this rule has already been mark as static or dynamic
+        bool static_huh = std::find(static_relations[current_stratum].begin(),
+                      static_relations[current_stratum].end(), node.name) !=
+            static_relations[current_stratum].end();
+        bool dynamic_huh = std::find(dynamic_relations[current_stratum].begin(),
+                      dynamic_relations[current_stratum].end(), node.name) !=
+            dynamic_relations[current_stratum].end();
+        if (dynamic_huh) {
+            return;
+        } else if (static_huh) {
+            return;
+        } else {
+            static_relations[current_stratum].push_back(node.name);
+        }
+    } else {
+        // visiting the output relation of a horn clause
+        auto place_in_static = std::find(static_relations[current_stratum].begin(),
+                      static_relations[current_stratum].end(), node.name);
+        auto place_in_dynamic = std::find(dynamic_relations[current_stratum].begin(),
+                      dynamic_relations[current_stratum].end(), node.name);
+        if (place_in_dynamic != dynamic_relations[current_stratum].end()) {
+            return;
+        } else if (place_in_static != static_relations[current_stratum].end()) {
+            static_relations[current_stratum].erase(place_in_static);
+            dynamic_relations[current_stratum].push_back(node.name);
+        } else {
+            dynamic_relations[current_stratum].push_back(node.name);
+        }
+    }
+}
+
+void DatalogRelationVisitor::visit(datalog::HornClause &node) {
+    processing_input_relation = true;
+    for (auto &body_clause : node.body->nodes) {
+        body_clause->accept(*this);
+    }
+    processing_input_relation = false;
+    node.head->accept(*this);
+}
+
+void DatalogRelationVisitor::visit(datalog::DatalogProgram &node) {
+    for (auto &stratum : node.stratums->nodes) {
+        current_stratum = static_cast<datalog::Stratum *>(stratum)->name;
+        static_relations[current_stratum] = std::vector<std::string>();
+        dynamic_relations[current_stratum] = std::vector<std::string>();
+        stratum->accept(*this);
+    }
 }
 
 } // namespace mir

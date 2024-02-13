@@ -29,6 +29,7 @@ enum class TokenType {
     LPRACKET,
     RPRACKET,
     LARROW,
+    STRATUM,
     IDENTIFIER,
     INT,
     LET,

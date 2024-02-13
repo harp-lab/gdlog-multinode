@@ -289,6 +289,42 @@ class MirVisitor {
     virtual void visit(MirNodeList &node) = 0;
 };
 
+
+// a datalog ast visitor to collect all relation and stratum
+// marke relations as static or dynamic
+class DatalogRelationVisitor : public datalog::DatalogASTVisitor {
+  public:
+    DatalogRelationVisitor() {};
+
+    void visit(datalog::DatalogASTNodeList &node) override;
+    void visit(datalog::ColumnDefinition &node) override {};
+    void visit(datalog::RelationDefinition &node) override {};
+    void visit(datalog::HornClause &node) override;
+    void visit(datalog::MetaVariable &node) override {};
+    void visit(datalog::Constant &node) override {};
+    void visit(datalog::ArithmeticExpression &node) override {};
+    void visit(datalog::Constraint &node) override {};
+    void visit(datalog::RelationClause &node) override;
+    void visit(datalog::Stratum &node) override;
+    void visit(datalog::DatalogProgram &node) override;
+ 
+    std::map<std::string, std::vector<std::string>> get_static_relations() {
+        return static_relations;
+    }
+
+    std::map<std::string, std::vector<std::string>> get_dynamic_relations() {
+        return dynamic_relations;
+    }
+
+  private:
+    std::map<std::string, std::vector<std::string>> static_relations;
+    std::map<std::string, std::vector<std::string>> dynamic_relations;
+
+    bool processing_input_relation = false;
+    std::string current_stratum;
+};
+
+
 // a datalog ast visitor to convert datalog into mir
 class DatalogToMirVisitor : public datalog::DatalogASTVisitor {
   public:
@@ -312,8 +348,9 @@ class DatalogToMirVisitor : public datalog::DatalogASTVisitor {
     MirProgram *program = nullptr;
     MirRelation *current_relation = nullptr;
     MirRule::input_streams_t current_rule_streams;
-    std::vector<MirNode *> current_rule_static_relations;
-    std::vector<MirNode *> *current_rule_dynamic_relations;
+    std::map<std::string, std::vector<std::string>> static_relations;
+    std::map<std::string, std::vector<std::string>> dynamic_relations;
+
     // tmp for stratum under processing
     MirScc *current_stratum = nullptr;
     // buffer for current node list
@@ -326,7 +363,7 @@ class DatalogToMirVisitor : public datalog::DatalogASTVisitor {
     int current_clause_pos = 0;
     MirRelation *current_output_relation = nullptr;
     std::vector<std::string> current_output_meta_vars;
-    std::map<datalog::DatalogASTNode *, std::vector<std::string>>
+    std::vector<std::tuple<datalog::DatalogASTNode *, std::vector<std::string>>>
         current_body_meta_vars;
 
     // fo metavar under processing

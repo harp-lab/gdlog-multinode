@@ -17,6 +17,8 @@ ARG PASS="gdlog"
 RUN useradd -m -s /bin/bash $USER && echo "$USER:$PASS" | chpasswd
 USER gdlog
 
+# install mpich
+RUN apt update && apt install -y mpich
 
 COPY --chown=gdlog:gdlog . /opt/gdlog
 WORKDIR /opt/gdlog

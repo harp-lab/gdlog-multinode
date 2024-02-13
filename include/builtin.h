@@ -55,6 +55,7 @@ struct TupleFilter {
                 }
             }
         }
+        return result;
     };
 
     int arity;

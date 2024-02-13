@@ -28,12 +28,14 @@ struct RelationalJoin {
     // the relation to store the generated join result
     Relation *output_rel;
     // hook function will be mapped on every join result tuple
-    tuple_generator_hook tuple_generator;
+    TupleGenerator tuple_generator;
     // filter to be applied on every join result tuple
     tuple_predicate tuple_pred;
 
     // TODO: reserved for optimization
     JoinDirection direction;
+    std::vector<int> reorder_map;
+
     int grid_size;
     int block_size;
 
@@ -45,7 +47,7 @@ struct RelationalJoin {
 
     RelationalJoin(Relation *inner_rel, RelationVersion inner_ver,
                    Relation *outer_rel, RelationVersion outer_ver,
-                   Relation *output_rel, tuple_generator_hook tp_gen,
+                   Relation *output_rel, TupleGenerator tp_gen,
                    tuple_predicate tp_pred, JoinDirection direction,
                    int grid_size, int block_size, float *detail_time)
         : inner_rel(inner_rel), inner_ver(inner_ver), outer_rel(outer_rel),
