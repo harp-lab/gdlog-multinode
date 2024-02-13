@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
-#include <format>
 #include <iostream>
 
 namespace mir {
@@ -318,7 +317,7 @@ void DatalogToMirVisitor::visit(datalog::RelationClause &node) {
         project->output = current_output_relation;
         tmp_left_relation = find_relation_by_name(node.name);
         if (tmp_left_relation == nullptr) {
-            std::runtime_error(std::format("relation {} not found", node.name));
+            std::runtime_error("relation " + node.name + " not found");
         }
 
         project->input = tmp_left_relation;
@@ -327,8 +326,7 @@ void DatalogToMirVisitor::visit(datalog::RelationClause &node) {
         for (auto mv : current_output_meta_vars) {
             auto pos = std::find(cur_meta_var.begin(), cur_meta_var.end(), mv);
             if (pos == cur_meta_var.end()) {
-                std::runtime_error(std::format(
-                    "meta var {} not found in relation {}", mv, node.name));
+                std::runtime_error("meta var " + mv + " not found in relation " + node.name);
             }
             project->reorder_columns.push_back(
                 std::distance(cur_meta_var.begin(), pos));
@@ -339,7 +337,7 @@ void DatalogToMirVisitor::visit(datalog::RelationClause &node) {
         // mark it as current left
         tmp_left_relation = find_relation_by_name(node.name);
         if (tmp_left_relation == nullptr) {
-            std::runtime_error(std::format("relation {} not found", node.name));
+            std::runtime_error("relation " + node.name + " not found");
         }
 
         // mark it as input relation in current rule

@@ -1,5 +1,4 @@
 #include "../include/tokenizer.h"
-#include <format>
 #include <stdexcept>
 
 namespace datalog {
@@ -32,7 +31,7 @@ Token Tokenizer::next_token() {
         }
         if (pos == input.size()) {
             throw std::runtime_error(
-                std::format("At {} unexpected end of string", pos));
+                "At " + std::to_string(pos) + " unexpected end of string");
         }
         token_end = pos;
         pos++;
@@ -107,7 +106,7 @@ Token Tokenizer::next_token() {
         } else {
             // print what is unexpected character
             throw std::runtime_error(
-                std::format("At {} unexpected character : {}", pos, c));
+                "At " + std::to_string(pos) + " unexpected character : " + c);
         }
     } else if (c == 'r' && pos + 1 < input.size() && input[pos + 1] == 'e' &&
                pos + 2 < input.size() && input[pos + 2] == 'l' &&
@@ -152,7 +151,7 @@ Token Tokenizer::next_token() {
                      input.substr(token_start, token_end - token_start));
     } else {
         throw std::runtime_error(
-            std::format("At {} unexpected character : {}", pos, c));
+            "At " + std::to_string(pos) + " unexpected character : " + c);
     }
 }
 
@@ -160,16 +159,17 @@ void Tokenizer::expect(Token expected) {
     Token token = next_token();
     if (token.type != expected.type || token.str != expected.str) {
         throw std::runtime_error(
-            std::format("At {} expected token {} but got {}", pos, expected.str,
-                        token.str));
+            "At " + std::to_string(pos) + " expected token " + expected.str +
+            " but got " + token.str);
     }
 }
 
 void Tokenizer::expect_eof() {
     Token token = next_token();
     if (token.type != TokenType::END) {
-        throw std::runtime_error(std::format(
-            "At {} expected end of file but got {}", pos, token.str));
+        throw std::runtime_error(
+            "At " + std::to_string(pos) + " expected end of file but got " +
+            token.str);
     }
 }
 
