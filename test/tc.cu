@@ -58,12 +58,6 @@ column_type *get_relation_from_file(const char *file_path, int total_rows,
 
 //////////////////////////////////////////////////////////////////
 
-__device__ void reorder_path(tuple_type inner, tuple_type outer,
-                             tuple_type newt) {
-    newt[0] = inner[1];
-    newt[1] = outer[1];
-};
-
 void analysis_bench(const char *dataset_path, int block_size, int grid_size) {
     KernelTimer timer;
     int relation_columns = 2;

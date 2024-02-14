@@ -221,7 +221,6 @@ __global__ void get_join_result_size(GHashRelContainer *inner_table,
     }
 }
 
-// template <typename tp_gen_t>
 __global__ void
 get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
                 int join_column_counts, TupleGenerator tp_gen,
