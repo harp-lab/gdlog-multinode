@@ -1,4 +1,5 @@
 #pragma once
+#include "builtin.h"
 #include "relation.cuh"
 #include "tuple.cuh"
 #include <thrust/host_vector.h>
@@ -83,6 +84,23 @@ struct RelationalCopy {
     void operator()();
 };
 
+struct RelationalFilter {
+    Relation *src_rel;
+    RelationVersion src_ver;
+    TupleFilter tuple_pred;
+
+    int grid_size;
+    int block_size;
+    bool copied = false;
+
+    RelationalFilter(Relation *src, RelationVersion src_ver,
+                     TupleFilter tuple_pred, int grid_size, int block_size)
+        : src_rel(src), src_ver(src_ver), tuple_pred(tuple_pred),
+          grid_size(grid_size), block_size(block_size) {}
+
+    void operator()();
+};
+
 /**
  * @brief Relation Algebra kernel for sync up different indices of the same
  * relation. This RA operator must be added in the end of each SCC, it will
@@ -112,8 +130,9 @@ struct RelationalACopy {
 
 /**
  * @brief possible RA types
- * 
+ *
  */
-using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy>;
+using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
+                           RelationalFilter>;
 
-enum RAtypes { JOIN, COPY, ACOPY };
+enum RAtypes { JOIN, COPY, ACOPY, FILTER };

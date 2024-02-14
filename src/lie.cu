@@ -57,9 +57,10 @@ void LIE::fixpoint_loop() {
         checkCuda(cudaDeviceSynchronize());
         // std::cout << "wwwwwwwwww" << rel->delta->tuple_counts << std::endl;
     }
-
     while (true) {
         for (auto &ra_op : ra_ops) {
+            // std::cout << "Iteration " << iteration_counter
+            //           << " start RA operation" << std::endl;
             timer.start_timer();
             std::visit(dynamic_dispatch{[](RelationalJoin &op) {
                                             // timer.start_timer();
@@ -75,7 +76,8 @@ void LIE::fixpoint_loop() {
                                             } else {
                                                 op();
                                             }
-                                        }},
+                                        },
+                                        [](RelationalFilter &op) { op(); }},
                        ra_op);
             timer.stop_timer();
             join_time += timer.get_spent_time();
