@@ -102,6 +102,29 @@ struct RelationalFilter {
 };
 
 /**
+ * @brief Relation Algerbra kernal for ARITHMETIC
+ *  This operator will apply arithmetic operation on every tuple in src relation
+ */
+struct RelationalArithm {
+    Relation *src_rel;
+    RelationVersion src_ver;
+    TupleArithmetic tuple_generator;
+
+    int grid_size;
+    int block_size;
+    bool copied = false;
+
+    RelationalArithm(Relation *src, RelationVersion src_ver,
+                   TupleArithmetic tuple_generator,
+                   int grid_size, int block_size)
+        : src_rel(src), src_ver(src_ver),
+          tuple_generator(tuple_generator),
+          grid_size(grid_size), block_size(block_size) {}
+
+    void operator()();
+};
+
+/**
  * @brief Relation Algebra kernel for sync up different indices of the same
  * relation. This RA operator must be added in the end of each SCC, it will
  * directly change the DELTA version of dest relation
@@ -135,4 +158,4 @@ struct RelationalACopy {
 using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
                            RelationalFilter>;
 
-enum RAtypes { JOIN, COPY, ACOPY, FILTER };
+enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM};

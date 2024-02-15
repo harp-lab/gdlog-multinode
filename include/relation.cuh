@@ -70,6 +70,8 @@ struct GHashRelContainer {
                       int dependent_column_size, bool tmp_flag = false)
         : arity(arity), index_column_size(indexed_column_size),
           dependent_column_size(dependent_column_size), tmp_flag(tmp_flag){};
+
+    void sort();
 };
 
 enum JoinDirection { LEFT, RIGHT };
