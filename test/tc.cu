@@ -38,17 +38,17 @@ column_type *get_relation_from_file(const char *file_path, int total_rows,
         for (int j = 0; j < total_columns; j++) {
             if (j != (total_columns - 1)) {
                 if (ct == U64) {
-                    fscanf(data_file, "%lld%c", &data[(i * total_columns) + j],
+                    fscanf(data_file, "%ld%c", &data[(i * total_columns) + j],
                            &separator);
                 } else {
-                    fscanf(data_file, "%ld%c", &data[(i * total_columns) + j],
+                    fscanf(data_file, "%u%c", &data[(i * total_columns) + j],
                            &separator);
                 }
             } else {
                 if (ct == U64) {
-                    fscanf(data_file, "%lld", &data[(i * total_columns) + j]);
-                } else {
                     fscanf(data_file, "%ld", &data[(i * total_columns) + j]);
+                } else {
+                    fscanf(data_file, "%u", &data[(i * total_columns) + j]);
                 }
             }
         }
@@ -58,7 +58,8 @@ column_type *get_relation_from_file(const char *file_path, int total_rows,
 
 //////////////////////////////////////////////////////////////////
 
-void analysis_bench(const char *dataset_path, int block_size, int grid_size) {
+void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
+    const char *dataset_path = argv[1];
     KernelTimer timer;
     int relation_columns = 2;
     std::chrono::high_resolution_clock::time_point time_point_begin;
@@ -68,19 +69,19 @@ void analysis_bench(const char *dataset_path, int block_size, int grid_size) {
 
     // load the raw graph
     tuple_size_t graph_edge_counts = get_row_size(dataset_path);
-    std::cout << "Input graph rows: " << graph_edge_counts << std::endl;
+    // std::cout << "Input graph rows: " << graph_edge_counts << std::endl;
     // u64 graph_edge_counts = 2100;
     column_type *raw_graph_data =
         get_relation_from_file(dataset_path, graph_edge_counts, 2, '\t', U32);
+    // std::cout << "reversing graph ... " << graph_edge_counts * 2 * sizeof(column_type) << std::endl;
     column_type *raw_reverse_graph_data =
         (column_type *)malloc(graph_edge_counts * 2 * sizeof(column_type));
 
-    std::cout << "reversing graph ... " << std::endl;
     for (tuple_size_t i = 0; i < graph_edge_counts; i++) {
         raw_reverse_graph_data[i * 2 + 1] = raw_graph_data[i * 2];
         raw_reverse_graph_data[i * 2] = raw_graph_data[i * 2 + 1];
     }
-    std::cout << "finish reverse graph." << std::endl;
+    // std::cout << "finish reverse graph." << std::endl;
 
     timer.start_timer();
     Relation *edge_2__2_1 = new Relation();
@@ -88,43 +89,50 @@ void analysis_bench(const char *dataset_path, int block_size, int grid_size) {
     Relation *path_2__1_2 = new Relation();
     path_2__1_2->index_flag = false;
     // cudaMallocHost((void **)&path_2__1_2, sizeof(Relation));
-    std::cout << "edge size " << graph_edge_counts << std::endl;
+    // std::cout << "edge size " << graph_edge_counts << std::endl;
     load_relation(path_2__1_2, "path_2__1_2", 2, raw_graph_data,
                   graph_edge_counts, 1, 0, grid_size, block_size);
     load_relation(edge_2__2_1, "edge_2__2_1", 2, raw_reverse_graph_data,
                   graph_edge_counts, 1, 0, grid_size, block_size);
     timer.stop_timer();
     // double kernel_spent_time = timer.get_spent_time();
-    std::cout << "Build hash table time: " << timer.get_spent_time()
-              << std::endl;
+    // std::cout << "Build hash table time: " << timer.get_spent_time()
+    //           << std::endl;
 
     timer.start_timer();
+    Communicator comm;
+    comm.init(argc, argv);
     LIE tc_scc(grid_size, block_size);
+    tc_scc.set_communicator(&comm);
+
     tc_scc.reload_full_flag = false;
     tc_scc.add_relations(edge_2__2_1, true);
     tc_scc.add_relations(path_2__1_2, false);
     float join_detail[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
     std::vector<int> join_order = {1, 3};
     TupleGenerator tp1_hook(2, 2, join_order);
-    tc_scc.add_ra(RelationalJoin(
-        edge_2__2_1, FULL, path_2__1_2, DELTA, path_2__1_2, tp1_hook,
-        nullptr, LEFT, grid_size, block_size, join_detail));
+    tc_scc.add_ra(RelationalJoin(edge_2__2_1, FULL, path_2__1_2, DELTA,
+                                 path_2__1_2, tp1_hook, nullptr, LEFT,
+                                 grid_size, block_size, join_detail));
 
     tc_scc.fixpoint_loop();
-
     timer.stop_timer();
-    std::cout << "Path counts " << path_2__1_2->full->tuple_counts << std::endl;
-    // print_tuple_rows(path_2__2_1->full, "full");
-    std::cout << "TC time: " << timer.get_spent_time() << std::endl;
-    std::cout << "join detail: " << std::endl;
-    std::cout << "compute size time:  " << join_detail[0] << std::endl;
-    std::cout << "reduce + scan time: " << join_detail[1] << std::endl;
-    std::cout << "fetch result time:  " << join_detail[2] << std::endl;
-    std::cout << "sort time:          " << join_detail[3] << std::endl;
-    std::cout << "build index time:   " << join_detail[5] << std::endl;
-    std::cout << "merge time:         " << join_detail[6] << std::endl;
-    std::cout << "unique time:        " << join_detail[4] + join_detail[7]
-              << std::endl;
+
+    int total_tuples = path_2__1_2->full->tuple_counts;
+    total_tuples = comm.reduceSumTupleSize(total_tuples);
+    if (comm.getRank() == 0) {
+        std::cout << "Path counts " << total_tuples << std::endl;
+        std::cout << "TC time: " << timer.get_spent_time() << std::endl;
+        std::cout << "join detail: " << std::endl;
+        std::cout << "compute size time:  " << join_detail[0] << std::endl;
+        std::cout << "reduce + scan time: " << join_detail[1] << std::endl;
+        std::cout << "fetch result time:  " << join_detail[2] << std::endl;
+        std::cout << "sort time:          " << join_detail[3] << std::endl;
+        std::cout << "build index time:   " << join_detail[5] << std::endl;
+        std::cout << "merge time:         " << join_detail[6] << std::endl;
+        std::cout << "unique time:        " << join_detail[4] + join_detail[7]
+                  << std::endl;
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -133,14 +141,14 @@ int main(int argc, char *argv[]) {
     cudaGetDevice(&device_id);
     cudaDeviceGetAttribute(&number_of_sm, cudaDevAttrMultiProcessorCount,
                            device_id);
-    std::cout << "num of sm " << number_of_sm << std::endl;
-    std::cout << "using " << EMPTY_HASH_ENTRY << " as empty hash entry"
-              << std::endl;
+    // std::cout << "num of sm " << number_of_sm << std::endl;
+    // std::cout << "using " << EMPTY_HASH_ENTRY << " as empty hash entry"
+    //           << std::endl;
     int block_size, grid_size;
     block_size = 512;
     grid_size = 32 * number_of_sm;
     std::locale loc("");
 
-    analysis_bench(argv[1], block_size, grid_size);
+    analysis_bench(argc, argv, block_size, grid_size);
     return 0;
 }

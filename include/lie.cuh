@@ -1,5 +1,8 @@
 #pragma once
 #include "relational_algebra.cuh"
+
+#include "comm.h"
+
 #include <climits>
 #include <vector>
 
@@ -29,6 +32,10 @@ struct LIE {
     bool reload_full_flag = true;
     int max_iteration = INT_MAX;
 
+    Communicator *mcomm;
+
+    bool verbose_log = false;
+
     LIE(int grid_size, int block_size)
         : grid_size(grid_size), block_size(block_size) {}
 
@@ -50,16 +57,23 @@ struct LIE {
 
     /**
      * @brief add a temporary relation (a relation only have DELTA/NEWT)
-     * 
-     * @param rel 
+     *
+     * @param rel
      */
     void add_tmp_relation(Relation *rel);
 
     /**
      * @brief add a Relation Algebra operation
-     * 
-     * @param op 
+     *
+     * @param op
      */
     void add_ra(ra_op op);
     // void ra(ra_op op);
+
+    void init_communicator(int argc, char **argv) { mcomm->init(argc, argv); }
+
+    void set_communicator(Communicator *comm) { mcomm = comm; }
+
+    // distribute full relations to all node
+    void redistribute_full_relations();
 };

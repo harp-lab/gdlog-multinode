@@ -18,15 +18,16 @@ void print_hashes(GHashRelContainer *target, const char *rel_name) {
     cudaFreeHost(host_map);
 }
 
-void print_tuple_rows(GHashRelContainer* target, const char *rel_name) {
+void print_tuple_rows(GHashRelContainer* target, const char *rel_name, bool sort) {
     // sort first
     tuple_type* natural_ordered;
     cudaMalloc((void**) &natural_ordered, target->tuple_counts * sizeof(tuple_type));
     cudaMemcpy(natural_ordered, target->tuples, target->tuple_counts * sizeof(tuple_type),
                cudaMemcpyDeviceToDevice);
-    thrust::sort(thrust::device, natural_ordered, natural_ordered+target->tuple_counts,
-                 tuple_weak_less(target->arity));
-
+    if (sort) {
+        thrust::sort(thrust::device, natural_ordered, natural_ordered+target->tuple_counts,
+                     tuple_weak_less(target->arity));
+    }
     tuple_type* tuples_host;
     cudaMallocHost((void**) &tuples_host, target->tuple_counts * sizeof(tuple_type));
     cudaMemcpy(tuples_host, natural_ordered, target->tuple_counts * sizeof(tuple_type),

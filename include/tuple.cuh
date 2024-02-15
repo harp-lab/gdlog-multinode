@@ -2,24 +2,25 @@
 // #include <cuda_runtime.h>
 #include <functional>
 #include <nvfunctional>
+#include <cstdint>
 
 using u64 = unsigned long long;
 using u32 = unsigned long;
 
-using column_type = u32;
+#ifndef USE_64_BIT_TUPLE
+using column_type = uint32_t;
+#else
+using column_type = uint64_t;
+#endif
 using tuple_type = column_type *;
-using tuple_size_t = u64;
+using tuple_size_t = unsigned long long;
+
+#define EMPTY_HASH_ENTRY UINT64_MAX
+#define MAX_ARITY 10
 
 // TODO: use thrust vector as tuple type??
 // using t_gpu_index = thrust::device_vector<u64>;
 // using t_gpu_tuple = thrust::device_vector<u64>;
-
-// using t_data_internal = thrust::device_vector<u64>;
-/**
- * @brief u64* to store the actual relation tuples, for serialize concern
- *
- */
-using t_data_internal = u64 *;
 
 // typedef void (*tuple_generator_hook)(tuple_type, tuple_type, tuple_type);
 typedef void (*tuple_copy_hook)(tuple_type, tuple_type);

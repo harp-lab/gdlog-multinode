@@ -21,10 +21,10 @@ struct MEntity {
     // index position in actual index_arrary
     u64 key;
     // tuple position in actual data_arrary
-    tuple_size_t value;
+    u64 value;
 };
 
-#define EMPTY_HASH_ENTRY ULONG_MAX
+
 /**
  * @brief a C-style hashset indexing based relation container.
  *        Actual data is still stored using sorted set.
@@ -70,6 +70,21 @@ struct GHashRelContainer {
                       int dependent_column_size, bool tmp_flag = false)
         : arity(arity), index_column_size(indexed_column_size),
           dependent_column_size(dependent_column_size), tmp_flag(tmp_flag){};
+
+    // TODO: impl this
+    void reconstruct();
+
+    // sort the tuple entries in the container
+    void sort();
+
+    // remove duplicate tuples
+    void dedup();
+
+    // reload data into the container (this won't sort/dedup and rebuild index)
+    void reload(column_type *data, tuple_size_t data_row_size);
+
+    // TODO: impl this, move construct hash table logic into this function
+    void build_index(int grid_size, int block_size);
 };
 
 enum JoinDirection { LEFT, RIGHT };
@@ -83,16 +98,6 @@ enum JoinDirection { LEFT, RIGHT };
  */
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp);
-
-/**
- * @brief count how many non empty hash entry in index map
- *
- * @param target target relation hash table
- * @param size return the size
- * @return __global__
- */
-__global__ void count_index_entry_size(GHashRelContainer *target,
-                                       tuple_size_t *size);
 
 /**
  * @brief rehash to make index map more compact, the new index hash size is

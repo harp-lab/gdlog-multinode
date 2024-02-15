@@ -6,11 +6,14 @@
 #include "../include/tuple.cuh"
 #include <chrono>
 #include <iostream>
+#include <thrust/device_vector.h>
+#include <thrust/execution_policy.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/merge.h>
 #include <thrust/sort.h>
+#include <thrust/transform.h>
 #include <thrust/unique.h>
-
-
-// 
+#include <mpi.h>
 
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
@@ -31,7 +34,7 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
             // critical condition!
             u64 existing_key = atomicCAS(&(target->index_map[position].key),
                                          EMPTY_HASH_ENTRY, hash_val);
-            tuple_size_t existing_value = target->index_map[position].value;
+            auto existing_value = target->index_map[position].value;
             if (existing_key == EMPTY_HASH_ENTRY || existing_key == hash_val) {
                 bool collison_flag = false;
                 while (true) {
@@ -69,7 +72,7 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
                         // need swap
                         existing_value =
                             atomicCAS(&(target->index_map[position].value),
-                                      existing_value, i);
+                                      existing_value, (unsigned long long)i);
                     }
                 }
                 if (!collison_flag) {
@@ -78,20 +81,6 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
             }
 
             position = (position + 1) % target->index_map_size;
-        }
-    }
-}
-
-__global__ void count_index_entry_size(GHashRelContainer *target,
-                                       tuple_size_t *size) {
-    u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= target->index_map_size)
-        return;
-
-    u64 stride = blockDim.x * gridDim.x;
-    for (tuple_size_t i = index; i < target->index_map_size; i += stride) {
-        if (target->index_map[i].value != EMPTY_HASH_ENTRY) {
-            atomicAdd(size, 1);
         }
     }
 }
@@ -414,6 +403,16 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     // std::cout << "malloc time : " << timer.get_spent_time() << std::endl;
     detail_time[0] = timer.get_spent_time();
 
+    // get current rank
+    // int rank;
+    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // if (rank == 1) {
+    //     std::cout << ">>>>>>>>> rank 1 : "
+    //               << " delta size : " << delta->tuple_counts
+    //               << " delta arity : " << delta->arity
+    //               << " delta index column size : " << delta->index_column_size
+    //               << std::endl;
+    // }
     timer.start_timer();
     tuple_type *end_tuple_full_buf = thrust::merge(
         thrust::device, tuple_full, tuple_full + current_full_size,
@@ -770,3 +769,73 @@ void load_relation(Relation *target, std::string name, int arity,
                             index_column_size, dependent_column_size, 0.8,
                             grid_size, block_size, detail_time);
 }
+
+void GHashRelContainer::sort() {
+    thrust::sort(thrust::device, this->tuples,
+                 this->tuples + this->tuple_counts,
+                 tuple_indexed_less(this->index_column_size, arity));
+}
+
+void GHashRelContainer::dedup() {
+    tuple_type *new_end =
+        thrust::unique(thrust::device, this->tuples,
+                       this->tuples + this->tuple_counts, t_equal(this->arity));
+    this->tuple_counts = new_end - this->tuples;
+}
+
+void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
+    if (this->data_raw != nullptr) {
+        checkCuda(cudaFree(this->data_raw));
+    }
+    data_raw = data;
+    this->data_raw_row_size = data_row_size;
+    if (this->tuples != nullptr) {
+        checkCuda(cudaFree(this->tuples));
+    }
+
+    u64 target_tuples_mem_size = data_row_size * sizeof(tuple_type);
+    checkCuda(cudaMalloc((void **)&this->tuples, target_tuples_mem_size));
+    thrust::transform(
+        thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
+        thrust::make_counting_iterator<tuple_size_t>(data_row_size),
+        this->tuples,
+        [raw_ptr = this->data_raw, arity = this->arity] __device__(
+            tuple_size_t i) -> tuple_type { return raw_ptr + i * arity; });
+    // TODO: use thrust tabulate to init tuples instead of transform
+    this->tuple_counts = data_row_size;
+}
+
+void GHashRelContainer::build_index(int grid_size, int block_size) {
+    // clear old index if exists
+    if (this->index_map != nullptr) {
+        checkCuda(cudaFree(this->index_map));
+        this->index_map = nullptr;
+    }
+    // init the index map
+    // set the size of index map same as data, (this should give us almost
+    // no conflict) however this can be memory inefficient
+    this->index_map_size =
+        std::ceil(this->tuple_counts / this->index_map_load_factor);
+    // this->index_map_size = data_row_size;
+    u64 index_map_mem_size = this->index_map_size * sizeof(MEntity);
+    checkCuda(cudaMalloc((void **)&(this->index_map), index_map_mem_size));
+    checkCuda(cudaMemset(this->index_map, 0, index_map_mem_size));
+
+    GHashRelContainer *target_device;
+    checkCuda(cudaMalloc((void **)&target_device, sizeof(GHashRelContainer)));
+    checkCuda(cudaMemcpy(target_device, this, sizeof(GHashRelContainer),
+                         cudaMemcpyHostToDevice));
+    // load inited data struct into GPU memory
+    thrust::fill(thrust::device, this->index_map,
+                 this->index_map + this->index_map_size,
+                 MEntity{EMPTY_HASH_ENTRY, EMPTY_HASH_ENTRY});
+    calculate_index_hash<<<grid_size, block_size>>>(
+        target_device,
+        tuple_indexed_less(this->index_column_size, this->arity));
+    checkCuda(cudaGetLastError());
+    checkCuda(cudaDeviceSynchronize());
+    checkCuda(cudaFree(target_device));
+
+}
+
+void GHashRelContainer::reconstruct() {}

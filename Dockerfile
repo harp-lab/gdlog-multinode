@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
+FROM nvcr.io/nvidia/nvhpc:24.1-devel-cuda_multi-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York

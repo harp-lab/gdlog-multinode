@@ -62,13 +62,13 @@ struct TupleFilter {
 
     int arity;
     int pos;
-    BinaryFilterComparison op[10];
-    int left[10];
-    int right[10];
+    BinaryFilterComparison op[MAX_ARITY];
+    int left[MAX_ARITY];
+    int right[MAX_ARITY];
 
     // init these field in constructor
-    TupleFilter(int arity, std::vector<BinaryFilterComparison> &op, std::vector<int> &left,
-                std::vector<int> &right)
+    TupleFilter(int arity, std::vector<BinaryFilterComparison> &op,
+                std::vector<int> &left, std::vector<int> &right)
         : arity(arity) {
         for (int i = 0; i < arity; i++) {
             this->op[i] = op[i];
@@ -88,7 +88,7 @@ struct TupleProjector {
     };
 
     int arity;
-    int project[10];
+    int project[MAX_ARITY];
 
     TupleProjector(int arity, int project[]) : arity(arity) {
         for (int i = 0; i < arity; i++) {
@@ -103,54 +103,72 @@ enum BinaryArithmeticOperator {
     MUL,
     DIV,
     MOD,
+    EMPTY,
 };
 
 struct TupleArithmetic {
-    __host__ __device__ tuple_type operator()(const tuple_type &left,
-                                              const tuple_type &right) {
+    __host__ __device__ tuple_type operator()(const tuple_type tuple) {
         tuple_type result;
         for (int i = 0; i < arity; i++) {
-            u64 left_v;
-            u64 right_v;
+            auto cur_op = op[i];
+            if (cur_op == BinaryArithmeticOperator::EMPTY) {
+                result[i] = tuple[i];
+                continue;
+            }
+            int left = this->left[i];
+            int right = this->right[i];
+            u64 left_v = tuple[left];
+            u64 right_v = tuple[right];
             // all value < -16 are considered as constant
-            if (left[i] >= -16) {
-                left_v = left[i];
+            if (left >= -16) {
+                left_v = tuple[left];
             } else {
-                left_v = -left[i] - 16;
+                left_v = -left - 16;
             }
-            if (right[i] >= -16) {
-                right_v = right[i];
+            if (right >= -16) {
+                right_v = tuple[right];
             } else {
-                right_v = -right[i] - 16;
+                right_v = -right - 16;
             }
-
-            switch (op[i]) {
+            switch (cur_op) {
             case BinaryArithmeticOperator::ADD:
                 result[i] = left_v + right_v;
-                break;
+                continue;
             case BinaryArithmeticOperator::SUB:
                 result[i] = left_v - right_v;
-                break;
+                continue;
             case BinaryArithmeticOperator::MUL:
                 result[i] = left_v * right_v;
-                break;
+                continue;
             case BinaryArithmeticOperator::DIV:
                 result[i] = left_v / right_v;
-                break;
+                continue;
             case BinaryArithmeticOperator::MOD:
                 result[i] = left_v % right_v;
-                break;
+                continue;
+            case BinaryArithmeticOperator::EMPTY:
+                result[i] = tuple[i];
+                continue;
             }
         }
-        return result;
+        for (int i = 0; i < arity; i++) {
+            tuple[i] = result[i];
+        }
+        return tuple;
     };
 
     int arity;
-    BinaryArithmeticOperator op[10];
+    BinaryArithmeticOperator op[MAX_ARITY];
+    int left[MAX_ARITY];
+    int right[MAX_ARITY];
 
-    TupleArithmetic(int arity, BinaryArithmeticOperator op[]) : arity(arity) {
+    TupleArithmetic(int arity, std::vector<BinaryArithmeticOperator> &op,
+                    std::vector<int> &left, std::vector<int> &right)
+        : arity(arity) {
         for (int i = 0; i < arity; i++) {
             this->op[i] = op[i];
+            this->left[i] = left[i];
+            this->right[i] = right[i];
         }
     }
 };
