@@ -10,6 +10,8 @@ using column_type = u32;
 using tuple_type = column_type *;
 using tuple_size_t = u64;
 
+#define MAX_ARITY 10
+
 // TODO: use thrust vector as tuple type??
 // using t_gpu_index = thrust::device_vector<u64>;
 // using t_gpu_tuple = thrust::device_vector<u64>;

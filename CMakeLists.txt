@@ -116,7 +116,7 @@ function(rapids_cpm_rmm)
     # rmm creates the correct namespace aliases
 endfunction()
 
-rapids_cpm_rmm()
+# rapids_cpm_rmm()
 
 
 # using test
@@ -141,6 +141,7 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_include}/timer.cuh"
     "${gpu_ra_include}/tuple.cuh"
     "${gpu_ra_include}/lie.cuh"
+    "${gpu_ra_include}/comm.cuh"
     "${gpu_ra_src}/tuple.cu"
     "${gpu_ra_src}/print.cu"
     "${gpu_ra_src}/relation.cu"
@@ -149,8 +150,10 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_src}/acopy.cu"
     "${gpu_ra_src}/join.cu"
     "${gpu_ra_src}/filter.cu"
+    "${gpu_ra_src}/arithm.cu"
     "${gpu_ra_src}/tokenizer.cpp"
     "${gpu_ra_src}/ast.cpp"
+    "${gpu_ra_src}/comm.cu"
 )
 
 file(GLOB source_file_tc
@@ -183,6 +186,7 @@ file(GLOB source_file_merge
 
 add_library(gpu_ra "${source_file_gpu_ra}")
 target_compile_features(gpu_ra PUBLIC cxx_std_20)
+target_link_libraries(gpu_ra MPI::MPI_CXX)
 set_target_properties(gpu_ra PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80;89;90")
 target_compile_options(gpu_ra PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
     -lineinfo

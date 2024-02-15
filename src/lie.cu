@@ -77,7 +77,8 @@ void LIE::fixpoint_loop() {
                                                 op();
                                             }
                                         },
-                                        [](RelationalFilter &op) { op(); }},
+                                        [](RelationalFilter &op) { op(); },
+                                        [](RelationalArithm &op) { op(); }},
                        ra_op);
             timer.stop_timer();
             join_time += timer.get_spent_time();

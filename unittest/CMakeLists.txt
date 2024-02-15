@@ -28,3 +28,15 @@ target_link_libraries(RA_TEST PRIVATE gpu_ra)
 target_compile_features(RA_TEST PRIVATE cxx_std_20)
 
 add_test(NAME RA_TEST COMMAND RA_TEST)
+
+
+add_executable(COMM_TEST src/comm_test.cu)
+target_include_directories(COMM_TEST PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(COMM_TEST PRIVATE gpu_ra)
+target_compile_features(COMM_TEST PRIVATE cxx_std_20)
+set_target_properties(COMM_TEST PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80;89;90")
+target_compile_options(COMM_TEST PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
+    -lineinfo
+    --expt-relaxed-constexpr
+    --default-stream per-thread
+    --expt-extended-lambda>)
