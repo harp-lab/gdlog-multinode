@@ -6,6 +6,12 @@
 #include <thrust/device_vector.h>
 #include "../include/relation.cuh"
 
+#ifndef USE_64_BIT_TUPLE
+#define MPI_ELEM_TYPE MPI_UINT32_T
+#else
+#define MPI_ELEM_TYPE MPI_UINT64_T
+#endif
+
 class Communicator {
 
   public:
@@ -13,10 +19,11 @@ class Communicator {
     ~Communicator();
 
     int getRank() const { return rank; }
-    int getSize() const { return size; }
+    int getSize() const { return total_rank; }
 
     void init(int argc, char **argv);
-    void barrier() { MPI_Barrier(comm); };
+    // barrier the world
+    void barrier() { MPI_Barrier(MPI_COMM_WORLD); };
 
     // distribute relation to all processes by hashing of join column
     void distribute(GHashRelContainer *rel_container);
@@ -27,7 +34,7 @@ class Communicator {
 
   private:
     int rank;
-    int size;
+    int total_rank;
     MPI_Comm comm;
     MPI_Status status;
 

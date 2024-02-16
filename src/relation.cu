@@ -31,7 +31,7 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
             // critical condition!
             u64 existing_key = atomicCAS(&(target->index_map[position].key),
                                          EMPTY_HASH_ENTRY, hash_val);
-            tuple_size_t existing_value = target->index_map[position].value;
+            auto existing_value = target->index_map[position].value;
             if (existing_key == EMPTY_HASH_ENTRY || existing_key == hash_val) {
                 bool collison_flag = false;
                 while (true) {
@@ -69,7 +69,7 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
                         // need swap
                         existing_value =
                             atomicCAS(&(target->index_map[position].value),
-                                      existing_value, i);
+                                      existing_value, (unsigned long long)i);
                     }
                 }
                 if (!collison_flag) {
@@ -82,19 +82,6 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
     }
 }
 
-__global__ void count_index_entry_size(GHashRelContainer *target,
-                                       tuple_size_t *size) {
-    u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= target->index_map_size)
-        return;
-
-    u64 stride = blockDim.x * gridDim.x;
-    for (tuple_size_t i = index; i < target->index_map_size; i += stride) {
-        if (target->index_map[i].value != EMPTY_HASH_ENTRY) {
-            atomicAdd(size, 1);
-        }
-    }
-}
 
 __global__ void shrink_index_map(GHashRelContainer *target,
                                  MEntity *old_index_map,
