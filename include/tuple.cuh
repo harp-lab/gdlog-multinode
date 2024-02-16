@@ -4,16 +4,16 @@
 #include <nvfunctional>
 #include <cstdint>
 
-using u64 = uint64_t;
-using u32 = uint32_t;
+using u64 = unsigned long long;
+using u32 = unsigned long;
 
 #ifndef USE_64_BIT_TUPLE
-using column_type = u32;
+using column_type = uint32_t;
 #else
-using column_type = u64;
+using column_type = uint64_t;
 #endif
 using tuple_type = column_type *;
-using tuple_size_t = u64;
+using tuple_size_t = unsigned long long;
 
 #define EMPTY_HASH_ENTRY UINT64_MAX
 #define MAX_ARITY 10

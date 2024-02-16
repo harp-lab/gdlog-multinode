@@ -19,7 +19,7 @@ class Communicator {
     ~Communicator();
 
     int getRank() const { return rank; }
-    int getSize() const { return total_rank; }
+    int getTotalRank() const { return total_rank; }
 
     void init(int argc, char **argv);
     // barrier the world
@@ -28,15 +28,35 @@ class Communicator {
     // distribute relation to all processes by hashing of join column
     void distribute(GHashRelContainer *rel_container);
 
+    // gather relation size from all processes
+    tuple_size_t gatherRelContainerSize(GHashRelContainer *rel_container);
+    
+    // reduce a bool from all processes
+    bool reduceBool(bool value);
+
+    // reduce a tuple_size_t from all processes
+    tuple_size_t reduceSumTupleSize(tuple_size_t value);
+
+    void enableGpuDirect() { gpu_direct_flag = true; }
+    void disableGpuDirect() { gpu_direct_flag = false; }
+
+    // predicate for gpu direct
+    bool isGpuDirect() { return gpu_direct_flag; }
+
+    // predicate for initialized
+    bool isInitialized() { return is_initialized; }
+
   int device_id;
   int grid_size;
   int block_size;
 
   private:
     int rank;
-    int total_rank;
+    int total_rank = 0;
     MPI_Comm comm;
     MPI_Status status;
+    bool gpu_direct_flag = true;
+    bool is_initialized = false;
 
     // persitent buffer avoid allocation overhead
     // send and receive buffer

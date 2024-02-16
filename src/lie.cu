@@ -62,23 +62,56 @@ void LIE::fixpoint_loop() {
             // std::cout << "Iteration " << iteration_counter
             //           << " start RA operation" << std::endl;
             timer.start_timer();
-            std::visit(dynamic_dispatch{[](RelationalJoin &op) {
-                                            // timer.start_timer();
-                                            op();
-                                        },
-                                        [](RelationalACopy &op) { op(); },
-                                        [](RelationalCopy &op) {
-                                            if (op.src_ver == FULL) {
-                                                if (!op.copied) {
-                                                    op();
-                                                    op.copied = true;
-                                                }
-                                            } else {
-                                                op();
-                                            }
-                                        },
-                                        [](RelationalFilter &op) { op(); },
-                                        [](RelationalArithm &op) { op(); }},
+            std::visit(dynamic_dispatch{
+                           [&](RelationalJoin &op) {
+                               // timer.start_timer();
+                               op();
+                               if (op.output_rel->tmp_flag) {
+                                   // if the output is tmp relation, we need
+                                   // distrubute it now
+                                   if (mcomm->isInitialized()) {
+                                       mcomm->distribute(op.output_rel->newt);
+                                   }
+                               }
+                           },
+                           [&](RelationalACopy &op) {
+                               op();
+                               if (op.dest_rel->tmp_flag) {
+                                   // if the output is tmp relation, we need
+                                   // distrubute it now
+                                   if (mcomm->isInitialized()) {
+                                       mcomm->distribute(op.dest_rel->newt);
+                                   }
+                               }
+                           },
+                           [&](RelationalCopy &op) {
+                               if (op.src_ver == FULL) {
+                                   if (!op.copied) {
+                                       op();
+                                       op.copied = true;
+                                   }
+                               } else {
+                                   op();
+                               }
+                               if (op.dest_rel->tmp_flag) {
+                                   // if the output is tmp relation, we need
+                                   // distrubute it now
+                                   if (mcomm->isInitialized()) {
+                                       mcomm->distribute(op.dest_rel->newt);
+                                   }
+                               }
+                           },
+                           [&](RelationalFilter &op) { op(); },
+                           [&](RelationalArithm &op) {
+                               op();
+                               if (op.src_rel->tmp_flag) {
+                                   // if the output is tmp relation, we need
+                                   // distrubute it now
+                                   if (mcomm->isInitialized()) {
+                                       mcomm->distribute(op.src_rel->full);
+                                   }
+                               }
+                           }},
                        ra_op);
             timer.stop_timer();
             join_time += timer.get_spent_time();
@@ -113,8 +146,66 @@ void LIE::fixpoint_loop() {
                 rel->delta->tuples = nullptr;
             }
 
+            for (int i = 0; i < mcomm->getTotalRank(); i++) {
+                if (mcomm->getRank() == i) {
+                    std::cout << "rank " << i << " ";
+                    print_tuple_rows(rel->newt, "newt before communication>>>");
+                }
+                mcomm->barrier();
+            }
+
+            if (mcomm->isInitialized()) {
+                // mutil GPU, distributed newt
+                mcomm->distribute(rel->newt);
+                // gather newt size
+            }
+
+            for (int i = 0; i < mcomm->getTotalRank(); i++) {
+                if (mcomm->getRank() == i) {
+                    std::cout << "rank " << i << " ";
+                    print_tuple_rows(rel->newt, "newt after communication>>>");
+                }
+                mcomm->barrier();
+            }
+
+            tuple_size_t newt_size = rel->newt->tuple_counts;
             timer.start_timer();
-            if (rel->newt->tuple_counts == 0) {
+            tuple_type *deduplicated_newt_tuples;
+            tuple_size_t deduplicate_size = 0;
+            if (newt_size != 0) {
+                u64 deduplicated_newt_tuples_mem_size =
+                    rel->newt->tuple_counts * sizeof(tuple_type);
+                checkCuda(cudaMalloc((void **)&deduplicated_newt_tuples,
+                                     deduplicated_newt_tuples_mem_size));
+                checkCuda(cudaMemset(deduplicated_newt_tuples, 0,
+                                     deduplicated_newt_tuples_mem_size));
+                //////
+                tuple_type *deuplicated_end = thrust::set_difference(
+                    thrust::device, rel->newt->tuples,
+                    rel->newt->tuples + rel->newt->tuple_counts,
+                    rel->tuple_full, rel->tuple_full + rel->current_full_size,
+                    deduplicated_newt_tuples,
+                    tuple_indexed_less(rel->full->index_column_size,
+                                       rel->full->arity -
+                                           rel->dependent_column_size));
+                // checkCuda(cudaDeviceSynchronize());
+                deduplicate_size = deuplicated_end - deduplicated_newt_tuples;
+            }
+
+            tuple_size_t all_deduplicate_size = deduplicate_size;
+            if (mcomm->isInitialized()) {
+                // multi GPU, reduce deduplicate size
+                mcomm->barrier();
+                all_deduplicate_size =
+                    mcomm->reduceSumTupleSize(deduplicate_size);
+            }
+
+            if (all_deduplicate_size != 0) {
+                fixpoint_flag = false;
+            }
+
+            if (deduplicate_size == 0) {
+                free_relation_container(rel->newt);
                 rel->delta =
                     new GHashRelContainer(rel->arity, rel->index_column_size,
                                           rel->dependent_column_size);
@@ -122,30 +213,7 @@ void LIE::fixpoint_loop() {
                           << rel->name << " no new tuple added" << std::endl;
                 continue;
             }
-            tuple_type *deduplicated_newt_tuples;
-            u64 deduplicated_newt_tuples_mem_size =
-                rel->newt->tuple_counts * sizeof(tuple_type);
-            checkCuda(cudaMalloc((void **)&deduplicated_newt_tuples,
-                                 deduplicated_newt_tuples_mem_size));
-            checkCuda(cudaMemset(deduplicated_newt_tuples, 0,
-                                 deduplicated_newt_tuples_mem_size));
-            //////
 
-            tuple_type *deuplicated_end = thrust::set_difference(
-                thrust::device, rel->newt->tuples,
-                rel->newt->tuples + rel->newt->tuple_counts, rel->tuple_full,
-                rel->tuple_full + rel->current_full_size,
-                deduplicated_newt_tuples,
-                tuple_indexed_less(rel->full->index_column_size,
-                                   rel->full->arity -
-                                       rel->dependent_column_size));
-            // checkCuda(cudaDeviceSynchronize());
-            tuple_size_t deduplicate_size =
-                deuplicated_end - deduplicated_newt_tuples;
-
-            if (deduplicate_size != 0) {
-                fixpoint_flag = false;
-            }
             timer.stop_timer();
             set_diff_time += timer.get_spent_time();
 
@@ -182,6 +250,14 @@ void LIE::fixpoint_loop() {
             rebuild_rel_unique_time += load_detail_time[1];
             rebuild_rel_index_time += load_detail_time[2];
 
+            // mcomm->barrier();
+            // for (int i = 0; i < mcomm->getTotalRank(); i++) {
+            //     if (mcomm->getRank() == i && i == 0) {
+            //         print_tuple_rows(rel->delta, "delta");
+            //     }
+            //     // mcomm->barrier();
+            // }
+
             // auto old_full = rel->tuple_full;
             float flush_detail_time[5] = {0, 0, 0, 0, 0};
             timer.start_timer();
@@ -192,26 +268,38 @@ void LIE::fixpoint_loop() {
             memory_alloc_time += flush_detail_time[2];
             // checkCuda(cudaFree(old_full));
 
+            // for (int i = 0; i < mcomm->getTotalRank(); i++) {
+            //     if (mcomm->getRank() == i && i == 0) {
+            //         std::cout << "rank " << i << " finish merge delta";
+            //         print_tuple_rows(rel->full, "full");
+            //     }
+            //     // mcomm->barrier();
+            // }
+
+
             // print_tuple_rows(rel->full, "Path full after load newt");
             std::cout << "iteration " << iteration_counter << " relation "
                       << rel->name
+                      << " rank " << mcomm->getRank()
                       << " finish dedup new tuples : " << deduplicate_size
                       << " delta tuple size: " << rel->delta->tuple_counts
                       << " full counts " << rel->current_full_size << std::endl;
         }
         checkCuda(cudaDeviceSynchronize());
+        if (mcomm->getRank() == 0) {
         std::cout << "Iteration " << iteration_counter << " finish populating"
                   << std::endl;
         print_memory_usage();
         std::cout << "Join time: " << join_time
-              << " ; merge full time: " << merge_time
-              << " ; memory alloc time: " << memory_alloc_time
-              << " ; rebuild delta time: " << rebuild_delta_time
-              << " ; set diff time: " << set_diff_time << std::endl;
+                  << " ; merge full time: " << merge_time
+                  << " ; memory alloc time: " << memory_alloc_time
+                  << " ; rebuild delta time: " << rebuild_delta_time
+                  << " ; set diff time: " << set_diff_time << std::endl;
         iteration_counter++;
         // if (iteration_counter >= 3) {
         //     break;
         // }
+        }
 
         if (fixpoint_flag || iteration_counter > max_iteration) {
             break;
@@ -221,44 +309,46 @@ void LIE::fixpoint_loop() {
     timer.start_timer();
     if (reload_full_flag) {
         std::cout << "Start merge full" << std::endl;
-    for (Relation *rel : update_relations) {
-        // if (rel->current_full_size <= rel->full->tuple_counts) {
-        //     continue;
-        // }
-        column_type *new_full_raw_data;
-        u64 new_full_raw_data_mem_size =
-            rel->current_full_size * rel->full->arity * sizeof(column_type);
-        checkCuda(cudaMalloc((void **)&new_full_raw_data,
-                             new_full_raw_data_mem_size));
-        checkCuda(cudaMemset(new_full_raw_data, 0, new_full_raw_data_mem_size));
-        flatten_tuples_raw_data<<<grid_size, block_size>>>(
-            rel->tuple_full, new_full_raw_data, rel->current_full_size,
-            rel->full->arity);
-        checkCuda(cudaGetLastError());
-        checkCuda(cudaDeviceSynchronize());
-        // cudaFree(tuple_merge_buffer);
-        float load_detail_time[5] = {0, 0, 0, 0, 0};
-        load_relation_container(
-            rel->full, rel->full->arity, new_full_raw_data,
-            rel->current_full_size, rel->full->index_column_size,
-            rel->full->dependent_column_size, rel->full->index_map_load_factor,
-            grid_size, block_size, load_detail_time, true, true, true);
-        checkCuda(cudaDeviceSynchronize());
-        rebuild_rel_sort_time += load_detail_time[0];
-        rebuild_rel_unique_time += load_detail_time[1];
-        rebuild_rel_index_time += load_detail_time[2];
-        std::cout << "Finished! " << rel->name << " has "
-                  << rel->full->tuple_counts << std::endl;
-        for (auto &delta_b : rel->buffered_delta_vectors) {
-            free_relation_container(delta_b);
+        for (Relation *rel : update_relations) {
+            // if (rel->current_full_size <= rel->full->tuple_counts) {
+            //     continue;
+            // }
+            column_type *new_full_raw_data;
+            u64 new_full_raw_data_mem_size =
+                rel->current_full_size * rel->full->arity * sizeof(column_type);
+            checkCuda(cudaMalloc((void **)&new_full_raw_data,
+                                 new_full_raw_data_mem_size));
+            checkCuda(
+                cudaMemset(new_full_raw_data, 0, new_full_raw_data_mem_size));
+            flatten_tuples_raw_data<<<grid_size, block_size>>>(
+                rel->tuple_full, new_full_raw_data, rel->current_full_size,
+                rel->full->arity);
+            checkCuda(cudaGetLastError());
+            checkCuda(cudaDeviceSynchronize());
+            // cudaFree(tuple_merge_buffer);
+            float load_detail_time[5] = {0, 0, 0, 0, 0};
+            load_relation_container(
+                rel->full, rel->full->arity, new_full_raw_data,
+                rel->current_full_size, rel->full->index_column_size,
+                rel->full->dependent_column_size,
+                rel->full->index_map_load_factor, grid_size, block_size,
+                load_detail_time, true, true, true);
+            checkCuda(cudaDeviceSynchronize());
+            rebuild_rel_sort_time += load_detail_time[0];
+            rebuild_rel_unique_time += load_detail_time[1];
+            rebuild_rel_index_time += load_detail_time[2];
+            std::cout << "Finished! " << rel->name << " has "
+                      << rel->full->tuple_counts << std::endl;
+            for (auto &delta_b : rel->buffered_delta_vectors) {
+                free_relation_container(delta_b);
+            }
+            free_relation_container(rel->delta);
+            free_relation_container(rel->newt);
         }
-        free_relation_container(rel->delta);
-        free_relation_container(rel->newt);
-    }
     } else {
         for (Relation *rel : update_relations) {
             std::cout << "Finished! " << rel->name << " has "
-                  << rel->full->tuple_counts << std::endl;
+                      << rel->full->tuple_counts << std::endl;
         }
     }
     timer.stop_timer();
