@@ -51,6 +51,8 @@ struct Token {
     TokenType type;
     std::string str;
     int value;
+    Token() {}
+    Token(TokenType type, const std::string &str) : type(type), str(str) {}
 };
 
 /**
@@ -77,6 +79,8 @@ class Tokenizer {
          * @param input The input string to tokenize.
          */
         Tokenizer(const std::string &input);
+
+        Tokenizer() {};
 
         /**
          * @brief Retrieves the next token from the input string.
@@ -109,7 +113,7 @@ class Tokenizer {
         size_t get_pos() const { return pos; };
 
     private:
-        const std::string &input;
+        const std::string input;
         size_t pos;
         size_t token_start;
         size_t token_end;

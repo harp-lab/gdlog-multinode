@@ -19,12 +19,12 @@ enum RelationVersion { DELTA, FULL, NEWT };
  */
 struct MEntity {
     // index position in actual index_arrary
-    u64 key;
+    unsigned long long key;
     // tuple position in actual data_arrary
-    tuple_size_t value;
+    unsigned long long value;
 };
 
-#define EMPTY_HASH_ENTRY ULONG_MAX
+
 /**
  * @brief a C-style hashset indexing based relation container.
  *        Actual data is still stored using sorted set.
@@ -85,16 +85,6 @@ enum JoinDirection { LEFT, RIGHT };
  */
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp);
-
-/**
- * @brief count how many non empty hash entry in index map
- *
- * @param target target relation hash table
- * @param size return the size
- * @return __global__
- */
-__global__ void count_index_entry_size(GHashRelContainer *target,
-                                       tuple_size_t *size);
 
 /**
  * @brief rehash to make index map more compact, the new index hash size is
