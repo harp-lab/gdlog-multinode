@@ -71,7 +71,20 @@ struct GHashRelContainer {
         : arity(arity), index_column_size(indexed_column_size),
           dependent_column_size(dependent_column_size), tmp_flag(tmp_flag){};
 
+    // TODO: impl this
+    void reconstruct();
+
+    // sort the tuple entries in the container
     void sort();
+
+    // remove duplicate tuples
+    void dedup();
+
+    // reload data into the container (this won't sort/dedup and rebuild index)
+    void reload(column_type *data, tuple_size_t data_row_size);
+
+    // TODO: impl this, move construct hash table logic into this function
+    void build_index();
 };
 
 enum JoinDirection { LEFT, RIGHT };

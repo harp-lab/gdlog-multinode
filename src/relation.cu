@@ -6,11 +6,14 @@
 #include "../include/tuple.cuh"
 #include <chrono>
 #include <iostream>
+#include <thrust/device_vector.h>
+#include <thrust/execution_policy.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/merge.h>
 #include <thrust/sort.h>
+#include <thrust/transform.h>
 #include <thrust/unique.h>
 
-
-// 
 
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
@@ -81,7 +84,6 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
         }
     }
 }
-
 
 __global__ void shrink_index_map(GHashRelContainer *target,
                                  MEntity *old_index_map,
@@ -757,3 +759,39 @@ void load_relation(Relation *target, std::string name, int arity,
                             index_column_size, dependent_column_size, 0.8,
                             grid_size, block_size, detail_time);
 }
+
+void GHashRelContainer::sort() {
+    thrust::sort(thrust::device, this->tuples,
+                 this->tuples + this->tuple_counts,
+                 tuple_indexed_less(this->index_column_size, arity));
+}
+
+void GHashRelContainer::dedup() {
+    tuple_type *new_end =
+        thrust::unique(thrust::device, this->tuples,
+                       this->tuples + this->tuple_counts, t_equal(this->arity));
+    this->tuple_counts = new_end - this->tuples;
+}
+
+void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
+    if (this->data_raw != nullptr) {
+        checkCuda(cudaFree(this->data_raw));
+    }
+    data_raw = data;
+    this->data_raw_row_size = data_row_size;
+    if (this->tuples != nullptr) {
+        checkCuda(cudaFree(this->tuples));
+    }
+
+    u64 target_tuples_mem_size = data_row_size * sizeof(tuple_type);
+    checkCuda(cudaMalloc((void **)&this->tuples, target_tuples_mem_size));
+    thrust::transform(
+        thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
+        thrust::make_counting_iterator<tuple_size_t>(data_row_size),
+        this->tuples,
+        [raw_ptr = this->data_raw, arity = this->arity] __device__(
+            tuple_size_t i) -> tuple_type { return raw_ptr + i * arity; });
+    this->tuple_counts = data_row_size;
+}
+
+void GHashRelContainer::reconstruct() {}

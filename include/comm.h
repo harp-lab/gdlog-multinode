@@ -28,6 +28,9 @@ class Communicator {
     // distribute relation to all processes by hashing of join column
     void distribute(GHashRelContainer *rel_container);
 
+    void enableGpuDirect() { gpu_direct_flag = true; }
+    void disableGpuDirect() { gpu_direct_flag = false; }
+
   int device_id;
   int grid_size;
   int block_size;
@@ -37,6 +40,7 @@ class Communicator {
     int total_rank;
     MPI_Comm comm;
     MPI_Status status;
+    bool gpu_direct_flag = true;
 
     // persitent buffer avoid allocation overhead
     // send and receive buffer

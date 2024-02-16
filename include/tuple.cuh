@@ -13,7 +13,7 @@ using column_type = u32;
 using column_type = u64;
 #endif
 using tuple_type = column_type *;
-using tuple_size_t = u64;
+using tuple_size_t = u32;
 
 #define EMPTY_HASH_ENTRY UINT64_MAX
 #define MAX_ARITY 10

@@ -56,8 +56,7 @@ void Communicator::distribute(GHashRelContainer *container) {
 
     // send the tuple size to each rank
     MPI_Alltoall(h_rank_tuple_send_counts.data(), 1, MPI_INT,
-                 h_rank_tuple_recv_counts.data(), 1, MPI_INT,
-                 MPI_COMM_WORLD);
+                 h_rank_tuple_recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
     // recive displacements
     int total_recv = thrust::reduce(h_rank_tuple_recv_counts.begin(),
@@ -65,11 +64,6 @@ void Communicator::distribute(GHashRelContainer *container) {
 
     // allocate memory for the send and receive buffers
     thrust::device_vector<column_type> d_send_buffer(total_send * arity);
-    // thrust::device_vector<tuple_type> d_recv_buffer(total_recv * arity);
-    // use cuda malloc to allocate the memory for the receive buffer
-    column_type *recv_buffer;
-    checkCuda(
-        cudaMalloc(&recv_buffer, total_recv * arity * sizeof(column_type)));
 
     // copy tuples to the send buffer
     thrust::for_each(
@@ -118,42 +112,35 @@ void Communicator::distribute(GHashRelContainer *container) {
             recv_displacements[i - 1] + h_rank_tuple_recv_counts[i - 1];
     }
 
-    //
-    thrust::host_vector<column_type> h_send_buffer(d_send_buffer);
-    // thrust::host_vector<column_type> h_recv_buffer(total_recv * arity);
-    // std::cout << "rank " << rank << " total recv count " << total_recv << " before alltoallv\n";
-
-    // MPI_Alltoallv(h_send_buffer.data(), h_rank_tuple_send_counts.data(),
-    //               send_displacements.data(), MPI_ELEM_TYPE, h_recv_buffer.data(),
-    //               h_rank_tuple_recv_counts.data(), recv_displacements.data(),
-    //               MPI_ELEM_TYPE, MPI_COMM_WORLD);
-
-    //
+    // thrust::device_vector<tuple_type> d_recv_buffer(total_recv * arity);
+    // use cuda malloc to allocate the memory for the receive buffer
+    column_type *recv_buffer;
+    checkCuda(
+        cudaMalloc(&recv_buffer, total_recv * arity * sizeof(column_type)));
 
     // send the tuples to the other ranks
-    MPI_Alltoallv(d_send_buffer.data().get(), h_rank_tuple_send_counts.data(),
-                  send_displacements.data(), MPI_INT, recv_buffer,
-                  h_rank_tuple_recv_counts.data(), recv_displacements.data(),
-                  MPI_INT, MPI_COMM_WORLD);
+    if (gpu_direct_flag) {
+        MPI_Alltoallv(d_send_buffer.data().get(),
+                      h_rank_tuple_send_counts.data(),
+                      send_displacements.data(), MPI_INT, recv_buffer,
+                      h_rank_tuple_recv_counts.data(),
+                      recv_displacements.data(), MPI_INT, MPI_COMM_WORLD);
+    } else {
+        thrust::host_vector<column_type> h_send_buffer(d_send_buffer);
+        thrust::host_vector<column_type> h_recv_buffer(total_recv * arity);
+        MPI_Alltoallv(h_send_buffer.data(), h_rank_tuple_send_counts.data(),
+                      send_displacements.data(), MPI_ELEM_TYPE,
+                      h_recv_buffer.data(), h_rank_tuple_recv_counts.data(),
+                      recv_displacements.data(), MPI_ELEM_TYPE, MPI_COMM_WORLD);
+        cudaMemcpy(recv_buffer, h_recv_buffer.data(),
+                   total_recv * arity * sizeof(column_type),
+                   cudaMemcpyHostToDevice);
+    }
 
-    // cudaMemcpy(recv_buffer, h_recv_buffer.data(), total_recv * arity * sizeof(column_type), cudaMemcpyHostToDevice);
-    // swap recv_buffer with the container
-    container->data_raw = recv_buffer;
-    container->data_raw_row_size = total_recv;
-    // reload the container
-    checkCuda(cudaMalloc(&container->tuples, total_recv * sizeof(tuple_type)));
-    thrust::transform(thrust::device, thrust::make_counting_iterator(0),
-                      thrust::make_counting_iterator(total_recv),
-                      container->tuples,
-                      [raw_ptr = container->data_raw, arity] __device__(
-                          int i) -> tuple_type { return raw_ptr + i * arity; });
-    thrust::sort(thrust::device, container->tuples,
-                 container->tuples + total_recv,
-                 tuple_indexed_less(container->index_column_size, arity));
-    auto new_end =
-        thrust::unique(thrust::device, container->tuples,
-                       container->tuples + total_recv, t_equal(arity));
-    container->tuple_counts = new_end - container->tuples;
+    // container
+    container->reload(recv_buffer, total_recv);
+    container->sort();
+    container->dedup();
 }
 
 Communicator::~Communicator() {
