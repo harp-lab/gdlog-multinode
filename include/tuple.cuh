@@ -4,8 +4,8 @@
 #include <nvfunctional>
 #include <cstdint>
 
-using u64 = uint64_t;
-using u32 = uint32_t;
+using u64 = unsigned long long;
+using u32 = unsigned long;
 
 #ifndef USE_64_BIT_TUPLE
 using column_type = u32;

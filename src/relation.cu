@@ -14,7 +14,6 @@
 #include <thrust/transform.h>
 #include <thrust/unique.h>
 
-
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
     tuple_size_t index = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -792,6 +791,39 @@ void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
         [raw_ptr = this->data_raw, arity = this->arity] __device__(
             tuple_size_t i) -> tuple_type { return raw_ptr + i * arity; });
     this->tuple_counts = data_row_size;
+}
+
+void GHashRelContainer::build_index(int grid_size, int block_size) {
+    // clear old index if exists
+    if (this->index_map != nullptr) {
+        checkCuda(cudaFree(this->index_map));
+        this->index_map = nullptr;
+    }
+    // init the index map
+    // set the size of index map same as data, (this should give us almost
+    // no conflict) however this can be memory inefficient
+    this->index_map_size =
+        std::ceil(this->tuple_counts / this->index_map_load_factor);
+    // this->index_map_size = data_row_size;
+    u64 index_map_mem_size = this->index_map_size * sizeof(MEntity);
+    checkCuda(cudaMalloc((void **)&(this->index_map), index_map_mem_size));
+    checkCuda(cudaMemset(this->index_map, 0, index_map_mem_size));
+
+    GHashRelContainer *target_device;
+    checkCuda(cudaMalloc((void **)&target_device, sizeof(GHashRelContainer)));
+    checkCuda(cudaMemcpy(target_device, this, sizeof(GHashRelContainer),
+                         cudaMemcpyHostToDevice));
+    // load inited data struct into GPU memory
+    thrust::fill(thrust::device, this->index_map,
+                 this->index_map + this->index_map_size,
+                 MEntity{EMPTY_HASH_ENTRY, EMLINK});
+    calculate_index_hash<<<grid_size, block_size>>>(
+        target_device,
+        tuple_indexed_less(this->index_column_size, this->arity));
+    checkCuda(cudaGetLastError());
+    checkCuda(cudaDeviceSynchronize());
+    checkCuda(cudaFree(target_device));
+
 }
 
 void GHashRelContainer::reconstruct() {}

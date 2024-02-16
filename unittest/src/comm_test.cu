@@ -9,7 +9,7 @@
 #include <iostream>
 
 column_type raw_graph_data[20] = {1, 2, 1, 5, 1, 6, 2, 3, 2, 6,
-                                  3, 4, 8, 7, 4, 5, 4, 6, 5, 6};
+                                  3, 4, 3, 7, 4, 5, 4, 6, 5, 6};
 tuple_size_t graph_edge_counts = 10;
 
 bool test_split_relation(int argc, char **argv) {
@@ -23,7 +23,7 @@ bool test_split_relation(int argc, char **argv) {
     checkCuda(cudaGetDevice(&device_id));
     checkCuda(cudaDeviceGetAttribute(
         &number_of_sm, cudaDevAttrMultiProcessorCount, device_id));
-    std::cout << "Rank " << comm.getRank() << " out of " << comm.getSize()
+    std::cout << "Rank " << comm.getRank() << " out of " << comm.getTotalRank()
               << " Current device id = " << device_id
               << " number_of_sm = " << number_of_sm << std::endl;
     int block_size = 512;
@@ -31,7 +31,7 @@ bool test_split_relation(int argc, char **argv) {
     std::cout << "block_size = " << block_size << " grid_size = " << grid_size
               << std::endl;
    
-    std::cout << "Rank " << comm.getRank() << " out of " << comm.getSize()
+    std::cout << "Rank " << comm.getRank() << " out of " << comm.getTotalRank()
               << " ranks" << std::endl;
     Relation *path_2__1_2 = new Relation();
     load_relation(path_2__1_2, "path_2__1_2", 2, raw_graph_data,
@@ -46,7 +46,7 @@ bool test_split_relation(int argc, char **argv) {
     //           << path_2__1_2->full->tuple_counts << std::endl;
 
     // let each rank sequentially print the full relation
-    for (int i = 0; i < comm.getSize(); i++) {
+    for (int i = 0; i < comm.getTotalRank(); i++) {
         if (i == comm.getRank()) {
             std::cout << "Rank " << comm.getRank() << " path_2__1_2->full ="
                       << std::endl;

@@ -19,10 +19,11 @@ void Communicator::init(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &total_rank);
     // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    is_initialized = true;
 }
 
 void Communicator::distribute(GHashRelContainer *container) {
-    // Distribute the data  w
+    // Distribute the data
     // compute the rank of tuple in the container
     auto arity = container->arity;
 
@@ -141,6 +142,26 @@ void Communicator::distribute(GHashRelContainer *container) {
     container->reload(recv_buffer, total_recv);
     container->sort();
     container->dedup();
+}
+
+tuple_size_t
+Communicator::gatherRelContainerSize(GHashRelContainer *container) {
+    tuple_size_t total_size;
+    MPI_Allreduce(&container->tuple_counts, &total_size, 1, MPI_ELEM_TYPE,
+                  MPI_SUM, MPI_COMM_WORLD);
+    return total_size;
+}
+
+bool Communicator::reduceBool(bool value) {
+    int result;
+    MPI_Allreduce(&value, &result, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
+    return result;
+}
+
+tuple_size_t Communicator::reduceSumTupleSize(tuple_size_t value) {
+    tuple_size_t result;
+    MPI_Allreduce(&value, &result, 1, MPI_ELEM_TYPE, MPI_SUM, MPI_COMM_WORLD);
+    return result;
 }
 
 Communicator::~Communicator() {

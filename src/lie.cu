@@ -62,12 +62,26 @@ void LIE::fixpoint_loop() {
             // std::cout << "Iteration " << iteration_counter
             //           << " start RA operation" << std::endl;
             timer.start_timer();
-            std::visit(dynamic_dispatch{[](RelationalJoin &op) {
+            std::visit(dynamic_dispatch{[&](RelationalJoin &op) {
                                             // timer.start_timer();
                                             op();
+                                            if (op.output_rel->tmp_flag) {
+                                                // if the output is tmp relation, we need distrubute it now
+                                                if (mcomm->isInitialized()) {
+                                                    mcomm->distribute(op.output_rel->newt);
+                                                }
+                                            }
                                         },
-                                        [](RelationalACopy &op) { op(); },
-                                        [](RelationalCopy &op) {
+                                        [&](RelationalACopy &op) {
+                                            op();
+                                            if (op.dest_rel->tmp_flag) {
+                                                // if the output is tmp relation, we need distrubute it now
+                                                if (mcomm->isInitialized()) {
+                                                    mcomm->distribute(op.dest_rel->newt);
+                                                }
+                                            }
+                                        },
+                                        [&](RelationalCopy &op) {
                                             if (op.src_ver == FULL) {
                                                 if (!op.copied) {
                                                     op();
@@ -76,9 +90,23 @@ void LIE::fixpoint_loop() {
                                             } else {
                                                 op();
                                             }
+                                            if (op.dest_rel->tmp_flag) {
+                                                // if the output is tmp relation, we need distrubute it now
+                                                if (mcomm->isInitialized()) {
+                                                    mcomm->distribute(op.dest_rel->newt);
+                                                }
+                                            }
                                         },
-                                        [](RelationalFilter &op) { op(); },
-                                        [](RelationalArithm &op) { op(); }},
+                                        [&](RelationalFilter &op) { op(); },
+                                        [&](RelationalArithm &op) {
+                                            op();
+                                            if (op.src_rel ->tmp_flag) {
+                                                // if the output is tmp relation, we need distrubute it now
+                                                if (mcomm->isInitialized()) {
+                                                    mcomm->distribute(op.src_rel->full);
+                                                }
+                                            }
+                                        }},
                        ra_op);
             timer.stop_timer();
             join_time += timer.get_spent_time();
@@ -113,16 +141,16 @@ void LIE::fixpoint_loop() {
                 rel->delta->tuples = nullptr;
             }
 
-            timer.start_timer();
-            if (rel->newt->tuple_counts == 0) {
-                rel->delta =
-                    new GHashRelContainer(rel->arity, rel->index_column_size,
-                                          rel->dependent_column_size);
-                std::cout << "iteration " << iteration_counter << " relation "
-                          << rel->name << " no new tuple added" << std::endl;
-                continue;
+            if (mcomm->isInitialized()) {
+                // mutil GPU, distributed newt
+                mcomm->distribute(rel->newt);
+                // gather newt size
             }
+            tuple_size_t newt_size = rel->newt->tuple_counts;
+            timer.start_timer();
             tuple_type *deduplicated_newt_tuples;
+            tuple_size_t deduplicate_size = 0;
+            if (newt_size != 0) {
             u64 deduplicated_newt_tuples_mem_size =
                 rel->newt->tuple_counts * sizeof(tuple_type);
             checkCuda(cudaMalloc((void **)&deduplicated_newt_tuples,
@@ -140,12 +168,29 @@ void LIE::fixpoint_loop() {
                                    rel->full->arity -
                                        rel->dependent_column_size));
             // checkCuda(cudaDeviceSynchronize());
-            tuple_size_t deduplicate_size =
+            deduplicate_size =
                 deuplicated_end - deduplicated_newt_tuples;
+            }
+            
+            tuple_size_t all_deduplicate_size = deduplicate_size;
+            if (mcomm->isInitialized()) {
+                // multi GPU, reduce deduplicate size
+                all_deduplicate_size = mcomm->reduceSumTupleSize(deduplicate_size);
+            }
 
-            if (deduplicate_size != 0) {
+            if (all_deduplicate_size != 0) {
                 fixpoint_flag = false;
             }
+
+            if (newt_size == 0) {
+                rel->delta =
+                    new GHashRelContainer(rel->arity, rel->index_column_size,
+                                          rel->dependent_column_size);
+                std::cout << "iteration " << iteration_counter << " relation "
+                          << rel->name << " no new tuple added" << std::endl;
+                continue;
+            }
+
             timer.stop_timer();
             set_diff_time += timer.get_spent_time();
 

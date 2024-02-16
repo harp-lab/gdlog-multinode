@@ -19,9 +19,9 @@ enum RelationVersion { DELTA, FULL, NEWT };
  */
 struct MEntity {
     // index position in actual index_arrary
-    unsigned long long key;
+    u64 key;
     // tuple position in actual data_arrary
-    unsigned long long value;
+    u64 value;
 };
 
 
@@ -84,7 +84,7 @@ struct GHashRelContainer {
     void reload(column_type *data, tuple_size_t data_row_size);
 
     // TODO: impl this, move construct hash table logic into this function
-    void build_index();
+    void build_index(int grid_size, int block_size);
 };
 
 enum JoinDirection { LEFT, RIGHT };

@@ -65,8 +65,6 @@ void RelationalJoin::operator()() {
     checkCuda(cudaMemset(result_counts_array, 0,
                          outer->tuple_counts * sizeof(tuple_size_t)));
 
-
-
     // checkCuda(cudaDeviceSynchronize());
     timer.start_timer();
     checkCuda(cudaDeviceSynchronize());
