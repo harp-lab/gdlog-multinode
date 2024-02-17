@@ -153,13 +153,13 @@ Communicator::gatherRelContainerSize(GHashRelContainer *container) {
 }
 
 bool Communicator::reduceBool(bool value) {
-    int result;
+    int result = 0;
     MPI_Allreduce(&value, &result, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
     return result;
 }
 
 tuple_size_t Communicator::reduceSumTupleSize(tuple_size_t value) {
-    tuple_size_t result;
+    tuple_size_t result = 0;
     MPI_Allreduce(&value, &result, 1, MPI_ELEM_TYPE, MPI_SUM, MPI_COMM_WORLD);
     return result;
 }

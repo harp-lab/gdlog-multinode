@@ -4,6 +4,7 @@
 #include <thrust/reduce.h>
 #include <thrust/scan.h>
 #include <thrust/unique.h>  
+#include <mpi.h>
 
 
 #include "../include/exception.cuh"
@@ -90,9 +91,15 @@ void RelationalJoin::operator()() {
         // checkCuda(cudaDeviceSynchronize());
     }
     
-    std::cout << output_rel->name << "   " << outer->index_column_size
-              << " join result size(non dedup) " << total_result_rows
-              << std::endl;
+    int current_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+    // if (current_rank == 0){
+    // std::cout << output_rel->name << "   " << outer->index_column_size
+    //           << " join result size(non dedup) " << total_result_rows
+    //           << std::endl;
+    // print_tuple_rows(inner, "inner");
+    // print_tuple_rows(outer, "outer");
+    // }   
     // print_memory_usage();
     tuple_size_t *result_counts_offset;
     checkCuda(cudaMalloc((void **)&result_counts_offset,

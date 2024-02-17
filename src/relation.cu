@@ -816,7 +816,7 @@ void GHashRelContainer::build_index(int grid_size, int block_size) {
     // load inited data struct into GPU memory
     thrust::fill(thrust::device, this->index_map,
                  this->index_map + this->index_map_size,
-                 MEntity{EMPTY_HASH_ENTRY, EMLINK});
+                 MEntity{EMPTY_HASH_ENTRY, EMPTY_HASH_ENTRY});
     calculate_index_hash<<<grid_size, block_size>>>(
         target_device,
         tuple_indexed_less(this->index_column_size, this->arity));

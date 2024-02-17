@@ -21,7 +21,6 @@ bool tc_test(int argc, char **argv) {
     comm.barrier();
     int device_id;
     int number_of_sm;
-    checkCuda(cudaSetDevice(comm.getRank()));
     checkCuda(cudaGetDevice(&device_id));
     checkCuda(cudaDeviceGetAttribute(
         &number_of_sm, cudaDevAttrMultiProcessorCount, device_id));
@@ -54,12 +53,23 @@ bool tc_test(int argc, char **argv) {
 
     // before we start, we need to distribute the data on each rank
     comm.distribute(edge_2__2_1->full);
+    // comm.barrier();
     comm.distribute(path_2__1_2->full);
     edge_2__2_1->full->build_index(grid_size, block_size);
-    comm.barrier();
-    // build index
+    
+    // std::cout << "Before start, print full on each rank" << std::endl;
+    // for (int i = 0; i < comm.getTotalRank(); i++) {
+    //     if (i == comm.getRank()) {
+    //         std::cout << "Rank " << comm.getRank()  << std::endl;
+    //         print_tuple_rows(edge_2__2_1->full, "Full edge_2__2_1");
+    //         print_tuple_rows(path_2__1_2->full, "Full path_2__1_2");
+    //     }
+    //     comm.barrier();
+    // }
 
     LIE tc_scc(grid_size, block_size);
+    // tc_scc.max_iteration = 0;
+    // tc_scc.reload_full_flag = false;
     // 
     tc_scc.set_communicator(&comm);
     tc_scc.reload_full_flag = false;
