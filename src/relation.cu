@@ -13,6 +13,7 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
+#include <mpi.h>
 
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
@@ -402,6 +403,16 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     // std::cout << "malloc time : " << timer.get_spent_time() << std::endl;
     detail_time[0] = timer.get_spent_time();
 
+    // get current rank
+    // int rank;
+    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // if (rank == 1) {
+    //     std::cout << ">>>>>>>>> rank 1 : "
+    //               << " delta size : " << delta->tuple_counts
+    //               << " delta arity : " << delta->arity
+    //               << " delta index column size : " << delta->index_column_size
+    //               << std::endl;
+    // }
     timer.start_timer();
     tuple_type *end_tuple_full_buf = thrust::merge(
         thrust::device, tuple_full, tuple_full + current_full_size,
@@ -790,6 +801,7 @@ void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
         this->tuples,
         [raw_ptr = this->data_raw, arity = this->arity] __device__(
             tuple_size_t i) -> tuple_type { return raw_ptr + i * arity; });
+    // TODO: use thrust tabulate to init tuples instead of transform
     this->tuple_counts = data_row_size;
 }
 

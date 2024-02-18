@@ -1,6 +1,10 @@
 #pragma once
+#include "comm.h"
 #include "relation.cuh"
 #include "tuple.cuh"
+#include <iostream>
+#include <ostream>
+#include <vector>
 // test helper
 
 void print_hashes(GHashRelContainer* target, const char *rel_name);
@@ -16,3 +20,6 @@ void print_tuple_list(tuple_type* tuples, tuple_size_t rows, tuple_size_t arity)
 tuple_size_t get_free_memory();
 
 tuple_size_t get_total_memory();
+
+// TODO: define a logger class can print log on expected MPI ranks
+

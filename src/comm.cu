@@ -11,6 +11,7 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
+#include <thrust/pair.h>
 
 void Communicator::init(int argc, char **argv) {
     // Initialize the MPI environment
@@ -27,6 +28,7 @@ void Communicator::distribute(GHashRelContainer *container) {
     // compute the rank of tuple in the container
     auto arity = container->arity;
 
+    tuple_rank_mapping.clear();
     tuple_rank_mapping.resize(container->tuple_counts);
 
     thrust::transform(
@@ -41,15 +43,24 @@ void Communicator::distribute(GHashRelContainer *container) {
     thrust::stable_sort_by_key(thrust::device, tuple_rank_mapping.begin(),
                                tuple_rank_mapping.end(), container->tuples);
     // tuple size need to send to each rank
-    thrust::device_vector<uint32_t> rank_tuple_counts(total_rank);
+    thrust::device_vector<int> rank_tuple_counts(total_rank);
+    thrust::device_vector<uint8_t> reduced_rank(total_rank);
 
-    thrust::reduce_by_key(
+    auto reduced_end = thrust::reduce_by_key(
         thrust::device, tuple_rank_mapping.begin(), tuple_rank_mapping.end(),
-        thrust::constant_iterator<uint32_t>(1), thrust::make_discard_iterator(),
+        thrust::constant_iterator<int>(1), reduced_rank.begin(),
         rank_tuple_counts.begin());
+    auto rank_tuple_counts_size = reduced_end.first - reduced_rank.begin();
+    rank_tuple_counts.resize(rank_tuple_counts_size);
+    reduced_rank.resize(rank_tuple_counts_size);
+    // create a host copy of the rank tuple counts and reduced rank
+    thrust::host_vector<int> h_rank_tuple_counts(rank_tuple_counts);
+    thrust::host_vector<uint8_t> h_reduced_rank(reduced_rank);
 
-    // copy the tuple size to the host
-    thrust::host_vector<int> h_rank_tuple_send_counts(rank_tuple_counts);
+    thrust::host_vector<int> h_rank_tuple_send_counts(total_rank);
+    for (int i = 0; i < rank_tuple_counts_size; i++) {
+        h_rank_tuple_send_counts[h_reduced_rank[i]] = h_rank_tuple_counts[i];
+    }
     thrust::host_vector<int> h_rank_tuple_recv_counts(total_rank);
 
     int total_send = thrust::reduce(h_rank_tuple_send_counts.begin(),
@@ -59,7 +70,6 @@ void Communicator::distribute(GHashRelContainer *container) {
     MPI_Alltoall(h_rank_tuple_send_counts.data(), 1, MPI_INT,
                  h_rank_tuple_recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
-    // recive displacements
     int total_recv = thrust::reduce(h_rank_tuple_recv_counts.begin(),
                                     h_rank_tuple_recv_counts.end());
 

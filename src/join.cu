@@ -111,7 +111,6 @@ void RelationalJoin::operator()() {
                            result_counts_offset + outer->tuple_counts,
                            result_counts_offset);
 
-    checkCuda(cudaDeviceSynchronize());
     timer.stop_timer();
     detail_time[1] += timer.get_spent_time();
 

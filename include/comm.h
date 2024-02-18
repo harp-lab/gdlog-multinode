@@ -60,8 +60,8 @@ class Communicator {
 
     // persitent buffer avoid allocation overhead
     // send and receive buffer
-    thrust::device_vector<column_type> send_buffer;
-    thrust::device_vector<column_type> recv_buffer;
+    // thrust::device_vector<column_type> send_buffer;
+    // thrust::device_vector<column_type> recv_buffer;
     
     thrust::device_vector<uint8_t> tuple_rank_mapping;
 };

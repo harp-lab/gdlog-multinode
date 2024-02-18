@@ -12,7 +12,7 @@ column_type raw_graph_data[20] = {1, 2, 1, 5, 1, 6, 2, 3, 2, 6,
                                   3, 4, 8, 7, 4, 5, 4, 6, 5, 6};
 tuple_size_t graph_edge_counts = 10;
 
-column_type rank_0_data[10] = {2, 5, 5, 6};
+column_type rank_0_data[10] = {2, 5, 2, 6};
 tuple_size_t rank_0_counts = 2;
 column_type rank_1_data[10] = {1, 4, 1, 7};
 tuple_size_t rank_1_counts = 2;

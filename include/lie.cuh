@@ -71,4 +71,7 @@ struct LIE {
     void init_communicator(int argc, char **argv) { mcomm->init(argc, argv); }
 
     void set_communicator(Communicator *comm) { mcomm = comm; }
+
+    // distribute full relations to all node
+    void redistribute_full_relations();
 };

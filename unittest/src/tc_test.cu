@@ -10,6 +10,7 @@
 
 #include "print.cuh"
 #include <iostream>
+#include <cstdlib>
 
 column_type raw_graph_data[20] = {1, 2, 1, 5, 1, 6, 2, 3, 2, 6,
                                   3, 4, 3, 7, 4, 5, 4, 6, 5, 6};
@@ -92,11 +93,44 @@ bool tc_test(int argc, char **argv) {
         comm.barrier();
     }
     comm.barrier();
-    return true;
+    bool result = true;
+    
+    if (!comm.isInitialized() || comm.getTotalRank() == 1) {
+        if (path_2__1_2->full->tuple_counts != 18) {
+            result = false;
+        }
+    } else {
+        if (comm.getTotalRank() == 2 && comm.getRank() == 0) {
+            if (path_2__1_2->full->tuple_counts != 11) {
+                result = false;
+            }
+        } else if (comm.getTotalRank() == 2 && comm.getRank() == 1) {
+            if (path_2__1_2->full->tuple_counts != 7) {
+                result = false;
+            }
+        } else if (comm.getTotalRank() == 3 && comm.getRank() == 0) {
+            if (path_2__1_2->full->tuple_counts != 1) {
+                result = false;
+            }
+        } else if (comm.getTotalRank() == 3 && comm.getRank() == 1) {
+            if (path_2__1_2->full->tuple_counts != 9) {
+                result = false;
+            }
+        } else if (comm.getTotalRank() == 3 && comm.getRank() == 2) {
+            if (path_2__1_2->full->tuple_counts != 8) {
+                result = false;
+            }
+        }
+    }
+
+    return result;
 }
 
 int main(int argc, char **argv) {
-    tc_test(argc, argv);
+    auto tc_res = tc_test(argc, argv);
+    if (!tc_res) {
+        std::exit(EXIT_FAILURE);
+    }
     return 0; 
 }
 
