@@ -55,7 +55,11 @@ class Communicator {
     int total_rank = 0;
     MPI_Comm comm;
     MPI_Status status;
+    #ifdef DEFAULT_GPU_RDMA
     bool gpu_direct_flag = true;
+    #else
+    bool gpu_direct_flag = false;
+    #endif
     bool is_initialized = false;
 
     // persitent buffer avoid allocation overhead
