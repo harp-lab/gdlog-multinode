@@ -34,6 +34,8 @@ struct LIE {
 
     Communicator *mcomm;
 
+    bool verbose_log = false;
+
     LIE(int grid_size, int block_size)
         : grid_size(grid_size), block_size(block_size) {}
 

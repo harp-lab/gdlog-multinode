@@ -38,17 +38,17 @@ column_type *get_relation_from_file(const char *file_path, int total_rows,
         for (int j = 0; j < total_columns; j++) {
             if (j != (total_columns - 1)) {
                 if (ct == U64) {
-                    fscanf(data_file, "%lld%c", &data[(i * total_columns) + j],
+                    fscanf(data_file, "%ld%c", &data[(i * total_columns) + j],
                            &separator);
                 } else {
-                    fscanf(data_file, "%ld%c", &data[(i * total_columns) + j],
+                    fscanf(data_file, "%u%c", &data[(i * total_columns) + j],
                            &separator);
                 }
             } else {
                 if (ct == U64) {
-                    fscanf(data_file, "%lld", &data[(i * total_columns) + j]);
-                } else {
                     fscanf(data_file, "%ld", &data[(i * total_columns) + j]);
+                } else {
+                    fscanf(data_file, "%u", &data[(i * total_columns) + j]);
                 }
             }
         }
@@ -73,10 +73,10 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     // u64 graph_edge_counts = 2100;
     column_type *raw_graph_data =
         get_relation_from_file(dataset_path, graph_edge_counts, 2, '\t', U32);
+    // std::cout << "reversing graph ... " << graph_edge_counts * 2 * sizeof(column_type) << std::endl;
     column_type *raw_reverse_graph_data =
         (column_type *)malloc(graph_edge_counts * 2 * sizeof(column_type));
 
-    // std::cout << "reversing graph ... " << std::endl;
     for (tuple_size_t i = 0; i < graph_edge_counts; i++) {
         raw_reverse_graph_data[i * 2 + 1] = raw_graph_data[i * 2];
         raw_reverse_graph_data[i * 2] = raw_graph_data[i * 2 + 1];
@@ -141,9 +141,9 @@ int main(int argc, char *argv[]) {
     cudaGetDevice(&device_id);
     cudaDeviceGetAttribute(&number_of_sm, cudaDevAttrMultiProcessorCount,
                            device_id);
-    std::cout << "num of sm " << number_of_sm << std::endl;
-    std::cout << "using " << EMPTY_HASH_ENTRY << " as empty hash entry"
-              << std::endl;
+    // std::cout << "num of sm " << number_of_sm << std::endl;
+    // std::cout << "using " << EMPTY_HASH_ENTRY << " as empty hash entry"
+    //           << std::endl;
     int block_size, grid_size;
     block_size = 512;
     grid_size = 32 * number_of_sm;

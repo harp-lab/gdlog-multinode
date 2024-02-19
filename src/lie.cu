@@ -292,7 +292,8 @@ void LIE::fixpoint_loop() {
             // checkCuda(cudaFree(old_full));
 
             // print_tuple_rows(rel->full, "Path full after load newt");
-            if (!mcomm->isInitialized() || mcomm->getRank() == 0) {
+            if (verbose_log &&
+                (!mcomm->isInitialized() || mcomm->getRank() == 0)) {
                 std::cout << "iteration " << iteration_counter << " relation "
                           << rel->name << " rank " << mcomm->getRank()
                           << " finish dedup new tuples : " << deduplicate_size
@@ -301,7 +302,7 @@ void LIE::fixpoint_loop() {
                           << std::endl;
             }
         }
-        if (!mcomm->isInitialized() || mcomm->getRank() == 0) {
+        if (verbose_log && (!mcomm->isInitialized() || mcomm->getRank() == 0)) {
             std::cout << "Iteration " << iteration_counter
                       << " finish populating" << std::endl;
             print_memory_usage();
@@ -310,15 +311,24 @@ void LIE::fixpoint_loop() {
                       << " ; memory alloc time: " << memory_alloc_time
                       << " ; rebuild delta time: " << rebuild_delta_time
                       << " ; set diff time: " << set_diff_time
-                      << " ; node comm time: " << node_comm_time - prev_comm_time
-                      << std::endl;
-            // if (iteration_counter >= 3) {
-            //     break;
-            // }
+                      << " ; node comm time: "
+                      << node_comm_time - prev_comm_time << std::endl;
         }
         iteration_counter++;
 
         if (fixpoint_flag || iteration_counter > max_iteration) {
+            if (!mcomm->isInitialized() || mcomm->getRank() == 0) {
+                std::cout << "Iteration " << iteration_counter
+                          << " finish populating" << std::endl;
+                print_memory_usage();
+                std::cout << "Join time: " << join_time
+                          << " ; merge full time: " << merge_time
+                          << " ; memory alloc time: " << memory_alloc_time
+                          << " ; rebuild delta time: " << rebuild_delta_time
+                          << " ; set diff time: " << set_diff_time
+                          << " ; node comm time: "
+                          << node_comm_time - prev_comm_time << std::endl;
+            }
             break;
         }
     }
@@ -385,7 +395,6 @@ void LIE::fixpoint_loop() {
                   << rebuild_rel_sort_time
                   << " ; rebuild rel unique time: " << rebuild_rel_unique_time
                   << " ; rebuild rel index time: " << rebuild_rel_index_time
-                  << " ; node comm time: " << node_comm_time
-                  << std::endl;
+                  << " ; node comm time: " << node_comm_time << std::endl;
     }
 }
