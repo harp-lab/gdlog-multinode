@@ -89,29 +89,9 @@ void LIE::fixpoint_loop() {
                            [&](RelationalJoin &op) {
                                // timer.start_timer();
                                op();
-                               if (op.output_rel->tmp_flag) {
-                                   // if the output is tmp relation, we need
-                                   // distrubute it now
-                                   if (mcomm->isInitialized()) {
-                                       timer.start_timer();
-                                       mcomm->distribute(op.output_rel->newt);
-                                       timer.stop_timer();
-                                       node_comm_time += timer.get_spent_time();
-                                   }
-                               }
                            },
                            [&](RelationalACopy &op) {
                                op();
-                               if (op.dest_rel->tmp_flag) {
-                                   // if the output is tmp relation, we need
-                                   // distrubute it now
-                                   if (mcomm->isInitialized()) {
-                                       timer.start_timer();
-                                       mcomm->distribute(op.dest_rel->newt);
-                                       timer.stop_timer();
-                                       node_comm_time += timer.get_spent_time();
-                                   }
-                               }
                            },
                            [&](RelationalCopy &op) {
                                if (op.src_ver == FULL) {
@@ -122,30 +102,21 @@ void LIE::fixpoint_loop() {
                                } else {
                                    op();
                                }
-                               if (op.dest_rel->tmp_flag) {
-                                   // if the output is tmp relation, we need
-                                   // distrubute it now
-                                   if (mcomm->isInitialized()) {
-                                       timer.start_timer();
-                                       mcomm->distribute(op.dest_rel->newt);
-                                       timer.stop_timer();
-                                       node_comm_time += timer.get_spent_time();
-                                   }
-                               }
                            },
                            [&](RelationalFilter &op) { op(); },
                            [&](RelationalArithm &op) {
                                op();
-                               if (op.src_rel->tmp_flag) {
-                                   // if the output is tmp relation, we need
-                                   // distrubute it now
-                                   if (mcomm->isInitialized()) {
-                                       timer.start_timer();
-                                       mcomm->distribute(op.src_rel->full);
-                                       timer.stop_timer();
-                                       node_comm_time += timer.get_spent_time();
-                                   }
-                               }
+                           },
+                           [&](RelationalSync &op) {
+                                
+                                if (op.src_ver == FULL) {
+                                mcomm->distribute(op.src_rel->full);
+                                } else if (op.src_ver == DELTA) {
+                                mcomm->distribute(op.src_rel->delta);
+                                } else {
+                                // std::cout << ">>>>>>>>>>>>>>>>>> sync " << mcomm->getTotalRank() << std::endl;
+                                mcomm->distribute(op.src_rel->newt);
+                                }
                            }},
                        ra_op);
             timer.stop_timer();
@@ -176,15 +147,6 @@ void LIE::fixpoint_loop() {
                 checkCuda(cudaFree(rel->delta->tuples));
                 rel->delta->tuples = nullptr;
             }
-
-            // for (int i = 0; i < mcomm->getTotalRank(); i++) {
-            //     if (mcomm->getRank() == i) {
-            //         std::cout << "rank " << i << " ";
-            //         print_tuple_rows(rel->newt, "newt before
-            //         communication>>>");
-            //     }
-            //     mcomm->barrier();
-            // }
 
             if (mcomm->isInitialized()) {
                 // mutil GPU, distributed newt
@@ -274,13 +236,6 @@ void LIE::fixpoint_loop() {
             rebuild_rel_unique_time += load_detail_time[1];
             rebuild_rel_index_time += load_detail_time[2];
 
-            // for (int i = 0; i < mcomm->getTotalRank(); i++) {
-            //     if (mcomm->getRank() == i && i == 1) {
-            //         print_tuple_rows(rel->delta, "delta");
-            //     }
-            //     // mcomm->barrier();
-            // }
-
             // auto old_full = rel->tuple_full;
             float flush_detail_time[5] = {0, 0, 0, 0, 0};
             timer.start_timer();
@@ -305,7 +260,7 @@ void LIE::fixpoint_loop() {
         if (verbose_log && (!mcomm->isInitialized() || mcomm->getRank() == 0)) {
             std::cout << "Iteration " << iteration_counter
                       << " finish populating" << std::endl;
-            print_memory_usage();
+            // print_memory_usage();
             std::cout << "Join time: " << join_time
                       << " ; merge full time: " << merge_time
                       << " ; memory alloc time: " << memory_alloc_time
@@ -320,7 +275,7 @@ void LIE::fixpoint_loop() {
             if (!mcomm->isInitialized() || mcomm->getRank() == 0) {
                 std::cout << "Iteration " << iteration_counter
                           << " finish populating" << std::endl;
-                print_memory_usage();
+                // print_memory_usage();
                 std::cout << "Join time: " << join_time
                           << " ; merge full time: " << merge_time
                           << " ; memory alloc time: " << memory_alloc_time

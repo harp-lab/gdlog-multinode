@@ -112,7 +112,7 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     std::vector<int> join_order = {1, 3};
     TupleGenerator tp1_hook(2, 2, join_order);
     tc_scc.add_ra(RelationalJoin(edge_2__2_1, FULL, path_2__1_2, DELTA,
-                                 path_2__1_2, tp1_hook, nullptr, LEFT,
+                                 path_2__1_2, tp1_hook,
                                  grid_size, block_size, join_detail));
 
     tc_scc.fixpoint_loop();

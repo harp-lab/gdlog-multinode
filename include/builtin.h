@@ -3,6 +3,9 @@
 
 #include "./tuple.cuh"
 
+#define C_NUM(x) (-x - 15)
+#define EMPTY_COLUMN 0
+
 enum class BinaryFilterComparison {
     EQ,
     NE,
@@ -67,32 +70,13 @@ struct TupleFilter {
     int right[MAX_ARITY];
 
     // init these field in constructor
-    TupleFilter(int arity, std::vector<BinaryFilterComparison> &op,
-                std::vector<int> &left, std::vector<int> &right)
+    TupleFilter(int arity, std::vector<BinaryFilterComparison> op,
+                std::vector<int> left, std::vector<int> right)
         : arity(arity) {
         for (int i = 0; i < arity; i++) {
             this->op[i] = op[i];
             this->left[i] = left[i];
             this->right[i] = right[i];
-        }
-    }
-};
-
-struct TupleProjector {
-    __host__ __device__ tuple_type operator()(const tuple_type &tuple) {
-        tuple_type result;
-        for (int i = 0; i < arity; i++) {
-            result[i] = tuple[project[i]];
-        }
-        return result;
-    };
-
-    int arity;
-    int project[MAX_ARITY];
-
-    TupleProjector(int arity, int project[]) : arity(arity) {
-        for (int i = 0; i < arity; i++) {
-            this->project[i] = project[i];
         }
     }
 };
@@ -108,7 +92,7 @@ enum BinaryArithmeticOperator {
 
 struct TupleArithmetic {
     __host__ __device__ tuple_type operator()(const tuple_type tuple) {
-        tuple_type result;
+        column_type result[MAX_ARITY];
         for (int i = 0; i < arity; i++) {
             auto cur_op = op[i];
             if (cur_op == BinaryArithmeticOperator::EMPTY) {
@@ -162,8 +146,8 @@ struct TupleArithmetic {
     int left[MAX_ARITY];
     int right[MAX_ARITY];
 
-    TupleArithmetic(int arity, std::vector<BinaryArithmeticOperator> &op,
-                    std::vector<int> &left, std::vector<int> &right)
+    TupleArithmetic(int arity, std::vector<BinaryArithmeticOperator> op,
+                    std::vector<int> left, std::vector<int> right)
         : arity(arity) {
         for (int i = 0; i < arity; i++) {
             this->op[i] = op[i];

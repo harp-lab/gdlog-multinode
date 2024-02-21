@@ -4,7 +4,7 @@ CompileFlags:
     - -rdc=true
     - --generate-code*
     - --expt-relaxed-constexpr
-    - --expt-extended-lambda
+    - --extended-lambda
     - --default-stream
   Add:
     - -xcuda

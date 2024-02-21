@@ -35,11 +35,6 @@ void RelationalJoin::operator()() {
     int output_arity = output_rel->arity;
     // GHashRelContainer* output = output_rel->newt;
 
-    // std::cout << "inner " << inner_rel->name << " : " << inner->tuple_counts
-    //           << " outer " << outer_rel->name << " : " << outer->tuple_counts
-    //           << std::endl;
-    // print_tuple_rows(inner, "inner");
-    // print_tuple_rows(outer, "outer");
     if (outer->tuples == nullptr || outer->tuple_counts == 0) {
         outer->tuple_counts = 0;
         return;
@@ -71,7 +66,7 @@ void RelationalJoin::operator()() {
     checkCuda(cudaDeviceSynchronize());
     get_join_result_size<<<grid_size, block_size>>>(
         inner_device, outer_device, outer->index_column_size, tuple_generator,
-        tuple_pred, result_counts_array);
+        nullptr, result_counts_array);
     checkCuda(cudaGetLastError());
     checkCuda(cudaDeviceSynchronize());
     timer.stop_timer();
@@ -91,16 +86,6 @@ void RelationalJoin::operator()() {
         // checkCuda(cudaDeviceSynchronize());
     }
     
-    int current_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
-    // if (current_rank == 0){
-    // std::cout << output_rel->name << "   " << outer->index_column_size
-    //           << " join result size(non dedup) " << total_result_rows
-    //           << std::endl;
-    // print_tuple_rows(inner, "inner");
-    // print_tuple_rows(outer, "outer");
-    // }   
-    // print_memory_usage();
     tuple_size_t *result_counts_offset;
     checkCuda(cudaMalloc((void **)&result_counts_offset,
                          outer->tuple_counts * sizeof(tuple_size_t)));
@@ -123,8 +108,8 @@ void RelationalJoin::operator()() {
     checkCuda(cudaMemset(join_res_raw_data, 0, join_res_raw_data_mem_size));
     get_join_result<<<grid_size, block_size>>>(
         inner_device, outer_device, outer->index_column_size, tuple_generator,
-        tuple_pred, output_arity, join_res_raw_data, result_counts_array,
-        result_counts_offset, direction);
+        nullptr, output_arity, join_res_raw_data, result_counts_array,
+        result_counts_offset, LEFT);
     checkCuda(cudaGetLastError());
     checkCuda(cudaDeviceSynchronize());
     timer.stop_timer();
@@ -149,8 +134,6 @@ void RelationalJoin::operator()() {
                 load_relation_container_time, true, false, false);
         } else {
             // temporary relation doesn't need index nor sort
-            // std::cout << "use tmp >>>>>>>>>>>>>>>>>>>>>>>>>>>>>" <<
-            // std::endl;
             load_relation_container(
                 output_rel->newt, output_arity, join_res_raw_data,
                 total_result_rows, output_rel->index_column_size,
@@ -162,7 +145,6 @@ void RelationalJoin::operator()() {
         detail_time[3] += load_relation_container_time[0];
         detail_time[4] += load_relation_container_time[1];
         detail_time[5] += load_relation_container_time[2];
-        // print_tuple_rows(output_rel->newt, "newt after join");
     } else {
         // TODO: handle the case out put relation is temp relation
         // data in current newt, merge
@@ -206,8 +188,6 @@ void RelationalJoin::operator()() {
             timer.stop_timer();
             detail_time[7] += timer.get_spent_time();
             tuple_size_t new_newt_counts = tp_buffer_end - tp_buffer;
-            // std::cout << " >>>>>>>>>> " << new_newt_counts *
-            // output_rel->arity * sizeof(column_type) << std::endl;
 
             timer.start_timer();
             column_type *new_newt_raw;

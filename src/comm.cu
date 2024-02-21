@@ -26,6 +26,9 @@ void Communicator::init(int argc, char **argv) {
 void Communicator::distribute(GHashRelContainer *container) {
     // Distribute the data
     // compute the rank of tuple in the container
+    if (total_rank == 1) {
+        return;
+    }
     auto arity = container->arity;
 
     tuple_rank_mapping.clear();
@@ -156,6 +159,9 @@ void Communicator::distribute(GHashRelContainer *container) {
 
 tuple_size_t
 Communicator::gatherRelContainerSize(GHashRelContainer *container) {
+    if (total_rank == 1) {
+        return container->tuple_counts;
+    }
     tuple_size_t total_size;
     MPI_Allreduce(&container->tuple_counts, &total_size, 1, MPI_ELEM_TYPE,
                   MPI_SUM, MPI_COMM_WORLD);
@@ -163,12 +169,18 @@ Communicator::gatherRelContainerSize(GHashRelContainer *container) {
 }
 
 bool Communicator::reduceBool(bool value) {
+    if (total_rank == 1) {
+        return value;
+    }
     int result = 0;
     MPI_Allreduce(&value, &result, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
     return result;
 }
 
 tuple_size_t Communicator::reduceSumTupleSize(tuple_size_t value) {
+    if (total_rank == 1) {
+        return value;
+    }
     tuple_size_t result = 0;
     MPI_Allreduce(&value, &result, 1, MPI_ELEM_TYPE, MPI_SUM, MPI_COMM_WORLD);
     return result;
@@ -176,5 +188,7 @@ tuple_size_t Communicator::reduceSumTupleSize(tuple_size_t value) {
 
 Communicator::~Communicator() {
     // Finalize the MPI environment
-    MPI_Finalize();
+    if (is_initialized) {
+        MPI_Finalize();
+    }
 }

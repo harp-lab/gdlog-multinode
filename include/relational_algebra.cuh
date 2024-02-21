@@ -31,10 +31,7 @@ struct RelationalJoin {
     // hook function will be mapped on every join result tuple
     TupleGenerator tuple_generator;
     // filter to be applied on every join result tuple
-    tuple_predicate tuple_pred;
 
-    // TODO: reserved for optimization
-    JoinDirection direction;
     std::vector<int> reorder_map;
 
     int grid_size;
@@ -48,13 +45,12 @@ struct RelationalJoin {
 
     RelationalJoin(Relation *inner_rel, RelationVersion inner_ver,
                    Relation *outer_rel, RelationVersion outer_ver,
-                   Relation *output_rel, TupleGenerator tp_gen,
-                   tuple_predicate tp_pred, JoinDirection direction,
-                   int grid_size, int block_size, float *detail_time)
+                   Relation *output_rel, TupleGenerator tp_gen, int grid_size,
+                   int block_size, float *detail_time)
         : inner_rel(inner_rel), inner_ver(inner_ver), outer_rel(outer_rel),
           outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
-          tuple_pred(tp_pred), direction(direction), grid_size(grid_size),
-          block_size(block_size), detail_time(detail_time){};
+          grid_size(grid_size), block_size(block_size),
+          detail_time(detail_time){};
 
     void operator()();
 };
@@ -67,19 +63,19 @@ struct RelationalCopy {
     Relation *src_rel;
     RelationVersion src_ver;
     Relation *dest_rel;
-    tuple_copy_hook tuple_generator;
-    tuple_predicate tuple_pred;
+    TupleProjector tuple_generator;
 
     int grid_size;
     int block_size;
     bool copied = false;
+    bool iterative = false;
 
     RelationalCopy(Relation *src, RelationVersion src_ver, Relation *dest,
-                   tuple_copy_hook tuple_generator, tuple_predicate tuple_pred,
-                   int grid_size, int block_size)
+                   TupleProjector tuple_generator, int grid_size,
+                   int block_size, bool iterative = false)
         : src_rel(src), src_ver(src_ver), dest_rel(dest),
-          tuple_generator(tuple_generator), tuple_pred(tuple_pred),
-          grid_size(grid_size), block_size(block_size) {}
+          tuple_generator(tuple_generator), grid_size(grid_size),
+          block_size(block_size), iterative(iterative) {}
 
     void operator()();
 };
@@ -89,14 +85,11 @@ struct RelationalFilter {
     RelationVersion src_ver;
     TupleFilter tuple_pred;
 
-    int grid_size;
-    int block_size;
     bool copied = false;
 
     RelationalFilter(Relation *src, RelationVersion src_ver,
-                     TupleFilter tuple_pred, int grid_size, int block_size)
-        : src_rel(src), src_ver(src_ver), tuple_pred(tuple_pred),
-          grid_size(grid_size), block_size(block_size) {}
+                     TupleFilter tuple_pred)
+        : src_rel(src), src_ver(src_ver), tuple_pred(tuple_pred) {}
 
     void operator()();
 };
@@ -110,16 +103,9 @@ struct RelationalArithm {
     RelationVersion src_ver;
     TupleArithmetic tuple_generator;
 
-    int grid_size;
-    int block_size;
-    bool copied = false;
-
     RelationalArithm(Relation *src, RelationVersion src_ver,
-                   TupleArithmetic tuple_generator,
-                   int grid_size, int block_size)
-        : src_rel(src), src_ver(src_ver),
-          tuple_generator(tuple_generator),
-          grid_size(grid_size), block_size(block_size) {}
+                     TupleArithmetic tuple_generator)
+        : src_rel(src), src_ver(src_ver), tuple_generator(tuple_generator) {}
 
     void operator()();
 };
@@ -134,21 +120,33 @@ struct RelationalACopy {
     Relation *src_rel;
     Relation *dest_rel;
     // function will be mapped on all tuple copied
-    tuple_copy_hook tuple_generator;
-    // filter for copied tuple
-    tuple_predicate tuple_pred;
+    TupleProjector tuple_generator;
 
     int grid_size;
     int block_size;
 
     RelationalACopy(Relation *src, Relation *dest,
-                    tuple_copy_hook tuple_generator, tuple_predicate tuple_pred,
-                    int grid_size, int block_size)
+                    TupleProjector tuple_generator, int grid_size,
+                    int block_size)
         : src_rel(src), dest_rel(dest), tuple_generator(tuple_generator),
-          tuple_pred(tuple_pred), grid_size(grid_size), block_size(block_size) {
-    }
+          grid_size(grid_size), block_size(block_size) {}
 
     void operator()();
+};
+
+// a relation algebra operator that will sync up all ranks of the same relation
+// this operator will distribute the tuple to all ranks by hash of joined column
+struct RelationalSync {
+    Relation *src_rel;
+    RelationVersion src_ver;
+
+    RelationalSync(Relation *src, RelationVersion src_ver)
+        : src_rel(src), src_ver(src_ver) {}
+
+    void operator()(){
+        // nothing happened here, the inference engine will handle the
+        // communication
+    };
 };
 
 /**
@@ -156,6 +154,6 @@ struct RelationalACopy {
  *
  */
 using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
-                           RelationalFilter>;
+                           RelationalFilter, RelationalArithm, RelationalSync>;
 
-enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM};
+enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM, SYNC };

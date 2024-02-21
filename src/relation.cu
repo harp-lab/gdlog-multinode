@@ -313,7 +313,7 @@ __global__ void flatten_tuples_raw_data(tuple_type *tuple_pointers,
 __global__ void get_copy_result(tuple_type *src_tuples,
                                 column_type *dest_raw_data, int output_arity,
                                 tuple_size_t tuple_counts,
-                                tuple_copy_hook tp_gen) {
+                                TupleProjector tp_gen) {
     int index = (blockIdx.x * blockDim.x) + threadIdx.x;
     if (index >= tuple_counts)
         return;

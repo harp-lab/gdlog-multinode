@@ -7,3 +7,5 @@ build
 cmake-build-debug/
 cluster
 test/cuDF/*.log
+scripts/*.error
+scripts/*.out

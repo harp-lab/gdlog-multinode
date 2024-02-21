@@ -33,7 +33,7 @@ struct TupleGenerator {
     int arity;
     int inner_arity;
 
-    TupleGenerator(int arity, int inner_arity, std::vector<int> &map) {
+    TupleGenerator(int arity, int inner_arity, std::vector<int> map) {
         this->arity = arity;
         this->inner_arity = inner_arity;
         for (int i = 0; i < arity; i++) {
@@ -49,6 +49,25 @@ struct TupleGenerator {
             } else {
                 result[i] = outer[reorder_map[i] - inner_arity];
             }
+        }
+    }
+};
+
+struct TupleProjector {
+    __host__ __device__ tuple_type operator()(const tuple_type &tuple,
+                                              const tuple_type &result) {
+        for (int i = 0; i < arity; i++) {
+            result[i] = tuple[project[i]];
+        }
+        return result;
+    };
+
+    int arity;
+    int project[MAX_ARITY]; 
+
+    TupleProjector(int arity, std::vector<int> project) : arity(arity) {
+        for (int i = 0; i < arity; i++) {
+            this->project[i] = project[i];
         }
     }
 };

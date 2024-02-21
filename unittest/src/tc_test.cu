@@ -81,7 +81,7 @@ bool tc_test(int argc, char **argv) {
     TupleGenerator tp1_hook(2, 2, join_order);
     tc_scc.add_ra(RelationalJoin(
         edge_2__2_1, FULL, path_2__1_2, DELTA, path_2__1_2, tp1_hook,
-        nullptr, LEFT, grid_size, block_size, join_detail));
+        grid_size, block_size, join_detail));
     tc_scc.fixpoint_loop();
     comm.barrier();
     // print full on each rank
