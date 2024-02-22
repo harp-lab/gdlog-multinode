@@ -9,3 +9,4 @@ cluster
 test/cuDF/*.log
 scripts/*.error
 scripts/*.out
+.clangd

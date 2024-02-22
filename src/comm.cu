@@ -7,11 +7,11 @@
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/discard_iterator.h>
+#include <thrust/pair.h>
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
-#include <thrust/pair.h>
 
 void Communicator::init(int argc, char **argv) {
     // Initialize the MPI environment
@@ -140,6 +140,11 @@ void Communicator::distribute(GHashRelContainer *container) {
                       h_rank_tuple_recv_counts.data(),
                       recv_displacements.data(), MPI_INT, MPI_COMM_WORLD);
     } else {
+        if (rank == 0) {
+            std::cout << "Warnning using host memory for MPI_Alltoallv, GPU "
+                         "directe disabled"
+                      << std::endl;
+        }
         thrust::host_vector<column_type> h_send_buffer(d_send_buffer);
         thrust::host_vector<column_type> h_recv_buffer(total_recv * arity);
         MPI_Alltoallv(h_send_buffer.data(), h_rank_tuple_send_counts.data(),

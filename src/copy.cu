@@ -90,5 +90,4 @@ void RelationalCopy::operator()() {
                                 true, false);
         // delete tmp;
     }
-    std::cout << "copy finish " << std::endl;
 }

@@ -216,10 +216,10 @@ target_compile_options(TC PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
     --extended-lambda>)
 set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
-# add_executable(CSPA ${source_cspa})
-# target_link_libraries(CSPA gpu_ra)
-# target_compile_features(CSPA PUBLIC cxx_std_20)
-# set_target_properties(CSPA PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80;89;90")
+add_executable(CSPA ${source_cspa})
+target_link_libraries(CSPA gpu_ra)
+target_compile_features(CSPA PUBLIC cxx_std_17)
+set_target_properties(CSPA PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
 add_executable(SG ${source_file_sg})
 target_link_libraries(SG gpu_ra)

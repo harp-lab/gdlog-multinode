@@ -57,7 +57,6 @@ column_type *get_relation_from_file(const char *file_path, int total_rows,
     return data;
 }
 
-// 116931333
 //////////////////////////////////////////////////////////////////
 
 void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {

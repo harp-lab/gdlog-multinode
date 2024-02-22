@@ -6,10 +6,11 @@ CompileFlags:
     - --expt-relaxed-constexpr
     - --extended-lambda
     - --default-stream
+    - --options-file
   Add:
     - -xcuda
-    - -std=c++20
+    - -std=c++17
     - --cuda-gpu-arch=sm_80
-    - --cuda-path=/opt/cuda
+    - --cuda-path=/opt/nvidia/hpc_sdk/Linux_x86_64/22.11/cuda/
     - -L/opt/cuda/lib
     - -I/opt/cuda/include
