@@ -1,6 +1,8 @@
 
 project(unittest LANGUAGES CXX CUDA)
 
+option(USE_64BIT_DOMAIN "Use u64 as builtin type for column domain" OFF)
+
 # add_executable(COMPILER_TEST src/compiler_test.cpp)
 # target_include_directories(COMPILER_TEST PRIVATE ${CMAKE_SOURCE_DIR}/include)
 # set_target_properties(COMPILER_TEST PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
