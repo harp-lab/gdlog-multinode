@@ -6,6 +6,7 @@
 #include "../include/tuple.cuh"
 #include <chrono>
 #include <iostream>
+#include <mpi.h>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -13,7 +14,6 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
-#include <mpi.h>
 
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
@@ -326,130 +326,142 @@ __global__ void get_copy_result(tuple_type *src_tuples,
 }
 
 void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
-    if (delta->tuple_counts == 0) {
-        return;
-    }
-    KernelTimer timer;
-    timer.start_timer();
-    tuple_type *tuple_full_buf;
-    tuple_size_t new_full_size = current_full_size + delta->tuple_counts;
+    for (int b_id = 0; b_id < sub_bucket_size; b_id++) {
+        auto delta = deltas[b_id];
+        auto full = fulls[b_id];
+        auto newt = newts[b_id];
+        auto tuple_full = tuple_fulls[b_id];
+        auto current_full_size = current_full_sizes[b_id];
+        if (delta->tuple_counts == 0) {
+            return;
+        }
+        KernelTimer timer;
+        timer.start_timer();
+        tuple_type *tuple_full_buf;
+        tuple_size_t new_full_size = current_full_size + delta->tuple_counts;
 
-    bool extened_mem = false;
+        bool extened_mem = false;
 
-    tuple_size_t total_mem_size = get_total_memory();
-    tuple_size_t free_mem = get_free_memory();
-    u64 delta_mem_size = delta->tuple_counts * sizeof(tuple_type);
-    int multiplier = FULL_BUFFER_VEC_MULTIPLIER;
-    if (!pre_allocated_merge_buffer_flag && !fully_disable_merge_buffer_flag &&
-        delta_mem_size * multiplier <= 0.1 * free_mem) {
-        std::cout << "reenable pre-allocated merge buffer" << std::endl;
-        pre_allocated_merge_buffer_flag = true;
-    }
+        tuple_size_t total_mem_size = get_total_memory();
+        tuple_size_t free_mem = get_free_memory();
+        u64 delta_mem_size = delta->tuple_counts * sizeof(tuple_type);
+        int multiplier = FULL_BUFFER_VEC_MULTIPLIER;
+        if (!pre_allocated_merge_buffer_flag &&
+            !fully_disable_merge_buffer_flag &&
+            delta_mem_size * multiplier <= 0.1 * free_mem) {
+            std::cout << "reenable pre-allocated merge buffer" << std::endl;
+            pre_allocated_merge_buffer_flag = true;
+        }
 
-    if (!fully_disable_merge_buffer_flag && pre_allocated_merge_buffer_flag) {
-        if (tuple_merge_buffer_size <= new_full_size) {
-            if (tuple_merge_buffer != nullptr) {
-                checkCuda(cudaFree(tuple_merge_buffer));
-                tuple_merge_buffer = nullptr;
-            }
-            std::cout << "extend mem" << std::endl;
-            extened_mem = true;
-            tuple_merge_buffer_size =
-                current_full_size + (delta->tuple_counts * multiplier);
-            u64 tuple_full_buf_mem_size =
-                tuple_merge_buffer_size * sizeof(tuple_type);
-
-            while (((free_mem - tuple_full_buf_mem_size) * 1.0 /
-                    total_mem_size) < 0.4 &&
-                   delta_mem_size * multiplier > 0.1 * free_mem) {
-                std::cout << "multiplier : " << multiplier << std::endl;
-                multiplier--;
+        if (!fully_disable_merge_buffer_flag &&
+            pre_allocated_merge_buffer_flag) {
+            if (tuple_merge_buffer_size <= new_full_size) {
+                if (tuple_merge_buffer != nullptr) {
+                    checkCuda(cudaFree(tuple_merge_buffer));
+                    tuple_merge_buffer = nullptr;
+                }
+                std::cout << "extend mem" << std::endl;
+                extened_mem = true;
                 tuple_merge_buffer_size =
                     current_full_size + (delta->tuple_counts * multiplier);
-                tuple_full_buf_mem_size =
+                u64 tuple_full_buf_mem_size =
                     tuple_merge_buffer_size * sizeof(tuple_type);
-                if (multiplier == 2) {
-                    std::cout << "not enough memory for merge buffer"
-                              << std::endl;
-                    // not enough space for pre-allocated buffer
-                    pre_allocated_merge_buffer_flag = false;
-                    tuple_merge_buffer_size = 0;
-                    // cudaFree(tuple_merge_buffer);
-                    checkCuda(cudaMalloc((void **)&tuple_full_buf,
-                                         tuple_full_buf_mem_size));
-                    break;
+
+                while (((free_mem - tuple_full_buf_mem_size) * 1.0 /
+                        total_mem_size) < 0.4 &&
+                       delta_mem_size * multiplier > 0.1 * free_mem) {
+                    std::cout << "multiplier : " << multiplier << std::endl;
+                    multiplier--;
+                    tuple_merge_buffer_size =
+                        current_full_size + (delta->tuple_counts * multiplier);
+                    tuple_full_buf_mem_size =
+                        tuple_merge_buffer_size * sizeof(tuple_type);
+                    if (multiplier == 2) {
+                        std::cout << "not enough memory for merge buffer"
+                                  << std::endl;
+                        // not enough space for pre-allocated buffer
+                        pre_allocated_merge_buffer_flag = false;
+                        tuple_merge_buffer_size = 0;
+                        // cudaFree(tuple_merge_buffer);
+                        checkCuda(cudaMalloc((void **)&tuple_full_buf,
+                                             tuple_full_buf_mem_size));
+                        break;
+                    }
                 }
-            }
-            if (pre_allocated_merge_buffer_flag) {
-                checkCuda(cudaMalloc((void **)&tuple_merge_buffer,
-                                     tuple_full_buf_mem_size));
+                if (pre_allocated_merge_buffer_flag) {
+                    checkCuda(cudaMalloc((void **)&tuple_merge_buffer,
+                                         tuple_full_buf_mem_size));
+                    tuple_full_buf = tuple_merge_buffer;
+                }
+            } else {
                 tuple_full_buf = tuple_merge_buffer;
             }
         } else {
-            tuple_full_buf = tuple_merge_buffer;
-        }
-    } else {
-        tuple_merge_buffer_size = current_full_size + delta->tuple_counts;
-        u64 tuple_full_buf_mem_size =
-            tuple_merge_buffer_size * sizeof(tuple_type);
-        checkCuda(
-            cudaMalloc((void **)&tuple_full_buf, tuple_full_buf_mem_size));
-        // checkCuda(cudaMemset(tuple_full_buf, 0, tuple_full_buf_mem_size));
-        // checkCuda(cudaDeviceSynchronize());
-    }
-    // std::cout << new_full_size << std::endl;
-
-    timer.stop_timer();
-    // std::cout << "malloc time : " << timer.get_spent_time() << std::endl;
-    detail_time[0] = timer.get_spent_time();
-
-    // get current rank
-    // int rank;
-    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    // if (rank == 1) {
-    //     std::cout << ">>>>>>>>> rank 1 : "
-    //               << " delta size : " << delta->tuple_counts
-    //               << " delta arity : " << delta->arity
-    //               << " delta index column size : " << delta->index_column_size
-    //               << std::endl;
-    // }
-    timer.start_timer();
-    tuple_type *end_tuple_full_buf = thrust::merge(
-        thrust::device, tuple_full, tuple_full + current_full_size,
-        delta->tuples, delta->tuples + delta->tuple_counts, tuple_full_buf,
-        tuple_indexed_less(delta->index_column_size, delta->arity));
-    timer.stop_timer();
-    // std::cout << "merge time : " << timer.get_spent_time() << std::endl;
-    detail_time[1] = timer.get_spent_time();
-    // checkCuda(cudaDeviceSynchronize());
-    current_full_size = new_full_size;
-
-    timer.start_timer();
-    if (!fully_disable_merge_buffer_flag && pre_allocated_merge_buffer_flag) {
-        auto old_full = tuple_full;
-        tuple_full = tuple_merge_buffer;
-        tuple_merge_buffer = old_full;
-        if (extened_mem) {
-            checkCuda(cudaFree(tuple_merge_buffer));
-            tuple_merge_buffer = nullptr;
+            tuple_merge_buffer_size = current_full_size + delta->tuple_counts;
             u64 tuple_full_buf_mem_size =
                 tuple_merge_buffer_size * sizeof(tuple_type);
-            checkCuda(cudaMalloc((void **)&tuple_merge_buffer,
-                                 tuple_full_buf_mem_size));
+            checkCuda(
+                cudaMalloc((void **)&tuple_full_buf, tuple_full_buf_mem_size));
+            // checkCuda(cudaMemset(tuple_full_buf, 0,
+            // tuple_full_buf_mem_size)); checkCuda(cudaDeviceSynchronize());
         }
-    } else {
-        checkCuda(cudaFree(tuple_full));
-        tuple_full = tuple_full_buf;
-    }
-    timer.stop_timer();
-    detail_time[2] = timer.get_spent_time();
-    buffered_delta_vectors.push_back(delta);
-    full->tuples = tuple_full;
-    full->tuple_counts = current_full_size;
-    if (index_flag) {
-        reload_full_temp(full, arity, tuple_full, current_full_size,
-                         index_column_size, dependent_column_size,
-                         full->index_map_load_factor, grid_size, block_size);
+        // std::cout << new_full_size << std::endl;
+
+        timer.stop_timer();
+        // std::cout << "malloc time : " << timer.get_spent_time() << std::endl;
+        detail_time[0] = timer.get_spent_time();
+
+        // get current rank
+        // int rank;
+        // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        // if (rank == 1) {
+        //     std::cout << ">>>>>>>>> rank 1 : "
+        //               << " delta size : " << delta->tuple_counts
+        //               << " delta arity : " << delta->arity
+        //               << " delta index column size : " <<
+        //               delta->index_column_size
+        //               << std::endl;
+        // }
+        timer.start_timer();
+        tuple_type *end_tuple_full_buf = thrust::merge(
+            thrust::device, tuple_full, tuple_full + current_full_size,
+            delta->tuples, delta->tuples + delta->tuple_counts, tuple_full_buf,
+            tuple_indexed_less(delta->index_column_size, delta->arity));
+        timer.stop_timer();
+        // std::cout << "merge time : " << timer.get_spent_time() << std::endl;
+        detail_time[1] = timer.get_spent_time();
+        // checkCuda(cudaDeviceSynchronize());
+        current_full_size = new_full_size;
+
+        timer.start_timer();
+        if (!fully_disable_merge_buffer_flag &&
+            pre_allocated_merge_buffer_flag) {
+            auto old_full = tuple_full;
+            tuple_full = tuple_merge_buffer;
+            tuple_merge_buffer = old_full;
+            if (extened_mem) {
+                checkCuda(cudaFree(tuple_merge_buffer));
+                tuple_merge_buffer = nullptr;
+                u64 tuple_full_buf_mem_size =
+                    tuple_merge_buffer_size * sizeof(tuple_type);
+                checkCuda(cudaMalloc((void **)&tuple_merge_buffer,
+                                     tuple_full_buf_mem_size));
+            }
+        } else {
+            checkCuda(cudaFree(tuple_full));
+            tuple_full = tuple_full_buf;
+        }
+        timer.stop_timer();
+        detail_time[2] = timer.get_spent_time();
+        buffered_delta_vectors.push_back(delta);
+        full->tuples = tuple_full;
+        full->tuple_counts = current_full_size;
+        if (index_flag) {
+            reload_full_temp(full, arity, tuple_full, current_full_size,
+                             index_column_size, dependent_column_size,
+                             full->index_map_load_factor, grid_size,
+                             block_size);
+        }
     }
 }
 
@@ -755,17 +767,22 @@ void load_relation(Relation *target, std::string name, int arity,
     target->index_column_size = index_column_size;
     target->dependent_column_size = dependent_column_size;
     target->tmp_flag = tmp_flag;
-    target->full =
+    auto new_full =
         new GHashRelContainer(arity, index_column_size, dependent_column_size);
-    target->delta =
+    target->fulls.push_back(new_full);
+    auto new_delta =
         new GHashRelContainer(arity, index_column_size, dependent_column_size);
-    target->newt =
+    target->deltas.push_back(new_delta);
+    auto new_newt =
         new GHashRelContainer(arity, index_column_size, dependent_column_size);
+    target->newts.push_back(new_newt);
     // target->newt->tmp_flag = tmp_flag;
+
+    target->sub_bucket_map[0] = get_current_rank();
 
     float detail_time[5];
     // everything must have a full
-    load_relation_container(target->full, arity, data, data_row_size,
+    load_relation_container(target->fulls[0], arity, data, data_row_size,
                             index_column_size, dependent_column_size, 0.8,
                             grid_size, block_size, detail_time);
 }
@@ -835,7 +852,6 @@ void GHashRelContainer::build_index(int grid_size, int block_size) {
     checkCuda(cudaGetLastError());
     checkCuda(cudaDeviceSynchronize());
     checkCuda(cudaFree(target_device));
-
 }
 
 void GHashRelContainer::reconstruct() {}

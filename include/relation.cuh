@@ -2,6 +2,7 @@
 #include "tuple.cuh"
 #include <string>
 #include <vector>
+#include <map>
 
 #ifndef RADIX_SORT_THRESHOLD
 #define RADIX_SORT_THRESHOLD 0
@@ -255,6 +256,8 @@ void free_relation_container(GHashRelContainer *target);
 
 enum MonotonicOrder { DESC, ASC, UNSPEC };
 
+using bucket_id_t = int;
+
 /**
  * @brief actual relation class used in semi-naive eval
  *
@@ -273,14 +276,22 @@ struct Relation {
     bool index_flag = true;
     bool tmp_flag = false;
 
-    GHashRelContainer *delta;
-    GHashRelContainer *newt;
-    GHashRelContainer *full;
+    // GHashRelContainer *delta;
+    // GHashRelContainer *newt;
+    // GHashRelContainer *full;
+
+    std::vector<GHashRelContainer *> deltas;
+    std::vector<GHashRelContainer *> newts;
+    std::vector<GHashRelContainer *> fulls;
+    
+    int sub_bucket_size = 1;
+    
+    std::map<bucket_id_t, bucket_id_t> sub_bucket_map;
 
     // TODO: out dataed remove these, directly use GHashRelContainer
     // **full** a buffer for tuple pointer in full
-    tuple_size_t current_full_size = 0;
-    tuple_type *tuple_full;
+    std::vector<tuple_size_t> current_full_sizes;
+    std::vector<tuple_type *> tuple_fulls;
 
     tuple_type *tuple_merge_buffer;
     tuple_size_t tuple_merge_buffer_size = 0;

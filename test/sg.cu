@@ -130,7 +130,7 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     sg_lie.add_ra(RelationalJoin(edge_2__1_2, FULL, sg_2__1_2, DELTA, tmp,
                                  TupleGenerator(2, 2, {3, 1}), grid_size,
                                  block_size, join_detail));
-    sg_lie.add_ra(RelationalSync(tmp, NEWT));
+    sg_lie.add_ra(RelationalBucketSync(tmp, NEWT));
     // sg(x, y) :- edge(b, y), tmp(b, x).
     sg_lie.add_ra(RelationalJoin(edge_2__1_2, FULL, tmp, NEWT, sg_2__1_2,
                                  TupleGenerator(2, 2, {3, 1}), grid_size,

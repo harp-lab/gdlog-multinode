@@ -53,17 +53,17 @@ bool tc_test(int argc, char **argv) {
                   graph_edge_counts, 1, 0, grid_size, block_size);
 
     // before we start, we need to distribute the data on each rank
-    comm.distribute(edge_2__2_1->full);
+    comm.distribute_bucket(edge_2__2_1->fulls[0]);
     // comm.barrier();
-    comm.distribute(path_2__1_2->full);
-    edge_2__2_1->full->build_index(grid_size, block_size);
+    comm.distribute_bucket(path_2__1_2->fulls[0]);
+    edge_2__2_1->fulls[0]->build_index(grid_size, block_size);
     
     // std::cout << "Before start, print full on each rank" << std::endl;
     // for (int i = 0; i < comm.getTotalRank(); i++) {
     //     if (i == comm.getRank()) {
     //         std::cout << "Rank " << comm.getRank()  << std::endl;
     //         print_tuple_rows(edge_2__2_1->full, "Full edge_2__2_1");
-    //         print_tuple_rows(path_2__1_2->full, "Full path_2__1_2");
+    //         print_tuple_rows(path_2__1_2->fulls[0], "Full path_2__1_2");
     //     }
     //     comm.barrier();
     // }
@@ -88,7 +88,7 @@ bool tc_test(int argc, char **argv) {
     for (int i = 0; i < comm.getTotalRank(); i++) {
         if (i == comm.getRank()) {
             std::cout << "Rank " << comm.getRank()  << std::endl;
-            print_tuple_rows(path_2__1_2->full, "Full path_2__1_2");
+            print_tuple_rows(path_2__1_2->fulls[0], "Full path_2__1_2");
         }
         comm.barrier();
     }
@@ -96,28 +96,28 @@ bool tc_test(int argc, char **argv) {
     bool result = true;
     
     if (!comm.isInitialized() || comm.getTotalRank() == 1) {
-        if (path_2__1_2->full->tuple_counts != 18) {
+        if (path_2__1_2->fulls[0]->tuple_counts != 18) {
             result = false;
         }
     } else {
         if (comm.getTotalRank() == 2 && comm.getRank() == 0) {
-            if (path_2__1_2->full->tuple_counts != 11) {
+            if (path_2__1_2->fulls[0]->tuple_counts != 11) {
                 result = false;
             }
         } else if (comm.getTotalRank() == 2 && comm.getRank() == 1) {
-            if (path_2__1_2->full->tuple_counts != 7) {
+            if (path_2__1_2->fulls[0]->tuple_counts != 7) {
                 result = false;
             }
         } else if (comm.getTotalRank() == 3 && comm.getRank() == 0) {
-            if (path_2__1_2->full->tuple_counts != 1) {
+            if (path_2__1_2->fulls[0]->tuple_counts != 1) {
                 result = false;
             }
         } else if (comm.getTotalRank() == 3 && comm.getRank() == 1) {
-            if (path_2__1_2->full->tuple_counts != 9) {
+            if (path_2__1_2->fulls[0]->tuple_counts != 9) {
                 result = false;
             }
         } else if (comm.getTotalRank() == 3 && comm.getRank() == 2) {
-            if (path_2__1_2->full->tuple_counts != 8) {
+            if (path_2__1_2->fulls[0]->tuple_counts != 8) {
                 result = false;
             }
         }

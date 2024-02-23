@@ -36,17 +36,17 @@ void project_test(Communicator *communicator, int block_size, int grid_size) {
                                  block_size));
 
     cp_scc.fixpoint_loop();
-    // print_tuple_rows(path_2__1_2->full, "path_2__1_2");
+    // print_tuple_rows(path_2__1_2->fulls[0], "path_2__1_2");
     for (int i = 0; i < communicator->getTotalRank(); i++) {
         if (communicator->getRank() == i) {
-            print_tuple_rows(path_2__1_2->full, "path_2__1_2");
+            print_tuple_rows(path_2__1_2->fulls[0], "path_2__1_2");
             if (communicator->getTotalRank() == 1 &&
                 communicator->getRank() == 0) {
-                assert(path_2__1_2->full->tuple_counts == 6);
+                assert(path_2__1_2->fulls[0]->tuple_counts == 6);
             }
             if (communicator->getTotalRank() == 2 &&
                 communicator->getRank() == 0) {
-                assert(path_2__1_2->full->tuple_counts == 3);
+                assert(path_2__1_2->fulls[0]->tuple_counts == 3);
             }
         }
         communicator->barrier();
@@ -97,17 +97,17 @@ void filter_test(Communicator *communicator, int block_size, int grid_size) {
 
     tc_scc.fixpoint_loop();
 
-    print_tuple_rows(edge_2__2_1->full, "edge_2__2_1");
+    print_tuple_rows(edge_2__2_1->fulls[0], "edge_2__2_1");
     for (int i = 0; i < communicator->getTotalRank(); i++) {
         if (communicator->getRank() == i) {
-            print_tuple_rows(edge_2__2_1->full, "edge_2__2_1");
+            print_tuple_rows(edge_2__2_1->fulls[0], "edge_2__2_1");
             if (communicator->getTotalRank() == 1 &&
                 communicator->getRank() == 0) {
-                assert(edge_2__2_1->full->tuple_counts == 6);
+                assert(edge_2__2_1->fulls[0]->tuple_counts == 6);
             }
             if (communicator->getTotalRank() == 2 &&
                 communicator->getRank() == 0) {
-                assert(edge_2__2_1->full->tuple_counts == 2);
+                assert(edge_2__2_1->fulls[0]->tuple_counts == 2);
             }
         }
         communicator->barrier();
@@ -157,14 +157,14 @@ void arithm_test(Communicator *communicator, int block_size, int grid_size) {
 
     for (int i = 0; i < communicator->getTotalRank(); i++) {
         if (communicator->getRank() == i) {
-            print_tuple_rows(edge_2__2_1->full, "edge_2__2_1");
+            print_tuple_rows(edge_2__2_1->fulls[0], "edge_2__2_1");
             if (communicator->getTotalRank() == 1 &&
                 communicator->getRank() == 0) {
-                assert(edge_2__2_1->full->tuple_counts == 10);
+                assert(edge_2__2_1->fulls[0]->tuple_counts == 10);
             }
             if (communicator->getTotalRank() == 2 &&
                 communicator->getRank() == 0) {
-                assert(edge_2__2_1->full->tuple_counts == 4);
+                assert(edge_2__2_1->fulls[0]->tuple_counts == 4);
             }
         }
         communicator->barrier();

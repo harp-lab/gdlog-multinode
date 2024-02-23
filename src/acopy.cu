@@ -11,9 +11,6 @@
 
 void RelationalACopy::operator()() {
 
-    GHashRelContainer *src = src_rel->newt;
-    GHashRelContainer *dest = dest_rel->newt;
-
     if (src->tuple_counts == 0) {
         free_relation_container(dest);
         dest->tuple_counts = 0;

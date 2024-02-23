@@ -20,14 +20,17 @@ struct RelationalJoin {
 
     // relation to compare, this relation must has index
     Relation *inner_rel;
+    GHashRelContainer *inner;
     RelationVersion inner_ver;
     // serialized relation, every tuple in this relation will be iterated and
     // joined with tuples in inner relation
     Relation *outer_rel;
+    GHashRelContainer *outer;
     RelationVersion outer_ver;
 
     // the relation to store the generated join result
     Relation *output_rel;
+    GHashRelContainer *output;
     // hook function will be mapped on every join result tuple
     TupleGenerator tuple_generator;
     // filter to be applied on every join result tuple
@@ -61,8 +64,10 @@ struct RelationalJoin {
  */
 struct RelationalCopy {
     Relation *src_rel;
+    GHashRelContainer *src;
     RelationVersion src_ver;
     Relation *dest_rel;
+    GHashRelContainer *dest;
     TupleProjector tuple_generator;
 
     int grid_size;
@@ -82,6 +87,7 @@ struct RelationalCopy {
 
 struct RelationalFilter {
     Relation *src_rel;
+    GHashRelContainer *src;
     RelationVersion src_ver;
     TupleFilter tuple_pred;
 
@@ -100,6 +106,7 @@ struct RelationalFilter {
  */
 struct RelationalArithm {
     Relation *src_rel;
+    GHashRelContainer *src;
     RelationVersion src_ver;
     TupleArithmetic tuple_generator;
 
@@ -118,7 +125,9 @@ struct RelationalArithm {
  */
 struct RelationalACopy {
     Relation *src_rel;
+    GHashRelContainer *src;
     Relation *dest_rel;
+    GHashRelContainer *dest;
     // function will be mapped on all tuple copied
     TupleProjector tuple_generator;
 
@@ -135,12 +144,12 @@ struct RelationalACopy {
 };
 
 // a relation algebra operator that will sync up all ranks of the same relation
-// this operator will distribute the tuple to all ranks by hash of joined column
-struct RelationalSync {
+// this operator will distribute_bucket the tuple to all ranks by hash of joined column
+struct RelationalBucketSync {
     Relation *src_rel;
     RelationVersion src_ver;
 
-    RelationalSync(Relation *src, RelationVersion src_ver)
+    RelationalBucketSync(Relation *src, RelationVersion src_ver)
         : src_rel(src), src_ver(src_ver) {}
 
     void operator()(){
@@ -154,6 +163,6 @@ struct RelationalSync {
  *
  */
 using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
-                           RelationalFilter, RelationalArithm, RelationalSync>;
+                           RelationalFilter, RelationalArithm, RelationalBucketSync>;
 
 enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM, SYNC };

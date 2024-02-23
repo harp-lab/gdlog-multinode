@@ -11,18 +11,6 @@
 
 void RelationalCopy::operator()() {
     checkCuda(cudaDeviceSynchronize());
-    GHashRelContainer *src;
-    if (src_ver == DELTA) {
-        src = src_rel->delta;
-    } else {
-        src = src_rel->full;
-    }
-    GHashRelContainer *dest = dest_rel->newt;
-
-    if (src->tuple_counts == 0) {
-        dest_rel->newt->tuple_counts = 0;
-        return;
-    }
 
     int output_arity = dest_rel->arity;
     column_type *copied_raw_data;

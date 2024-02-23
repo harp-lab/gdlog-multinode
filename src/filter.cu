@@ -8,14 +8,6 @@
 // #include <rmm/device_vector.h>
 
 void RelationalFilter::operator()() {
-    GHashRelContainer *src;
-    if (src_ver == DELTA) {
-        src = src_rel->delta;
-    } else if (src_ver == FULL) {
-        src = src_rel->full;
-    } else {
-        src = src_rel->newt;
-    }
     
     std::cout << "Flitering " << src_rel->name << std::endl;
 

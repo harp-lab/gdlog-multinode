@@ -23,7 +23,7 @@ void Communicator::init(int argc, char **argv) {
     is_initialized = true;
 }
 
-void Communicator::distribute(GHashRelContainer *container) {
+void Communicator::distribute_bucket(GHashRelContainer *container) {
     // Distribute the data
     // compute the rank of tuple in the container
     if (total_rank == 1) {

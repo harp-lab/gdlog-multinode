@@ -50,9 +50,9 @@ bool test_split_relation(int argc, char **argv) {
     //               graph_edge_counts, 1, 0, grid_size, block_size);
     comm.barrier();
     std::cout << "Before comm Rank " << comm.getRank() << " path_2__1_2->full ="
-              << path_2__1_2->full->tuple_counts << std::endl;
+              << path_2__1_2->fulls[0]->tuple_counts << std::endl;
     // split full relation to all ranks
-    comm.distribute(path_2__1_2->full);
+    comm.distribute_bucket(path_2__1_2->fulls[0]);
     comm.barrier();
     // std::cout << "Rank " << comm.getRank() << " path_2__1_2->full->size() ="
     //           << path_2__1_2->full->tuple_counts << std::endl;
@@ -62,7 +62,7 @@ bool test_split_relation(int argc, char **argv) {
         if (i == comm.getRank()) {
             std::cout << "Rank " << comm.getRank() << " path_2__1_2->full ="
                       << std::endl;
-            print_tuple_rows(path_2__1_2->full, "Full ");
+            print_tuple_rows(path_2__1_2->fulls[0], "Full ");
         }
         comm.barrier();
     }

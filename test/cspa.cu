@@ -247,7 +247,7 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     analysis_scc.add_ra(RelationalJoin(
         dereference_2__1_2, FULL, value_alias_2__1_2, DELTA, tmp_rel_def,
         TupleGenerator(2, 2, {3, 1}), grid_size, block_size, join_detail));
-    analysis_scc.add_ra(RelationalSync(tmp_rel_def, NEWT));
+    analysis_scc.add_ra(RelationalBucketSync(tmp_rel_def, NEWT));
 
     // WARNING: tmp relation can only in outer because it doesn't include
     // index!
@@ -272,7 +272,7 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     analysis_scc.add_ra(RelationalJoin(
         value_flow_2__1_2, FULL, memory_alias_2__1_2, DELTA, tmp_rel_ma1,
         TupleGenerator(2, 2, {3, 1}), grid_size, block_size, join_detail));
-    analysis_scc.add_ra(RelationalSync(tmp_rel_ma1, NEWT));
+    analysis_scc.add_ra(RelationalBucketSync(tmp_rel_ma1, NEWT));
 
     analysis_scc.add_ra(RelationalJoin(
         value_flow_2__1_2, FULL, tmp_rel_ma1, NEWT, value_alias_2__1_2,
@@ -281,7 +281,7 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     analysis_scc.add_ra(RelationalJoin(
         memory_alias_2__2_1, FULL, value_flow_2__1_2, DELTA, tmp_rel_ma2,
         TupleGenerator(2, 2, {1, 3}), grid_size, block_size, join_detail));
-    analysis_scc.add_ra(RelationalSync(tmp_rel_ma2, NEWT));
+    analysis_scc.add_ra(RelationalBucketSync(tmp_rel_ma2, NEWT));
     analysis_scc.add_ra(RelationalJoin(
         value_flow_2__1_2, FULL, tmp_rel_ma2, NEWT, value_alias_2__1_2,
         TupleGenerator(2, 2, {1, 3}), grid_size, block_size, join_detail));

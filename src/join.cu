@@ -17,23 +17,7 @@
 void RelationalJoin::operator()() {
 
     bool output_is_tmp = output_rel->tmp_flag;
-    GHashRelContainer *inner;
-    if (inner_ver == DELTA) {
-        inner = inner_rel->delta;
-    } else {
-        inner = inner_rel->full;
-    }
-    GHashRelContainer *outer;
-    if (outer_ver == DELTA) {
-        outer = outer_rel->delta;
-    } else if (outer_ver == FULL) {
-        outer = outer_rel->full;
-    } else {
-        // temp relation can be outer relation
-        outer = outer_rel->newt;
-    }
     int output_arity = output_rel->arity;
-    // GHashRelContainer* output = output_rel->newt;
 
     if (outer->tuples == nullptr || outer->tuple_counts == 0) {
         outer->tuple_counts = 0;
@@ -121,25 +105,25 @@ void RelationalJoin::operator()() {
     // // reload newt
     // free_relation(output_newt);
     // newt don't need index
-    if (output_rel->newt->tuples == nullptr ||
-        output_rel->newt->tuple_counts == 0) {
+    if (output->tuples == nullptr ||
+        output->tuple_counts == 0) {
         if (disable_load) {
             return;
         }
         if (!output_is_tmp) {
             load_relation_container(
-                output_rel->newt, output_arity, join_res_raw_data,
+                output, output_arity, join_res_raw_data,
                 total_result_rows, output_rel->index_column_size,
                 output_rel->dependent_column_size, 0.8, grid_size, block_size,
                 load_relation_container_time, true, false, false);
         } else {
             // temporary relation doesn't need index nor sort
             load_relation_container(
-                output_rel->newt, output_arity, join_res_raw_data,
+                output, output_arity, join_res_raw_data,
                 total_result_rows, output_rel->index_column_size,
                 output_rel->dependent_column_size, 0.8, grid_size, block_size,
                 load_relation_container_time, true, true, false);
-            output_rel->newt->tmp_flag = true;
+            output->tmp_flag = true;
         }
         checkCuda(cudaDeviceSynchronize());
         detail_time[3] += load_relation_container_time[0];
@@ -152,7 +136,7 @@ void RelationalJoin::operator()() {
             GHashRelContainer *newt_tmp = new GHashRelContainer(
                 output_rel->arity, output_rel->index_column_size,
                 output_rel->dependent_column_size);
-            GHashRelContainer *old_newt = output_rel->newt;
+            GHashRelContainer *old_newt = output;
             load_relation_container(
                 newt_tmp, output_arity, join_res_raw_data, total_result_rows,
                 output_rel->index_column_size,
@@ -207,14 +191,14 @@ void RelationalJoin::operator()() {
             free_relation_container(newt_tmp);
             // TODO: free newt_tmp pointer
             load_relation_container(
-                output_rel->newt, output_arity, new_newt_raw, new_newt_counts,
+                output, output_arity, new_newt_raw, new_newt_counts,
                 output_rel->index_column_size,
                 output_rel->dependent_column_size, 0.8, grid_size, block_size,
                 load_relation_container_time, true, true, false);
             checkCuda(cudaDeviceSynchronize());
         } else {
             // output relation is tmp relation, directly merge without sort
-            GHashRelContainer *old_newt = output_rel->newt;
+            GHashRelContainer *old_newt = output;
             column_type *newt_tmp_raw;
             u64 newt_tmp_raw_mem_size =
                 (old_newt->tuple_counts + total_result_rows) *
@@ -235,7 +219,7 @@ void RelationalJoin::operator()() {
             free_relation_container(old_newt);
             checkCuda(cudaFree(join_res_raw_data));
             load_relation_container(
-                output_rel->newt, output_arity, newt_tmp_raw, new_newt_counts,
+                output, output_arity, newt_tmp_raw, new_newt_counts,
                 output_rel->index_column_size,
                 output_rel->dependent_column_size, 0.8, grid_size, block_size,
                 load_relation_container_time, true, true, false);
@@ -245,14 +229,14 @@ void RelationalJoin::operator()() {
         detail_time[3] += load_relation_container_time[0];
         detail_time[4] += load_relation_container_time[1];
         detail_time[5] += load_relation_container_time[2];
-        // print_tuple_rows(output_rel->newt, "join merge newt");
+        // print_tuple_rows(output, "join merge newt");
         // delete newt_tmp;
     }
 
-    // print_tuple_rows(output_rel->newt, "output_newtr");
+    // print_tuple_rows(output, "output_newtr");
     // checkCuda(cudaDeviceSynchronize());
     // std::cout << output_rel->name << " join result size " <<
-    // output_rel->newt->tuple_counts <<std::endl;
+    // output->tuple_counts <<std::endl;
 
     checkCuda(cudaFree(inner_device));
     checkCuda(cudaFree(outer_device));
