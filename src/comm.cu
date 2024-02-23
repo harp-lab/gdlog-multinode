@@ -136,9 +136,9 @@ void Communicator::distribute(GHashRelContainer *container) {
     if (gpu_direct_flag) {
         MPI_Alltoallv(d_send_buffer.data().get(),
                       h_rank_tuple_send_counts.data(),
-                      send_displacements.data(), MPI_INT, recv_buffer,
+                      send_displacements.data(), MPI_ELEM_TYPE, recv_buffer,
                       h_rank_tuple_recv_counts.data(),
-                      recv_displacements.data(), MPI_INT, MPI_COMM_WORLD);
+                      recv_displacements.data(), MPI_ELEM_TYPE, MPI_COMM_WORLD);
     } else {
         thrust::host_vector<column_type> h_send_buffer(d_send_buffer);
         thrust::host_vector<column_type> h_recv_buffer(total_recv * arity);
@@ -162,7 +162,7 @@ Communicator::gatherRelContainerSize(GHashRelContainer *container) {
     if (total_rank == 1) {
         return container->tuple_counts;
     }
-    tuple_size_t total_size;
+    tuple_size_t total_size = 0;
     MPI_Allreduce(&container->tuple_counts, &total_size, 1, MPI_ELEM_TYPE,
                   MPI_SUM, MPI_COMM_WORLD);
     return total_size;
@@ -182,7 +182,7 @@ tuple_size_t Communicator::reduceSumTupleSize(tuple_size_t value) {
         return value;
     }
     tuple_size_t result = 0;
-    MPI_Allreduce(&value, &result, 1, MPI_ELEM_TYPE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&value, &result, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
     return result;
 }
 

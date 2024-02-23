@@ -3,6 +3,14 @@ project(gdlog LANGUAGES CXX CUDA)
 
 find_package(MPI REQUIRED)
 
+option(POLARIS_RDMA "Turn on GPU direct on polaris" OFF)
+option(FORCE_GPU_DIRECT "Force GPU direct to be on" OFF)
+option(USE_64BIT_DOMAIN "Use u64 as builtin type for column domain" OFF)
+
+if (USE_64BIT_DOMAIN)
+    add_definitions(-DUSE_64_BIT_TUPLE)
+endif()
+
 # find_package(CUDA REQUIRED)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -183,8 +191,6 @@ file(GLOB source_file_test
 file(GLOB source_file_merge
     "${test_dir}/merge.cu"
 )
-
-option(POLARIS_RDMA "Turn on GPU direct on polaris" OFF)
 
 add_library(gpu_ra "${source_file_gpu_ra}")
 target_compile_features(gpu_ra PUBLIC cxx_std_17)
