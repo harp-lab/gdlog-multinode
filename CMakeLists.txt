@@ -159,6 +159,7 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_src}/join.cu"
     "${gpu_ra_src}/filter.cu"
     "${gpu_ra_src}/arithm.cu"
+    "${gpu_ra_src}/negation.cu"
     "${gpu_ra_src}/tokenizer.cpp"
     "${gpu_ra_src}/ast.cpp"
     "${gpu_ra_src}/comm.cu"

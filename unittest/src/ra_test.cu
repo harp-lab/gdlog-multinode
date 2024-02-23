@@ -9,14 +9,17 @@
 #include "exception.cuh"
 #include "lie.cuh"
 #include "print.cuh"
+#include "relation.cuh"
 #include "timer.cuh"
 
 #include "builtin.h"
 
-
 column_type raw_graph_data[20] = {1, 2, 1, 5, 1, 6, 2, 3, 2, 6,
                                   3, 4, 8, 7, 4, 5, 4, 6, 5, 6};
 tuple_size_t graph_edge_counts = 10;
+
+column_type neg_data[2] = {2, 4};
+tuple_size_t neg_counts = 2;
 
 void project_test(Communicator *communicator, int block_size, int grid_size) {
     Relation *edge_2__2_1 = new Relation();
@@ -53,7 +56,8 @@ void project_test(Communicator *communicator, int block_size, int grid_size) {
     }
 
     if (communicator->getRank() == 0) {
-        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Project test passed" << std::endl;
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Project test passed"
+                  << std::endl;
     }
 }
 
@@ -114,7 +118,8 @@ void filter_test(Communicator *communicator, int block_size, int grid_size) {
     }
 
     if (communicator->getRank() == 0) {
-        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Filter test passed" << std::endl;
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Filter test passed"
+                  << std::endl;
     }
 }
 
@@ -171,7 +176,54 @@ void arithm_test(Communicator *communicator, int block_size, int grid_size) {
     }
 
     if (communicator->getRank() == 0) {
-        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Arithm test passed" << std::endl;
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Arithm test passed"
+                  << std::endl;
+    }
+}
+
+void negation_test(Communicator *communicator, int block_size, int grid_size) {
+    Relation *path_2__1_2 = new Relation();
+    Relation *neg_1__1_1 = new Relation();
+
+    load_relation(path_2__1_2, "path_2__1_2", 2, raw_graph_data,
+                  graph_edge_counts, 1, 0, grid_size, block_size);
+    load_relation(neg_1__1_1, "neg_1__1_1", 1, neg_data, neg_counts, 1, 0,
+                  grid_size, block_size);
+
+    LIE negation_scc(grid_size, block_size);
+    negation_scc.set_communicator(communicator);
+
+    negation_scc.add_relations(path_2__1_2, true);
+    negation_scc.add_relations(neg_1__1_1, false);
+
+    negation_scc.add_ra(RelationalNegation(path_2__1_2, FULL, neg_1__1_1, FULL,
+                                           grid_size, block_size));
+    print_tuple_rows(neg_1__1_1->full, "neg_1__1_1");
+    print_tuple_rows(path_2__1_2->full, "before negation");
+    negation_scc.fixpoint_loop();
+
+    for (int i = 0; i < communicator->getTotalRank(); i++) {
+        if (communicator->getRank() == i) {
+            print_tuple_rows(path_2__1_2->full, "path_2__1_2");
+            if (communicator->getTotalRank() == 1 &&
+                communicator->getRank() == 0) {
+                assert(path_2__1_2->full->tuple_counts == 6);
+            }
+            if (communicator->getTotalRank() == 2 &&
+                communicator->getRank() == 0) {
+                assert(path_2__1_2->full->tuple_counts == 5);
+            }
+            if (communicator->getTotalRank() == 2 &&
+                communicator->getRank() == 1) {
+                assert(path_2__1_2->full->tuple_counts == 1);
+            }
+        }
+        communicator->barrier();
+    }
+
+    if (communicator->getRank() == 0) {
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Negation test passed"
+                  << std::endl;
     }
 }
 
@@ -190,8 +242,13 @@ int main(int argc, char *argv[]) {
     std::locale loc("");
     Communicator communicator;
     communicator.init(argc, argv);
+    if (communicator.getTotalRank() > 2) {
+        std::cout << "This test only support 1 or 2 ranks" << std::endl;
+        return 0;
+    }
     filter_test(&communicator, block_size, grid_size);
     arithm_test(&communicator, block_size, grid_size);
     project_test(&communicator, block_size, grid_size);
+    negation_test(&communicator, block_size, grid_size);
     return 0;
 }

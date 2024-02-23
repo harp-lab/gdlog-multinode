@@ -24,7 +24,6 @@ struct MEntity {
     u64 value;
 };
 
-
 /**
  * @brief a C-style hashset indexing based relation container.
  *        Actual data is still stored using sorted set.
@@ -153,6 +152,12 @@ __global__ void get_join_result_size(GHashRelContainer *inner_table,
                                      TupleGenerator tp_gen,
                                      tuple_predicate tp_pred,
                                      tuple_size_t *join_result_size);
+
+__global__ void
+get_join_inner(MEntity *inner_index_map, tuple_size_t inner_index_map_size,
+               tuple_size_t inner_tuple_counts, tuple_type *inner_tuples,
+               tuple_type *outer_tuples, tuple_size_t outer_tuple_counts,
+               int join_column_counts, bool *join_result_bitmap);
 
 /**
  * @brief compute the join result

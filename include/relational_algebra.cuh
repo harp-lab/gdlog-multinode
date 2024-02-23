@@ -149,11 +149,47 @@ struct RelationalSync {
     };
 };
 
+struct RelationalNegation {
+    Relation *src_rel;
+    RelationVersion src_ver;
+
+    Relation *neg_rel;
+    RelationVersion neg_ver;
+
+    int grid_size;
+    int block_size;
+
+    RelationalNegation(Relation *src, RelationVersion src_ver, Relation *neg,
+                       RelationVersion neg_ver, int grid_size, int block_size)
+        : src_rel(src), src_ver(src_ver), neg_rel(neg), neg_ver(neg_ver),
+          grid_size(grid_size), block_size(block_size) {}
+
+    void operator()();
+};
+
+struct RelationalIndex {
+    Relation *target_rel;
+    RelationVersion target_ver;
+
+    int grid_size;
+    int block_size;
+
+    RelationalIndex(Relation *target_rel, RelationVersion target_ver,
+                    int grid_size, int block_size)
+        : target_rel(target_rel), target_ver(target_ver), grid_size(grid_size),
+          block_size(block_size) {}
+
+    void operator()(){
+        // nothing happened here, the inference engine will handle the
+    };
+};
+
 /**
  * @brief possible RA types
  *
  */
 using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
-                           RelationalFilter, RelationalArithm, RelationalSync>;
+                           RelationalFilter, RelationalArithm, RelationalSync,
+                           RelationalNegation, RelationalIndex>;
 
-enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM, SYNC };
+enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM, SYNC, NEGATION, INDEX };

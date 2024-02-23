@@ -90,9 +90,7 @@ void LIE::fixpoint_loop() {
                                // timer.start_timer();
                                op();
                            },
-                           [&](RelationalACopy &op) {
-                               op();
-                           },
+                           [&](RelationalACopy &op) { op(); },
                            [&](RelationalCopy &op) {
                                if (op.src_ver == FULL) {
                                    if (!op.copied) {
@@ -104,19 +102,30 @@ void LIE::fixpoint_loop() {
                                }
                            },
                            [&](RelationalFilter &op) { op(); },
-                           [&](RelationalArithm &op) {
-                               op();
-                           },
+                           [&](RelationalArithm &op) { op(); },
+                           [&](RelationalNegation &op) { op(); },
                            [&](RelationalSync &op) {
-                                
-                                if (op.src_ver == FULL) {
-                                mcomm->distribute(op.src_rel->full);
-                                } else if (op.src_ver == DELTA) {
-                                mcomm->distribute(op.src_rel->delta);
-                                } else {
-                                // std::cout << ">>>>>>>>>>>>>>>>>> sync " << mcomm->getTotalRank() << std::endl;
-                                mcomm->distribute(op.src_rel->newt);
-                                }
+                               if (op.src_ver == FULL) {
+                                   mcomm->distribute(op.src_rel->full);
+                               } else if (op.src_ver == DELTA) {
+                                   mcomm->distribute(op.src_rel->delta);
+                               } else {
+                                   // std::cout << ">>>>>>>>>>>>>>>>>> sync " <<
+                                   // mcomm->getTotalRank() << std::endl;
+                                   mcomm->distribute(op.src_rel->newt);
+                               }
+                           },
+                           [&](RelationalIndex &op) {
+                               if (op.target_ver == FULL) {
+                                   op.target_rel->full->build_index(grid_size,
+                                                                    block_size);
+                               } else if (op.target_ver == DELTA) {
+                                   op.target_rel->delta->build_index(
+                                       grid_size, block_size);
+                               } else {
+                                   op.target_rel->newt->build_index(grid_size,
+                                                                    block_size);
+                               }
                            }},
                        ra_op);
             timer.stop_timer();
