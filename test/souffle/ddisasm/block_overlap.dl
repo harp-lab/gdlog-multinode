@@ -1,0 +1,43 @@
+.type input_reg <: symbol
+.type reg_nullable <: symbol
+.type register <: reg_nullable
+.type address <: unsigned
+.type operand_code <: unsigned
+.type operand_index <: unsigned
+.type condition_code <: symbol
+.type block_type <: symbol
+.type symbol_position <: symbol
+.type limit_type <: symbol
+.type access_mode <: symbol
+
+.decl block_overlap(Block1:address,Type1:block_type,Size1:unsigned,Block2:address,Type2:block_type,Size2:unsigned)
+.printsize block_overlap
+
+.decl block_candidate_boundaries(Block:address,Type:block_type,BegAddr:address,EndAddr:address)
+.input block_candidate_boundaries(IO=file, filename="block_candidate_boundaries.csv")
+
+
+block_overlap(Block2,Type2,Size2,Block1,Type1,Size1) :- 
+   block_overlap(Block1,Type1,Size1,Block2,Type2,Size2).
+
+block_overlap(Block1,Type1,(EndAddr1-BegAddr1),Block2,Type2,(EndAddr2-BegAddr2)) :- 
+   block_candidate_boundaries(Block1,Type1,BegAddr1,EndAddr1),
+   block_candidate_boundaries(Block2,Type2,BegAddr2,EndAddr2),
+   Block1 != Block2,
+   BegAddr1 <= BegAddr2,
+   BegAddr2 < EndAddr1.
+
+block_overlap(Block1,Type1,(EndAddr1-BegAddr1),Block2,Type2,(EndAddr2-BegAddr2)) :- 
+   block_candidate_boundaries(Block1,Type1,BegAddr1,EndAddr1),
+   block_candidate_boundaries(Block2,Type2,BegAddr2,EndAddr2),
+   Type1 != Type2,
+   BegAddr1 <= BegAddr2,
+   BegAddr2 < EndAddr1.
+
+block_overlap(Block1,Type1,(EndAddr1-BegAddr1),Block2,Type2,(EndAddr2-BegAddr2)) :- 
+   block_candidate_boundaries(Block1,Type1,BegAddr1,EndAddr1),
+   block_candidate_boundaries(Block2,Type2,BegAddr2,EndAddr2),
+   (EndAddr1-BegAddr1) != (EndAddr2-BegAddr2),
+   BegAddr1 <= BegAddr2,
+   BegAddr2 < EndAddr1.
+

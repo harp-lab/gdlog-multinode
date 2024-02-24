@@ -5,7 +5,10 @@
 #include "../include/timer.cuh"
 #include "../include/tuple.cuh"
 #include <chrono>
+#include <functional>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -892,3 +895,41 @@ void GHashRelContainer::build_index(int grid_size, int block_size) {
 }
 
 void GHashRelContainer::reconstruct() {}
+
+void file_to_buffer(std::string file_path, thrust::host_vector<column_type> &buffer,
+                    std::map<column_type, std::string> &string_map) {
+    std::ifstream file(file_path);
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string token;
+        // if empty line, skip
+        if (line.empty()) {
+            continue;
+        }
+        while (std::getline(iss, token, '\t')) {
+            // if token is number (including hex start with 0x)
+            if (token.find_first_not_of("0123456789") == std::string::npos) {
+                buffer.push_back(std::stoull(token));
+            } else if (token.find("0x") == 0) {
+                buffer.push_back(std::stoull(token, 0, 16));
+            } else {
+                // check if empty string
+                if (token.empty()) {
+                    buffer.push_back(0);
+                }
+                // if token is a string in value of the map, use the key
+                // else use the hash value of the string as the key inserted
+                // into the map
+                column_type token_hash = std::hash<std::string>{}(token);
+                auto it = string_map.find(token_hash);
+                if (it == string_map.end()) {
+                    string_map[token_hash] = token;
+                    buffer.push_back(token_hash);
+                } else {
+                    buffer.push_back(it->first);
+                }
+            }
+        }
+    }
+}

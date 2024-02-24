@@ -1,7 +1,9 @@
 #pragma once
 #include "tuple.cuh"
+#include <map>
 #include <string>
 #include <vector>
+#include <thrust/host_vector.h>
 
 #ifndef RADIX_SORT_THRESHOLD
 #define RADIX_SORT_THRESHOLD 0
@@ -326,3 +328,6 @@ void load_relation(Relation *target, std::string name, int arity,
                    column_type *data, tuple_size_t data_row_size,
                    tuple_size_t index_column_size, int dependent_column_size,
                    int grid_size, int block_size, bool tmp_flag = false);
+
+void file_to_buffer(std::string file_path, thrust::host_vector<column_type> &buffer,
+                    std::map<column_type, std::string> &string_map);
