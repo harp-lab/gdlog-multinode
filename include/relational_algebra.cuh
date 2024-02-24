@@ -43,6 +43,8 @@ struct RelationalJoin {
     // join time for debug and profiling
     float *detail_time;
 
+    TupleFilter tuple_pred;
+
     RelationalJoin(Relation *inner_rel, RelationVersion inner_ver,
                    Relation *outer_rel, RelationVersion outer_ver,
                    Relation *output_rel, TupleGenerator tp_gen, int grid_size,
@@ -51,6 +53,17 @@ struct RelationalJoin {
           outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
           grid_size(grid_size), block_size(block_size),
           detail_time(detail_time){};
+
+    // constructor contains filter
+    RelationalJoin(Relation *inner_rel, RelationVersion inner_ver,
+                   Relation *outer_rel, RelationVersion outer_ver,
+                   Relation *output_rel, TupleGenerator tp_gen,
+                   TupleFilter tuple_pred, int grid_size, int block_size,
+                   float *detail_time)
+        : inner_rel(inner_rel), inner_ver(inner_ver), outer_rel(outer_rel),
+          outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
+          grid_size(grid_size), block_size(block_size),
+          detail_time(detail_time), tuple_pred(tuple_pred){};
 
     void operator()();
 };

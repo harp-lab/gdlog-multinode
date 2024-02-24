@@ -1,5 +1,7 @@
 #pragma once
 #include "tuple.cuh"
+#include "builtin.h"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -152,7 +154,7 @@ __global__ void get_join_result_size(GHashRelContainer *inner_table,
                                      GHashRelContainer *outer_table,
                                      int join_column_counts,
                                      TupleGenerator tp_gen,
-                                     tuple_predicate tp_pred,
+                                     TupleFilter tp_pred,
                                      tuple_size_t *join_result_size);
 
 __global__ void
@@ -176,7 +178,7 @@ get_join_inner(MEntity *inner_index_map, tuple_size_t inner_index_map_size,
 __global__ void
 get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
                 int join_column_counts, TupleGenerator tp_gen,
-                tuple_predicate tp_pred, int output_arity,
+                TupleFilter tp_pred, int output_arity,
                 column_type *output_raw_data, tuple_size_t *res_count_array,
                 tuple_size_t *res_offset, JoinDirection direction);
 

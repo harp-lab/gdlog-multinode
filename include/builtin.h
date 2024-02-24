@@ -63,11 +63,13 @@ struct TupleFilter {
         return result;
     };
 
-    int arity;
+    int arity = 0;
     int pos;
     BinaryFilterComparison op[MAX_ARITY];
     int left[MAX_ARITY];
     int right[MAX_ARITY];
+
+    TupleFilter() = default;
 
     // init these field in constructor
     TupleFilter(int arity, std::vector<BinaryFilterComparison> op,
