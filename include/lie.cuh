@@ -14,6 +14,7 @@
 struct LIE {
     // all relation operator used in this LIE
     std::vector<ra_op> ra_ops;
+    std::vector<ra_op> non_iterative_ra_ops;
 
     // all relations may have new data in this SCC
     std::vector<Relation *> update_relations;
@@ -45,6 +46,8 @@ struct LIE {
      */
     void fixpoint_loop();
 
+    void execute_ra(ra_op &op);
+
     /**
      * @brief Add a relation to SCC, all relation must be added before fixpoint
      * loop begin
@@ -67,7 +70,7 @@ struct LIE {
      *
      * @param op
      */
-    void add_ra(ra_op op);
+    void add_ra(ra_op op, bool is_iterative = true);
     // void ra(ra_op op);
 
     void init_communicator(int argc, char **argv) { mcomm->init(argc, argv); }

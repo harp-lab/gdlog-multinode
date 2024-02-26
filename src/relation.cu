@@ -5,9 +5,10 @@
 #include "../include/timer.cuh"
 #include "../include/tuple.cuh"
 #include <chrono>
+#include <fstream>
 #include <functional>
 #include <iostream>
-#include <fstream>
+#include <mpi.h>
 #include <sstream>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
@@ -16,7 +17,6 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
-#include <mpi.h>
 
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
@@ -147,8 +147,7 @@ __global__ void init_tuples_unsorted(tuple_type *tuples, column_type *raw_data,
 __global__ void get_join_result_size(GHashRelContainer *inner_table,
                                      GHashRelContainer *outer_table,
                                      int join_column_counts,
-                                     TupleGenerator tp_gen,
-                                     TupleFilter tp_pred,
+                                     TupleGenerator tp_gen, TupleFilter tp_pred,
                                      tuple_size_t *join_result_size) {
     u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
     if (index >= outer_table->tuple_counts)
@@ -350,7 +349,6 @@ get_join_inner(MEntity *inner_index_map, tuple_size_t inner_index_map_size,
     }
 }
 
-
 __global__ void flatten_tuples_raw_data(tuple_type *tuple_pointers,
                                         column_type *raw,
                                         tuple_size_t tuple_counts, int arity) {
@@ -466,7 +464,8 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     //     std::cout << ">>>>>>>>> rank 1 : "
     //               << " delta size : " << delta->tuple_counts
     //               << " delta arity : " << delta->arity
-    //               << " delta index column size : " << delta->index_column_size
+    //               << " delta index column size : " <<
+    //               delta->index_column_size
     //               << std::endl;
     // }
     timer.start_timer();
@@ -891,12 +890,68 @@ void GHashRelContainer::build_index(int grid_size, int block_size) {
     checkCuda(cudaGetLastError());
     checkCuda(cudaDeviceSynchronize());
     checkCuda(cudaFree(target_device));
-
 }
 
 void GHashRelContainer::reconstruct() {}
 
-void file_to_buffer(std::string file_path, thrust::host_vector<column_type> &buffer,
+void GHashRelContainer::fit() {
+    if (this->tuple_counts == 0) {
+        return;
+    }
+    if (this->tuple_counts == this->data_raw_row_size) {
+        return;
+    }
+    column_type *new_data;
+    checkCuda(cudaMalloc((void **)&new_data,
+                         this->arity * this->tuple_counts * sizeof(column_type)));
+    thrust::for_each(
+        thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
+        thrust::make_counting_iterator<tuple_size_t>(this->tuple_counts),
+        [gh_tps = this->tuples, arity = this->arity, new_data] __device__(
+            tuple_size_t i) {
+            for (int j = 0; j < arity; j++) {
+                new_data[i * arity + j] = gh_tps[i][j];
+            }
+        });
+    reload(new_data, this->tuple_counts);
+}
+
+void Relation::defragement(RelationVersion ver, int grid_size, int block_size) {
+    GHashRelContainer *gh;
+    if (ver == FULL) {
+        if (buffered_delta_vectors.size() == 0 &&
+            full->tuple_counts == full->data_raw_row_size) {
+            return;
+        }
+        gh = full;
+    } else if (ver == DELTA) {
+        gh = delta;
+    } else if (ver == NEWT) {
+        gh = newt;
+    }
+    if (gh->tuple_counts == 0) {
+        return;
+    }
+    gh->fit();
+    // print_tuple_rows(gh, "after defragment");
+    if (ver == NEWT) {
+        return;
+    }
+    if (index_flag) {
+        full->build_index(grid_size, block_size);
+    }
+    if (ver == FULL) {
+        if (buffered_delta_vectors.size() <= 1) {
+            return;
+        }
+        for (int j = 0; j < buffered_delta_vectors.size() - 1; j++) {
+            free_relation_container(buffered_delta_vectors[j]);
+        }
+    }
+}
+
+void file_to_buffer(std::string file_path,
+                    thrust::host_vector<column_type> &buffer,
                     std::map<column_type, std::string> &string_map) {
     std::ifstream file(file_path);
     std::string line;

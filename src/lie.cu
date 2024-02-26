@@ -10,7 +10,13 @@
 
 #include <variant>
 
-void LIE::add_ra(ra_op op) { ra_ops.push_back(op); }
+void LIE::add_ra(ra_op op, bool is_iterative) {
+    if (is_iterative) {
+        ra_ops.push_back(op);
+    } else {
+        non_iterative_ra_ops.push_back(op);
+    }
+}
 
 void LIE::add_relations(Relation *rel, bool static_flag) {
     if (static_flag) {
@@ -34,6 +40,61 @@ void LIE::redistribute_full_relations() {
             rel->full->build_index(grid_size, block_size);
         }
     }
+}
+
+void LIE::execute_ra(ra_op &ra) {
+    std::visit(
+        dynamic_dispatch{
+            [&](RelationalJoin &op) {
+                // timer.start_timer();
+                op();
+            },
+            [&](RelationalACopy &op) { op(); },
+            [&](RelationalCopy &op) {
+                // std::cout << "copied" << std::endl;
+                if (op.src_ver == FULL) {
+                    if (!op.copied) {
+                        op();
+                        op.copied = true;
+                    }
+                } else {
+                    op();
+                }
+            },
+            [&](RelationalFilter &op) { op(); },
+            [&](RelationalArithm &op) {  op(); },
+            [&](RelationalNegation &op) { op(); },
+            [&](RelationalSync &op) {
+                if (op.src_ver == FULL) {
+                    mcomm->distribute(op.src_rel->full);
+                } else if (op.src_ver == DELTA) {
+                    mcomm->distribute(op.src_rel->delta);
+                } else {
+                    // std::cout << ">>>>>>>>>>>>>>>>>> sync " <<
+                    // mcomm->getTotalRank() << std::endl;
+                    mcomm->distribute(op.src_rel->newt);
+                }
+            },
+            [&](RelationalIndex &op) {
+                if (op.target_ver == FULL) {
+                    op.target_rel->full->build_index(grid_size, block_size);
+                } else if (op.target_ver == DELTA) {
+                    op.target_rel->delta->build_index(grid_size, block_size);
+                } else {
+                    op.target_rel->newt->build_index(grid_size, block_size);
+                }
+            },
+            [&](RelationalCartesian &op) {
+                mcomm->broadcast(get_relation_ver(op.outer_rel, op.outer_ver));
+                op.inner_rel->defragement(op.inner_ver, grid_size, block_size);
+                // print_tuple_rows(op.inner_rel->full, "inner rel");
+                // std::cout << "cartesian" << std::endl;
+                op();
+            },
+            [&](RelationalUnion &op) { op(); },
+            [&](RelationalClear &op) { op(); },
+            [&](RelationalBroadcast &op) { mcomm->broadcast(op.src); }},
+        ra);
 }
 
 void LIE::fixpoint_loop() {
@@ -83,51 +144,17 @@ void LIE::fixpoint_loop() {
     }
     while (true) {
         auto prev_comm_time = node_comm_time;
+        if (iteration_counter == 0) {
+            for (auto &ra_op : non_iterative_ra_ops) {
+                timer.start_timer();
+                execute_ra(ra_op);
+                timer.stop_timer();
+                join_time += timer.get_spent_time();
+            }
+        }
         for (auto &ra_op : ra_ops) {
             timer.start_timer();
-            std::visit(dynamic_dispatch{
-                           [&](RelationalJoin &op) {
-                               // timer.start_timer();
-                               op();
-                           },
-                           [&](RelationalACopy &op) { op(); },
-                           [&](RelationalCopy &op) {
-                               if (op.src_ver == FULL) {
-                                   if (!op.copied) {
-                                       op();
-                                       op.copied = true;
-                                   }
-                               } else {
-                                   op();
-                               }
-                           },
-                           [&](RelationalFilter &op) { op(); },
-                           [&](RelationalArithm &op) { op(); },
-                           [&](RelationalNegation &op) { op(); },
-                           [&](RelationalSync &op) {
-                               if (op.src_ver == FULL) {
-                                   mcomm->distribute(op.src_rel->full);
-                               } else if (op.src_ver == DELTA) {
-                                   mcomm->distribute(op.src_rel->delta);
-                               } else {
-                                   // std::cout << ">>>>>>>>>>>>>>>>>> sync " <<
-                                   // mcomm->getTotalRank() << std::endl;
-                                   mcomm->distribute(op.src_rel->newt);
-                               }
-                           },
-                           [&](RelationalIndex &op) {
-                               if (op.target_ver == FULL) {
-                                   op.target_rel->full->build_index(grid_size,
-                                                                    block_size);
-                               } else if (op.target_ver == DELTA) {
-                                   op.target_rel->delta->build_index(
-                                       grid_size, block_size);
-                               } else {
-                                   op.target_rel->newt->build_index(grid_size,
-                                                                    block_size);
-                               }
-                           }},
-                       ra_op);
+            execute_ra(ra_op);
             timer.stop_timer();
             join_time += timer.get_spent_time();
         }

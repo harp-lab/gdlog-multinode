@@ -88,6 +88,9 @@ struct GHashRelContainer {
 
     // TODO: impl this, move construct hash table logic into this function
     void build_index(int grid_size, int block_size);
+
+    // fit data_raw with tuple
+    void fit();
 };
 
 enum JoinDirection { LEFT, RIGHT };
@@ -311,6 +314,8 @@ struct Relation {
      * @param block_size
      */
     void flush_delta(int grid_size, int block_size, float *detail_time);
+
+    void defragement(RelationVersion ver, int grid_size, int block_size);
 };
 
 /**

@@ -160,6 +160,9 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_src}/filter.cu"
     "${gpu_ra_src}/arithm.cu"
     "${gpu_ra_src}/negation.cu"
+    "${gpu_ra_src}/cartesian.cu"
+    "${gpu_ra_src}/broadcast.cu"
+    "${gpu_ra_src}/union.cu"
     "${gpu_ra_src}/tokenizer.cpp"
     "${gpu_ra_src}/ast.cpp"
     "${gpu_ra_src}/comm.cu"
@@ -232,3 +235,13 @@ add_executable(SG ${source_file_sg})
 target_link_libraries(SG gpu_ra)
 target_compile_features(SG PUBLIC cxx_std_17)
 set_target_properties(SG PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+
+
+file(GLOB source_file_block_overlap
+    "${test_dir}/block_overlap.cu"
+)
+add_executable(BLOCK_OVERLAP ${source_file_block_overlap})
+target_link_libraries(BLOCK_OVERLAP gpu_ra)
+target_compile_features(BLOCK_OVERLAP PUBLIC cxx_std_17)
+set_target_properties(BLOCK_OVERLAP PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+

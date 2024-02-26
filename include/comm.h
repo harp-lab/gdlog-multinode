@@ -28,6 +28,9 @@ class Communicator {
     // distribute relation to all processes by hashing of join column
     void distribute(GHashRelContainer *rel_container);
 
+    // duplicate tuples of a relation on all rank
+    void broadcast(GHashRelContainer *rel_container);
+
     // gather relation size from all processes
     tuple_size_t gatherRelContainerSize(GHashRelContainer *rel_container);
     
