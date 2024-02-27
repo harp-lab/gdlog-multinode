@@ -87,7 +87,7 @@ void LIE::fixpoint_loop() {
             auto full = rel->fulls[b_id];
             auto delta = rel->deltas[b_id];
             auto tuple_full = rel->tuple_fulls[b_id];
-            auto current_full_size = rel->current_full_sizes[b_id];
+//            auto current_full_size = rel->current_full_sizes[b_id];
             checkCuda(cudaMalloc((void **)&tuple_full,
                                  full->tuple_counts *
                                      sizeof(tuple_type)));
@@ -309,7 +309,7 @@ void LIE::fixpoint_loop() {
                           << rel->name << " rank " << mcomm->getRank()
                           << " delta tuple size: "
                           << current_rank_delta_size
-                          //   << " full counts " << rel->current_full_size
+//                             << " full counts " << rel->current_full_size
                           << std::endl;
             }
         }

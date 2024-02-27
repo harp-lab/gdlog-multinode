@@ -776,6 +776,8 @@ void load_relation(Relation *target, std::string name, int arity,
     auto new_newt =
         new GHashRelContainer(arity, index_column_size, dependent_column_size);
     target->newts.push_back(new_newt);
+    target->tuple_fulls.push_back(nullptr);
+    target->current_full_sizes.push_back(0);
     // target->newt->tmp_flag = tmp_flag;
 
     target->sub_bucket_map[0] = get_current_rank();
