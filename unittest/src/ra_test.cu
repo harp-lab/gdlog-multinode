@@ -36,7 +36,7 @@ void project_test(Communicator *communicator, int block_size, int grid_size) {
                                  block_size));
 
     cp_scc.fixpoint_loop();
-    // print_tuple_rows(path_2__1_2->fulls[0], "path_2__1_2");
+    print_tuple_rows(path_2__1_2->deltas[0], "deltas after loop");
     for (int i = 0; i < communicator->getTotalRank(); i++) {
         if (communicator->getRank() == i) {
             print_tuple_rows(path_2__1_2->fulls[0], "path_2__1_2");

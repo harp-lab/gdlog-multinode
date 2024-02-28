@@ -87,14 +87,11 @@ void LIE::fixpoint_loop() {
             auto full = rel->fulls[b_id];
             auto delta = rel->deltas[b_id];
             auto tuple_full = rel->tuple_fulls[b_id];
-//            auto current_full_size = rel->current_full_sizes[b_id];
             checkCuda(cudaMalloc((void **)&tuple_full,
-                                 full->tuple_counts *
-                                     sizeof(tuple_type)));
-            checkCuda(
-                cudaMemcpy(tuple_full, full->tuples,
-                           full->tuple_counts * sizeof(tuple_type),
-                           cudaMemcpyDeviceToDevice));
+                                 full->tuple_counts * sizeof(tuple_type)));
+            checkCuda(cudaMemcpy(tuple_full, full->tuples,
+                                 full->tuple_counts * sizeof(tuple_type),
+                                 cudaMemcpyDeviceToDevice));
             rel->current_full_sizes[b_id] = full->tuple_counts;
             copy_relation_container(delta, full, grid_size, block_size);
             checkCuda(cudaDeviceSynchronize());
@@ -110,6 +107,8 @@ void LIE::fixpoint_loop() {
                         // timer.start_timer();
                         op.inner = get_relation_container(op.inner_rel,
                                                           op.inner_ver, 0);
+                        op.outer = get_relation_container(op.outer_rel,
+                                                          op.outer_ver, 0);
                         op.output = op.output_rel->newts[0];
                         op();
                     },
@@ -119,7 +118,8 @@ void LIE::fixpoint_loop() {
                         op();
                     },
                     [&](RelationalCopy &op) {
-                        op.src = op.src_rel->newts[0];
+                        op.src = get_relation_container(op.src_rel,
+                                                        op.src_ver, 0);
                         op.dest = op.dest_rel->newts[0];
                         if (op.src->tuple_counts == 0) {
                             op.dest->tuple_counts = 0;
@@ -218,11 +218,10 @@ void LIE::fixpoint_loop() {
                                          deduplicated_newt_tuples_mem_size));
                     checkCuda(cudaMemset(deduplicated_newt_tuples, 0,
                                          deduplicated_newt_tuples_mem_size));
-                    //////
                     tuple_type *deuplicated_end = thrust::set_difference(
                         thrust::device, newt->tuples,
-                        newt->tuples + newt->tuple_counts, tuple_full,
-                        tuple_full + current_full_size,
+                        newt->tuples + newt->tuple_counts, full->tuples,
+                        full->tuples + full->tuple_counts,
                         deduplicated_newt_tuples,
                         tuple_indexed_less(full->index_column_size,
                                            full->arity));
@@ -230,12 +229,12 @@ void LIE::fixpoint_loop() {
                     deduplicate_size =
                         deuplicated_end - deduplicated_newt_tuples;
                 }
-
                 if (deduplicate_size == 0) {
                     free_relation_container(newt);
                     delta = new GHashRelContainer(rel->arity,
                                                   rel->index_column_size,
                                                   rel->dependent_column_size);
+                    rel->deltas[b_id] = delta;
                     continue;
                 }
 
@@ -274,7 +273,7 @@ void LIE::fixpoint_loop() {
                 rebuild_rel_sort_time += load_detail_time[0];
                 rebuild_rel_unique_time += load_detail_time[1];
                 rebuild_rel_index_time += load_detail_time[2];
-
+                rel->deltas[b_id] = delta;
                 // auto old_full = rel->tuple_full;
                 float flush_detail_time[5] = {0, 0, 0, 0, 0};
                 timer.start_timer();
@@ -297,7 +296,6 @@ void LIE::fixpoint_loop() {
                 all_deduplicate_size =
                     mcomm->reduceSumTupleSize(all_deduplicate_size);
             }
-
             if (all_deduplicate_size != 0) {
                 fixpoint_flag = false;
             }
@@ -309,7 +307,6 @@ void LIE::fixpoint_loop() {
                           << rel->name << " rank " << mcomm->getRank()
                           << " delta tuple size: "
                           << current_rank_delta_size
-//                             << " full counts " << rel->current_full_size
                           << std::endl;
             }
         }

@@ -327,13 +327,14 @@ __global__ void get_copy_result(tuple_type *src_tuples,
 
 void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     for (int b_id = 0; b_id < sub_bucket_size; b_id++) {
-        auto delta = deltas[b_id];
-        auto full = fulls[b_id];
+        auto &delta = deltas[b_id];
+        auto &full = fulls[b_id];
         auto newt = newts[b_id];
-        auto tuple_full = tuple_fulls[b_id];
-        auto current_full_size = current_full_sizes[b_id];
+        auto &tuple_full = tuple_fulls[b_id];
+        auto &current_full_size = current_full_sizes[b_id];
+
         if (delta->tuple_counts == 0) {
-            return;
+            continue;
         }
         KernelTimer timer;
         timer.start_timer();
@@ -424,11 +425,11 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
         // }
         timer.start_timer();
         tuple_type *end_tuple_full_buf = thrust::merge(
-            thrust::device, tuple_full, tuple_full + current_full_size,
+            thrust::device, full->tuples, full->tuples + full->tuple_counts,
             delta->tuples, delta->tuples + delta->tuple_counts, tuple_full_buf,
             tuple_indexed_less(delta->index_column_size, delta->arity));
         timer.stop_timer();
-        // std::cout << "merge time : " << timer.get_spent_time() << std::endl;
+        std::cout << "merge time : " << timer.get_spent_time() << std::endl;
         detail_time[1] = timer.get_spent_time();
         // checkCuda(cudaDeviceSynchronize());
         current_full_size = new_full_size;
@@ -456,6 +457,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
         buffered_delta_vectors.push_back(delta);
         full->tuples = tuple_full;
         full->tuple_counts = current_full_size;
+
         if (index_flag) {
             reload_full_temp(full, arity, tuple_full, current_full_size,
                              index_column_size, dependent_column_size,
