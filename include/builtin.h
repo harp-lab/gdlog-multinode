@@ -63,11 +63,13 @@ struct TupleFilter {
         return result;
     };
 
-    int arity;
+    int arity = 0;
     int pos;
     BinaryFilterComparison op[MAX_ARITY];
     int left[MAX_ARITY];
     int right[MAX_ARITY];
+
+    TupleFilter() = default;
 
     // init these field in constructor
     TupleFilter(int arity, std::vector<BinaryFilterComparison> op,
@@ -79,6 +81,79 @@ struct TupleFilter {
             this->right[i] = right[i];
         }
     }
+};
+
+struct TupleJoinFilter {
+    __host__ __device__ bool operator()(const tuple_type tp_inner, tuple_type tp_outer) {
+        bool result = true;
+        for (int i = 0; i < arity; i++) {
+            int left = this->left[i];
+            int right = this->right[i];
+            u64 left_v = 0;
+            u64 right_v = 0;
+            // all value < -16 are considered as constant
+            if (left >= inner_arity) {
+                left_v = tp_outer[left - inner_arity];
+            } else if (left >= 0 && left < inner_arity) {
+                left_v = tp_inner[left];
+            } else {
+                left_v = -left - 16;
+            }
+            if (right >= inner_arity) {
+                right_v = tp_outer[right - inner_arity];
+            } else if (right >= 0 && right < inner_arity) {
+                right_v = tp_inner[right];
+            } else {
+                right_v = -right - 16;
+            }
+
+            switch (op[i]) {
+            case BinaryFilterComparison::EQ:
+                result = result && (left_v == right_v);
+                continue;
+            case BinaryFilterComparison::NE:
+                result = result && (left_v != right_v);
+                continue;
+            case BinaryFilterComparison::LT:
+                result = result && (left_v < right_v);
+                continue;
+            case BinaryFilterComparison::LE:
+                result = result && (left_v <= right_v);
+                continue;
+            case BinaryFilterComparison::GT:
+                result = result && (left_v > right_v);
+                continue;
+            case BinaryFilterComparison::GE:
+                result = result && (left_v >= right_v);
+                continue;
+            case BinaryFilterComparison::EMPTY:
+                continue;
+            }
+        }
+
+        return result;
+    };
+
+    int arity = 0;
+    int inner_arity;
+    int pos;
+    BinaryFilterComparison op[MAX_ARITY];
+    int left[MAX_ARITY];
+    int right[MAX_ARITY];
+
+    TupleJoinFilter() = default;
+
+    // init these field in constructor
+    TupleJoinFilter(int arity, int inner_arity, std::vector<BinaryFilterComparison> op,
+                    std::vector<int> left, std::vector<int> right)
+        : arity(arity), inner_arity(inner_arity) {
+        for (int i = 0; i < arity; i++) {
+            this->op[i] = op[i];
+            this->left[i] = left[i];
+            this->right[i] = right[i];
+        }
+    }
+
 };
 
 enum BinaryArithmeticOperator {

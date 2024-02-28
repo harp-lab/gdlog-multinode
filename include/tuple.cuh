@@ -22,12 +22,6 @@ using tuple_size_t = unsigned long long;
 // using t_gpu_index = thrust::device_vector<u64>;
 // using t_gpu_tuple = thrust::device_vector<u64>;
 
-// typedef void (*tuple_generator_hook)(tuple_type, tuple_type, tuple_type);
-typedef void (*tuple_copy_hook)(tuple_type, tuple_type);
-// using tuple_copy_hook = nvstd::function<void(tuple_type, tuple_type)>;
-typedef bool (*tuple_predicate)(tuple_type);
-
-
 struct TupleGenerator {
     int reorder_map[10];
     int arity;

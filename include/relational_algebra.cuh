@@ -10,6 +10,19 @@
 #define MAX_REDUCE_SIZE 80000000
 #endif
 
+inline GHashRelContainer *get_relation_ver(Relation *rel,
+                                           RelationVersion &ver) {
+    if (ver == DELTA) {
+        return rel->delta;
+    } else if (ver == FULL) {
+        return rel->full;
+    } else if (ver == NEWT) {
+        return rel->newt;
+    } else {
+        return nullptr;
+    }
+}
+
 // function hook describ how inner and outer tuple are reordered to result tuple
 
 /**
@@ -43,6 +56,8 @@ struct RelationalJoin {
     // join time for debug and profiling
     float *detail_time;
 
+    TupleFilter tuple_pred;
+
     RelationalJoin(Relation *inner_rel, RelationVersion inner_ver,
                    Relation *outer_rel, RelationVersion outer_ver,
                    Relation *output_rel, TupleGenerator tp_gen, int grid_size,
@@ -51,6 +66,17 @@ struct RelationalJoin {
           outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
           grid_size(grid_size), block_size(block_size),
           detail_time(detail_time){};
+
+    // constructor contains filter
+    RelationalJoin(Relation *inner_rel, RelationVersion inner_ver,
+                   Relation *outer_rel, RelationVersion outer_ver,
+                   Relation *output_rel, TupleGenerator tp_gen,
+                   TupleFilter tuple_pred, int grid_size, int block_size,
+                   float *detail_time)
+        : inner_rel(inner_rel), inner_ver(inner_ver), outer_rel(outer_rel),
+          outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
+          grid_size(grid_size), block_size(block_size),
+          detail_time(detail_time), tuple_pred(tuple_pred){};
 
     void operator()();
 };
@@ -149,11 +175,115 @@ struct RelationalSync {
     };
 };
 
+struct RelationalNegation {
+    Relation *src_rel;
+    RelationVersion src_ver;
+
+    Relation *neg_rel;
+    RelationVersion neg_ver;
+
+    int grid_size;
+    int block_size;
+
+    RelationalNegation(Relation *src, RelationVersion src_ver, Relation *neg,
+                       RelationVersion neg_ver, int grid_size, int block_size)
+        : src_rel(src), src_ver(src_ver), neg_rel(neg), neg_ver(neg_ver),
+          grid_size(grid_size), block_size(block_size) {}
+
+    void operator()();
+};
+
+struct RelationalIndex {
+    Relation *target_rel;
+    RelationVersion target_ver;
+
+    int grid_size;
+    int block_size;
+
+    RelationalIndex(Relation *target_rel, RelationVersion target_ver,
+                    int grid_size, int block_size)
+        : target_rel(target_rel), target_ver(target_ver), grid_size(grid_size),
+          block_size(block_size) {}
+
+    void operator()(){
+        // nothing happened here, the inference engine will handle the
+    };
+};
+
+struct RelationalCartesian {
+    Relation *inner_rel;
+    RelationVersion inner_ver;
+    Relation *outer_rel;
+    RelationVersion outer_ver;
+    Relation *output_rel;
+    TupleGenerator tuple_generator;
+    TupleJoinFilter tuple_pred;
+
+    int grid_size;
+    int block_size;
+
+    RelationalCartesian(Relation *inner_rel, RelationVersion inner_ver,
+                        Relation *outer_rel, RelationVersion outer_ver,
+                        Relation *output_rel, TupleGenerator tuple_generator,
+                        TupleJoinFilter tuple_pred, int grid_size,
+                        int block_size)
+        : inner_rel(inner_rel), inner_ver(inner_ver), outer_rel(outer_rel),
+          outer_ver(outer_ver), output_rel(output_rel),
+          tuple_generator(tuple_generator), tuple_pred(tuple_pred),
+          grid_size(grid_size), block_size(block_size) {}
+
+    void operator()();
+};
+
+// union src to dest
+struct RelationalUnion {
+    GHashRelContainer *src;
+    GHashRelContainer *dest;
+
+    RelationalUnion(GHashRelContainer *src, GHashRelContainer *dest)
+        : src(src), dest(dest) {}
+
+    void operator()();
+};
+
+struct RelationalClear {
+    Relation *rel;
+    RelationVersion ver;
+
+    RelationalClear(Relation *rel, RelationVersion ver) : rel(rel), ver(ver) {}
+
+    void operator()() { free_relation_container(get_relation_ver(rel, ver)); };
+};
+
+struct RelationalBroadcast {
+    GHashRelContainer *src;
+
+    RelationalBroadcast(GHashRelContainer *src) : src(src) {}
+
+    void operator()();
+};
+
 /**
  * @brief possible RA types
  *
  */
-using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
-                           RelationalFilter, RelationalArithm, RelationalSync>;
+using ra_op =
+    std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
+                 RelationalFilter, RelationalArithm, RelationalSync,
+                 RelationalNegation, RelationalIndex, RelationalCartesian,
+                 RelationalUnion, RelationalClear, RelationalBroadcast>;
 
-enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM, SYNC };
+enum RAtypes {
+    JOIN,
+    COPY,
+    ACOPY,
+    FILTER,
+    ARITHM,
+    SYNC,
+    NEGATION,
+    INDEX,
+    CARTESIAN,
+    UNION,
+    CLEAR,
+    BROADCAST
+};

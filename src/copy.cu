@@ -14,8 +14,12 @@ void RelationalCopy::operator()() {
     GHashRelContainer *src;
     if (src_ver == DELTA) {
         src = src_rel->delta;
-    } else {
+    } else if (src_ver == FULL) {
         src = src_rel->full;
+    } else if (src_ver == NEWT) {
+        src = src_rel->newt;
+    } else {
+        throw std::runtime_error("Invalid version");
     }
     GHashRelContainer *dest = dest_rel->newt;
 

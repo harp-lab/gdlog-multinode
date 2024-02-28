@@ -5,7 +5,11 @@
 #include "../include/timer.cuh"
 #include "../include/tuple.cuh"
 #include <chrono>
+#include <fstream>
+#include <functional>
 #include <iostream>
+#include <mpi.h>
+#include <sstream>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -13,7 +17,6 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
-#include <mpi.h>
 
 __global__ void calculate_index_hash(GHashRelContainer *target,
                                      tuple_indexed_less cmp) {
@@ -144,8 +147,7 @@ __global__ void init_tuples_unsorted(tuple_type *tuples, column_type *raw_data,
 __global__ void get_join_result_size(GHashRelContainer *inner_table,
                                      GHashRelContainer *outer_table,
                                      int join_column_counts,
-                                     TupleGenerator tp_gen,
-                                     tuple_predicate tp_pred,
+                                     TupleGenerator tp_gen, TupleFilter tp_pred,
                                      tuple_size_t *join_result_size) {
     u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
     if (index >= outer_table->tuple_counts)
@@ -188,10 +190,10 @@ __global__ void get_join_result_size(GHashRelContainer *inner_table,
             if (cmp_res) {
                 // hack to apply filter
                 // TODO: this will cause max arity of a relation is 20
-                if (tp_pred != nullptr) {
-                    column_type tmp[20] = {0};
+                if (tp_pred.arity > 0) {
+                    column_type tmp[10] = {0};
                     tp_gen(cur_inner_tuple, outer_tuple, tmp);
-                    if ((*tp_pred)(tmp)) {
+                    if (tp_pred(tmp)) {
                         current_size++;
                     }
                 } else {
@@ -213,7 +215,7 @@ __global__ void get_join_result_size(GHashRelContainer *inner_table,
 __global__ void
 get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
                 int join_column_counts, TupleGenerator tp_gen,
-                tuple_predicate tp_pred, int output_arity,
+                TupleFilter tp_pred, int output_arity,
                 column_type *output_raw_data, tuple_size_t *res_count_array,
                 tuple_size_t *res_offset, JoinDirection direction) {
     int index = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -268,10 +270,10 @@ get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
 
                 // for (int j = 0; j < output_arity; j++) {
                 // TODO: this will cause max arity of a relation is 20
-                if (tp_pred != nullptr) {
+                if (tp_pred.arity > 0) {
                     column_type tmp[20];
                     tp_gen(inner_tuple, outer_tuple, tmp);
-                    if ((*tp_pred)(tmp)) {
+                    if (tp_pred(tmp)) {
                         tp_gen(inner_tuple, outer_tuple, new_tuple);
                         current_new_tuple_cnt++;
                     }
@@ -288,6 +290,58 @@ get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
             }
             position = position + 1;
             if (position > (inner_table->tuple_counts - 1)) {
+                // end of data arrary
+                break;
+            }
+        }
+    }
+}
+
+__global__ void
+get_join_inner(MEntity *inner_index_map, tuple_size_t inner_index_map_size,
+               tuple_size_t inner_tuple_counts, tuple_type *inner_tuples,
+               tuple_type *outer_tuples, tuple_size_t outer_tuple_counts,
+               int join_column_counts, bool *join_result_bitmap) {
+    u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
+    if (index >= outer_tuple_counts)
+        return;
+    u64 stride = blockDim.x * gridDim.x;
+
+    for (tuple_size_t i = index; i < outer_tuple_counts; i += stride) {
+        tuple_type outer_tuple = outer_tuples[i];
+
+        u64 hash_val = prefix_hash(outer_tuple, join_column_counts);
+        // the index value "pointer" position in the index hash table
+        tuple_size_t index_position = hash_val % inner_index_map_size;
+        bool index_not_exists = false;
+        while (true) {
+            if (inner_index_map[index_position].key == hash_val &&
+                tuple_eq(outer_tuple,
+                         inner_tuples[inner_index_map[index_position].value],
+                         join_column_counts)) {
+                break;
+            } else if (inner_index_map[index_position].key ==
+                       EMPTY_HASH_ENTRY) {
+                index_not_exists = true;
+                break;
+            }
+            index_position = (index_position + 1) % inner_index_map_size;
+        }
+        if (index_not_exists) {
+            continue;
+        }
+        // pull all joined elements
+        tuple_size_t position = inner_index_map[index_position].value;
+        while (true) {
+            bool cmp_res = tuple_eq(inner_tuples[position], outer_tuple,
+                                    join_column_counts);
+            if (cmp_res) {
+                join_result_bitmap[position] = true;
+            } else {
+                break;
+            }
+            position = position + 1;
+            if (position > inner_tuple_counts - 1) {
                 // end of data arrary
                 break;
             }
@@ -410,7 +464,8 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     //     std::cout << ">>>>>>>>> rank 1 : "
     //               << " delta size : " << delta->tuple_counts
     //               << " delta arity : " << delta->arity
-    //               << " delta index column size : " << delta->index_column_size
+    //               << " delta index column size : " <<
+    //               delta->index_column_size
     //               << std::endl;
     // }
     timer.start_timer();
@@ -835,7 +890,101 @@ void GHashRelContainer::build_index(int grid_size, int block_size) {
     checkCuda(cudaGetLastError());
     checkCuda(cudaDeviceSynchronize());
     checkCuda(cudaFree(target_device));
-
 }
 
 void GHashRelContainer::reconstruct() {}
+
+void GHashRelContainer::fit() {
+    if (this->tuple_counts == 0) {
+        return;
+    }
+    if (this->tuple_counts == this->data_raw_row_size) {
+        return;
+    }
+    column_type *new_data;
+    checkCuda(cudaMalloc((void **)&new_data,
+                         this->arity * this->tuple_counts * sizeof(column_type)));
+    thrust::for_each(
+        thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
+        thrust::make_counting_iterator<tuple_size_t>(this->tuple_counts),
+        [gh_tps = this->tuples, arity = this->arity, new_data] __device__(
+            tuple_size_t i) {
+            for (int j = 0; j < arity; j++) {
+                new_data[i * arity + j] = gh_tps[i][j];
+            }
+        });
+    reload(new_data, this->tuple_counts);
+}
+
+void Relation::defragement(RelationVersion ver, int grid_size, int block_size) {
+    GHashRelContainer *gh;
+    if (ver == FULL) {
+        if (buffered_delta_vectors.size() == 0 &&
+            full->tuple_counts == full->data_raw_row_size) {
+            return;
+        }
+        gh = full;
+    } else if (ver == DELTA) {
+        gh = delta;
+    } else if (ver == NEWT) {
+        gh = newt;
+    }
+    if (gh->tuple_counts == 0) {
+        return;
+    }
+    gh->fit();
+    // print_tuple_rows(gh, "after defragment");
+    if (ver == NEWT) {
+        return;
+    }
+    if (index_flag) {
+        full->build_index(grid_size, block_size);
+    }
+    if (ver == FULL) {
+        if (buffered_delta_vectors.size() <= 1) {
+            return;
+        }
+        for (int j = 0; j < buffered_delta_vectors.size() - 1; j++) {
+            free_relation_container(buffered_delta_vectors[j]);
+        }
+    }
+}
+
+void file_to_buffer(std::string file_path,
+                    thrust::host_vector<column_type> &buffer,
+                    std::map<column_type, std::string> &string_map) {
+    std::ifstream file(file_path);
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string token;
+        // if empty line, skip
+        if (line.empty()) {
+            continue;
+        }
+        while (std::getline(iss, token, '\t')) {
+            // if token is number (including hex start with 0x)
+            if (token.find_first_not_of("0123456789") == std::string::npos) {
+                buffer.push_back(std::stoull(token));
+            } else if (token.find("0x") == 0) {
+                buffer.push_back(std::stoull(token, 0, 16));
+            } else {
+                // check if empty string
+                if (token.empty()) {
+                    buffer.push_back(0);
+                }
+                // if token is a string in value of the map, use the key
+                // else use the hash value of the string as the key inserted
+                // into the map
+                column_type token_hash = std::hash<std::string>{}(token);
+                auto it = string_map.find(token_hash);
+                if (it == string_map.end()) {
+                    string_map[token_hash] = token;
+                    buffer.push_back(token_hash);
+                } else {
+                    buffer.push_back(it->first);
+                }
+            }
+        }
+    }
+}

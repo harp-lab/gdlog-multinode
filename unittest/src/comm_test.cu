@@ -17,10 +17,8 @@ tuple_size_t rank_0_counts = 2;
 column_type rank_1_data[10] = {1, 4, 1, 7};
 tuple_size_t rank_1_counts = 2;
 
-bool test_split_relation(int argc, char **argv) {
-    Communicator comm;
-    comm.init(argc, argv);
-    comm.barrier();
+bool test_split_relation(Communicator& comm, int argc, char **argv) {
+    
     // test for comm.h
     int device_id;
     int number_of_sm;
@@ -70,7 +68,53 @@ bool test_split_relation(int argc, char **argv) {
     return true;
 }
 
+void test_broadcast(Communicator &comm, int argc, char **argv) {
+    // test for comm.h
+    int device_id;
+    int number_of_sm;
+    // checkCuda(cudaSetDevice(comm.getRank()));
+    checkCuda(cudaGetDevice(&device_id));
+    checkCuda(cudaDeviceGetAttribute(
+        &number_of_sm, cudaDevAttrMultiProcessorCount, device_id));
+    std::cout << "Rank " << comm.getRank() << " out of " << comm.getTotalRank()
+              << " Current device id = " << device_id
+              << " number_of_sm = " << number_of_sm << std::endl;
+    int block_size = 512;
+    int grid_size = 32 * number_of_sm;
+    std::cout << "block_size = " << block_size << " grid_size = " << grid_size
+              << std::endl;
+   
+    std::cout << "Rank " << comm.getRank() << " out of " << comm.getTotalRank()
+              << " ranks" << std::endl;
+    Relation *path_2__1_2 = new Relation();
+    if (comm.getRank() == 0) {
+        load_relation(path_2__1_2, "path_2__1_2", 2, rank_0_data,
+                      rank_0_counts, 1, 0, grid_size, block_size);
+    } else if (comm.getRank() == 1) {
+        load_relation(path_2__1_2, "path_2__1_2", 2, rank_1_data,
+                      rank_1_counts, 1, 0, grid_size, block_size);
+    }
+    comm.barrier();
+
+    // broadcast the full relation to all ranks
+    comm.broadcast(path_2__1_2->full);
+    
+    for (int i = 0; i < comm.getTotalRank(); i++) {
+        if (i == comm.getRank()) {
+            std::cout << "Rank " << comm.getRank() << " path_2__1_2->full ="
+                      << std::endl;
+            print_tuple_rows(path_2__1_2->full, "Full ");
+            assert(path_2__1_2->full->tuple_counts == 4);
+        }
+        comm.barrier();
+    }
+}
+
 int main(int argc, char **argv) {
-    test_split_relation(argc, argv);
+    Communicator comm;
+    comm.init(argc, argv);
+    comm.barrier();
+    test_split_relation(comm, argc, argv);
+    test_broadcast(comm, argc, argv);
     return 0; 
 }

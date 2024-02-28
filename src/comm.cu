@@ -3,6 +3,7 @@
 #include "../include/exception.cuh"
 #include "../include/print.cuh"
 #include <thrust/execution_policy.h>
+#include <thrust/fill.h>
 #include <thrust/host_vector.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -158,6 +159,83 @@ void Communicator::distribute(GHashRelContainer *container) {
 
     // container
     container->reload(recv_buffer, total_recv);
+    container->sort();
+    container->dedup();
+}
+
+void Communicator::broadcast(GHashRelContainer *container) {
+    if (total_rank == 1) {
+        return;
+    }
+    container->fit();
+
+    thrust::host_vector<int> h_rank_tuple_send_counts(total_rank);
+    thrust::host_vector<int> h_rank_tuple_recv_counts(total_rank);
+    thrust::fill(h_rank_tuple_send_counts.begin(),
+                 h_rank_tuple_send_counts.end(),
+                 container->tuple_counts * container->arity);
+    MPI_Alltoall(h_rank_tuple_send_counts.data(), 1, MPI_INT,
+                 h_rank_tuple_recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+    int total_recv = thrust::reduce(h_rank_tuple_recv_counts.begin(),
+                                    h_rank_tuple_recv_counts.end());
+    int total_send = thrust::reduce(h_rank_tuple_send_counts.begin(),
+                                    h_rank_tuple_send_counts.end());
+
+    // print h_rank_tuple_recv_counts
+
+    // create displacements for the send and receive buffers
+    thrust::host_vector<int> send_displacements(total_rank);
+    thrust::host_vector<int> recv_displacements(total_rank);
+    send_displacements[0] = 0;
+    recv_displacements[0] = 0;
+    for (int i = 1; i < total_rank; i++) {
+        send_displacements[i] =
+            send_displacements[i - 1] + h_rank_tuple_send_counts[i - 1];
+        recv_displacements[i] =
+            recv_displacements[i - 1] + h_rank_tuple_recv_counts[i - 1];
+    }
+
+    // use cuda malloc to allocate the memory for the receive buffer
+    column_type *recv_buffer;
+    checkCuda(cudaMalloc(&recv_buffer, total_recv * sizeof(column_type)));
+
+    // prepare the device send buffer
+    thrust::device_vector<column_type> d_send_buffer(total_send);
+    for (int i = 0; i < total_rank; i++) {
+        cudaMemcpy(d_send_buffer.data().get() +
+                       i * container->data_raw_row_size * container->arity,
+                   container->data_raw,
+                   container->data_raw_row_size * container->arity *
+                       sizeof(column_type),
+                   cudaMemcpyDeviceToDevice);
+    }
+
+    // send the tuples to the other ranks
+    if (gpu_direct_flag) {
+        MPI_Alltoallv(container->tuples, h_rank_tuple_send_counts.data(),
+                      send_displacements.data(), MPI_ELEM_TYPE, recv_buffer,
+                      h_rank_tuple_recv_counts.data(),
+                      recv_displacements.data(), MPI_ELEM_TYPE, MPI_COMM_WORLD);
+    } else {
+        if (rank == 0) {
+            std::cout << "Warnning using host memory for MPI_Alltoallv, GPU "
+                         "directe disabled"
+                      << std::endl;
+        }
+        thrust::host_vector<column_type> h_send_buffer(d_send_buffer);
+        thrust::host_vector<column_type> h_recv_buffer(total_recv);
+        MPI_Alltoallv(h_send_buffer.data(), h_rank_tuple_send_counts.data(),
+                      send_displacements.data(), MPI_ELEM_TYPE,
+                      h_recv_buffer.data(), h_rank_tuple_recv_counts.data(),
+                      recv_displacements.data(), MPI_ELEM_TYPE, MPI_COMM_WORLD);
+        cudaMemcpy(recv_buffer, h_recv_buffer.data(),
+                   total_recv * sizeof(column_type), cudaMemcpyHostToDevice);
+    }
+
+    free_relation_container(container);
+    // container
+    container->reload(recv_buffer, total_recv / container->arity);
     container->sort();
     container->dedup();
 }

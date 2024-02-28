@@ -14,7 +14,7 @@ void RelationalArithm::operator()() {
         src = src_rel->newt;
     }
 
-    std::cout << "Aithmetic " << src_rel->name << std::endl;
+    // std::cout << "Aithmetic " << src_rel->name << std::endl;
 
     if (src->tuple_counts == 0) {
         return;
