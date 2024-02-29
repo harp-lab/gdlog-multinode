@@ -52,9 +52,15 @@ class Communicator {
     // predicate for initialized
     bool isInitialized() { return is_initialized; }
 
+    // rebalance sub buckets inside a relation
+    void rebalance(Relation *rel);
+
     int device_id;
     int grid_size;
     int block_size;
+
+    int rebalance_threshold = 4;
+    int split_constant = 2;
 
   private:
     int rank;
@@ -74,4 +80,25 @@ class Communicator {
     // thrust::device_vector<column_type> recv_buffer;
 
     thrust::device_vector<uint8_t> tuple_rank_mapping;
+
+    // compute the sub bucket of each tuple inside a container
+    // NOTE: this function must be called after sub bucket map in
+    // relation has been assign
+    void
+    computeSubBucket(GHashRelContainer *rel_container,
+                     bucket_map_t &sub_bucket_map,
+                     thrust::device_vector<bucket_id_t> &tuple_subbucket_map);
+
+    // compute new sub bucket size for a relation
+    void computeNewSubBucketSize(Relation *rel);
+
+    // compute the sub bucket map of a relation
+    void computeSubBucketMap(Relation *rel);
+
+    // distribute a container based on a bucket to rank mapping
+    // and bucket communication is done via bucket size equal to
+    // rank size, and mapping is sequecne from 0 ~ rank_size
+    void distribute_by_rank_mapping(
+        GHashRelContainer *rel_container, bucket_map_t &bucket_map,
+        thrust::device_vector<bucket_id_t> &tuple_bucket_map);
 };

@@ -257,6 +257,8 @@ void free_relation_container(GHashRelContainer *target);
 enum MonotonicOrder { DESC, ASC, UNSPEC };
 
 using bucket_id_t = int;
+#define BUCKET_ID_MPI_T = MPI_INT;
+using bucket_map_t = std::map<bucket_id_t, bucket_id_t>;
 
 /**
  * @brief actual relation class used in semi-naive eval
@@ -286,7 +288,9 @@ struct Relation {
     
     int sub_bucket_size = 1;
     
-    std::map<bucket_id_t, bucket_id_t> sub_bucket_map;
+    // sub_bucket_map is a map track the actual of each sub-bucket
+    // for example entry 0, 1 means sub bucekt 0 is on rank 1
+    bucket_map_t sub_bucket_map;
 
     // TODO: out dataed remove these, directly use GHashRelContainer
     // **full** a buffer for tuple pointer in full
