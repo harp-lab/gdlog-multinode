@@ -1,6 +1,6 @@
 
-#include "../include/print.cuh"
-#include "../include/relational_algebra.cuh"
+#include "../../include/print.cuh"
+#include "../../include/relational_algebra.cuh"
 
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
@@ -149,7 +149,7 @@ void RelationalCartesian::operator()() {
         RelationalUnion ru(temp ,output_rel->newt);
         ru();
         output_rel->newt->fit();
-        free_relation_container(temp);
+        temp->free();
         delete temp;
     }
 }

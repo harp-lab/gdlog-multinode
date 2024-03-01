@@ -1,0 +1,21 @@
+FROM runpod/base:0.6.2-cuda11.8.0
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/New_York
+RUN apt-get update && apt-get install -y vim software-properties-common lsb-release mpich
+
+RUN apt-get install -y ca-certificates gpg wget 
+RUN test -f /usr/share/doc/kitware-archive-keyring/copyright || wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+RUN echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+RUN apt-get update && apt-get install -y kitware-archive-keyring
+RUN apt-get update && apt-get install -y cmake
+
+# use gcc-13 and g++-13 on ubuntu 22.04
+
+COPY --chown=gdlog:gdlog . /opt/gdlog
+WORKDIR /opt/gdlog
+RUN rm -r /opt/gdlog/build
+
+# RUN cmake -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -Bbuild . && cd build && make -j
+# RUN chmod -R 757 /opt/gdlog
+

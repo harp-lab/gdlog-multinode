@@ -154,15 +154,15 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_src}/print.cu"
     "${gpu_ra_src}/relation.cu"
     "${gpu_ra_src}/lie.cu"
-    "${gpu_ra_src}/copy.cu"
-    "${gpu_ra_src}/acopy.cu"
-    "${gpu_ra_src}/join.cu"
-    "${gpu_ra_src}/filter.cu"
-    "${gpu_ra_src}/arithm.cu"
-    "${gpu_ra_src}/negation.cu"
-    "${gpu_ra_src}/cartesian.cu"
+    "${gpu_ra_src}/ra/copy.cu"
+    "${gpu_ra_src}/ra/acopy.cu"
+    "${gpu_ra_src}/ra/join.cu"
+    "${gpu_ra_src}/ra/filter.cu"
+    "${gpu_ra_src}/ra/arithm.cu"
+    "${gpu_ra_src}/ra/negation.cu"
+    "${gpu_ra_src}/ra/cartesian.cu"
+    "${gpu_ra_src}/ra/union.cu"
     "${gpu_ra_src}/broadcast.cu"
-    "${gpu_ra_src}/union.cu"
     "${gpu_ra_src}/tokenizer.cpp"
     "${gpu_ra_src}/ast.cpp"
     "${gpu_ra_src}/comm.cu"
@@ -216,32 +216,32 @@ target_compile_options(gpu_ra PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
     --default-stream per-thread
     --extended-lambda>)
 
-add_executable(TC ${source_file_tc})
-target_link_libraries(TC gpu_ra)
-target_compile_features(TC PUBLIC cxx_std_17)
-target_compile_options(TC PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
-    -lineinfo
-    --expt-relaxed-constexpr
-    --default-stream per-thread
-    --extended-lambda>)
-set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+# add_executable(TC ${source_file_tc})
+# target_link_libraries(TC gpu_ra)
+# target_compile_features(TC PUBLIC cxx_std_17)
+# target_compile_options(TC PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
+#     -lineinfo
+#     --expt-relaxed-constexpr
+#     --default-stream per-thread
+#     --extended-lambda>)
+# set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
-add_executable(CSPA ${source_cspa})
-target_link_libraries(CSPA gpu_ra)
-target_compile_features(CSPA PUBLIC cxx_std_17)
-set_target_properties(CSPA PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+# add_executable(CSPA ${source_cspa})
+# target_link_libraries(CSPA gpu_ra)
+# target_compile_features(CSPA PUBLIC cxx_std_17)
+# set_target_properties(CSPA PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
-add_executable(SG ${source_file_sg})
-target_link_libraries(SG gpu_ra)
-target_compile_features(SG PUBLIC cxx_std_17)
-set_target_properties(SG PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+# add_executable(SG ${source_file_sg})
+# target_link_libraries(SG gpu_ra)
+# target_compile_features(SG PUBLIC cxx_std_17)
+# set_target_properties(SG PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
 
-file(GLOB source_file_block_overlap
-    "${test_dir}/block_overlap.cu"
-)
-add_executable(BLOCK_OVERLAP ${source_file_block_overlap})
-target_link_libraries(BLOCK_OVERLAP gpu_ra)
-target_compile_features(BLOCK_OVERLAP PUBLIC cxx_std_17)
-set_target_properties(BLOCK_OVERLAP PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+# file(GLOB source_file_block_overlap
+#     "${test_dir}/block_overlap.cu"
+# )
+# add_executable(BLOCK_OVERLAP ${source_file_block_overlap})
+# target_link_libraries(BLOCK_OVERLAP gpu_ra)
+# target_compile_features(BLOCK_OVERLAP PUBLIC cxx_std_17)
+# set_target_properties(BLOCK_OVERLAP PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 

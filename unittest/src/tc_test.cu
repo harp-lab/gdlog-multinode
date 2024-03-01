@@ -73,7 +73,6 @@ bool tc_test(int argc, char **argv) {
     // tc_scc.reload_full_flag = false;
     // 
     tc_scc.set_communicator(&comm);
-    tc_scc.reload_full_flag = false;
     tc_scc.add_relations(edge_2__2_1, true);
     tc_scc.add_relations(path_2__1_2, false);
     float join_detail[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0};

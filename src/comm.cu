@@ -101,7 +101,7 @@ void Communicator::distribute(GHashRelContainer *container) {
     // print send buffer on each rank after copy
 
     // after send, free the memory  of the container
-    free_relation_container(container);
+    container->free();
     container->tuple_counts = total_recv;
 
     // convert the tuple size to column size by times arity on each element
@@ -233,7 +233,7 @@ void Communicator::broadcast(GHashRelContainer *container) {
                    total_recv * sizeof(column_type), cudaMemcpyHostToDevice);
     }
 
-    free_relation_container(container);
+    container->free();
     // container
     container->reload(recv_buffer, total_recv / container->arity);
     container->sort();
