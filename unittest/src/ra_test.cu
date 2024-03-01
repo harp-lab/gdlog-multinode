@@ -336,11 +336,11 @@ int main(int argc, char *argv[]) {
         std::cout << "This test only support 1 or 2 ranks" << std::endl;
         return 0;
     }
-    // filter_test(&communicator, block_size, grid_size);
-    // arithm_test(&communicator, block_size, grid_size);
-    // project_test(&communicator, block_size, grid_size);
-    // negation_test(&communicator, block_size, grid_size);
-    // cartesian_test(&communicator, block_size, grid_size);
+    filter_test(&communicator, block_size, grid_size);
+    arithm_test(&communicator, block_size, grid_size);
+    project_test(&communicator, block_size, grid_size);
+    negation_test(&communicator, block_size, grid_size);
+    cartesian_test(&communicator, block_size, grid_size);
     union_test(&communicator, block_size, grid_size);
     return 0;
 }

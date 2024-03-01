@@ -4,10 +4,10 @@
 #include <thrust/scan.h>
 #include <thrust/unique.h>
 
-#include "../include/exception.cuh"
-#include "../include/print.cuh"
-#include "../include/relational_algebra.cuh"
-#include "../include/timer.cuh"
+#include "../../include/exception.cuh"
+#include "../../include/print.cuh"
+#include "../../include/relational_algebra.cuh"
+#include "../../include/timer.cuh"
 
 void RelationalACopy::operator()() {
 
@@ -15,7 +15,7 @@ void RelationalACopy::operator()() {
     GHashRelContainer *dest = dest_rel->newt;
 
     if (src->tuple_counts == 0) {
-        free_relation_container(dest);
+        dest->free();
         dest->tuple_counts = 0;
         return;
     }
@@ -32,7 +32,7 @@ void RelationalACopy::operator()() {
     checkCuda(cudaGetLastError());
     checkCuda(cudaDeviceSynchronize());
 
-    free_relation_container(dest);
+    dest->free();
     float detail_time[5] = {0, 0, 0, 0, 0};
     // TODO: swap to repartition_relation_index in future
     load_relation_container(dest, dest->arity, copied_raw_data,

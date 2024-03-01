@@ -88,281 +88,7 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
     }
 }
 
-__global__ void shrink_index_map(GHashRelContainer *target,
-                                 MEntity *old_index_map,
-                                 tuple_size_t old_index_map_size) {
-    tuple_size_t index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= old_index_map_size)
-        return;
-
-    tuple_size_t stride = blockDim.x * gridDim.x;
-    for (tuple_size_t i = index; i < old_index_map_size; i += stride) {
-        if (target->index_map[i].value != EMPTY_HASH_ENTRY) {
-            u64 hash_val = target->index_map[i].key;
-            tuple_size_t position = hash_val % target->index_map_size;
-            while (true) {
-                u64 existing_key = atomicCAS(&target->index_map[position].key,
-                                             EMPTY_HASH_ENTRY, hash_val);
-                if (existing_key == EMPTY_HASH_ENTRY) {
-                    target->index_map[position].key = hash_val;
-                    break;
-                } else if (existing_key == hash_val) {
-                    // hash for tuple's index column has already been recorded
-                    break;
-                }
-                position = (position + 1) % target->index_map_size;
-            }
-        }
-    }
-}
-
-__global__ void init_index_map(GHashRelContainer *target) {
-    auto source = target->index_map;
-    auto source_rows = target->index_map_size;
-    int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= source_rows)
-        return;
-
-    int stride = blockDim.x * gridDim.x;
-
-    for (tuple_size_t i = index; i < source_rows; i += stride) {
-        source[i].key = EMPTY_HASH_ENTRY;
-        source[i].value = EMPTY_HASH_ENTRY;
-    }
-}
-
-__global__ void init_tuples_unsorted(tuple_type *tuples, column_type *raw_data,
-                                     int arity, tuple_size_t rows) {
-    int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= rows)
-        return;
-
-    int stride = blockDim.x * gridDim.x;
-    for (tuple_size_t i = index; i < rows; i += stride) {
-        tuples[i] = raw_data + i * arity;
-    }
-}
-
 // template <typename tp_gen_t>
-__global__ void get_join_result_size(GHashRelContainer *inner_table,
-                                     GHashRelContainer *outer_table,
-                                     int join_column_counts,
-                                     TupleGenerator tp_gen, TupleFilter tp_pred,
-                                     tuple_size_t *join_result_size) {
-    u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= outer_table->tuple_counts)
-        return;
-    u64 stride = blockDim.x * gridDim.x;
-
-    for (tuple_size_t i = index; i < outer_table->tuple_counts; i += stride) {
-        tuple_type outer_tuple = outer_table->tuples[i];
-
-        tuple_size_t current_size = 0;
-        join_result_size[i] = 0;
-        u64 hash_val = prefix_hash(outer_tuple, outer_table->index_column_size);
-        // the index value "pointer" position in the index hash table
-        tuple_size_t index_position = hash_val % inner_table->index_map_size;
-        bool index_not_exists = false;
-        while (true) {
-            if (inner_table->index_map[index_position].key == hash_val &&
-                tuple_eq(
-                    outer_tuple,
-                    inner_table
-                        ->tuples[inner_table->index_map[index_position].value],
-                    outer_table->index_column_size)) {
-                break;
-            } else if (inner_table->index_map[index_position].key ==
-                       EMPTY_HASH_ENTRY) {
-                index_not_exists = true;
-                break;
-            }
-            index_position = (index_position + 1) % inner_table->index_map_size;
-        }
-        if (index_not_exists) {
-            continue;
-        }
-        // pull all joined elements
-        tuple_size_t position = inner_table->index_map[index_position].value;
-        while (true) {
-            tuple_type cur_inner_tuple = inner_table->tuples[position];
-            bool cmp_res = tuple_eq(inner_table->tuples[position], outer_tuple,
-                                    join_column_counts);
-            if (cmp_res) {
-                // hack to apply filter
-                // TODO: this will cause max arity of a relation is 20
-                if (tp_pred.arity > 0) {
-                    column_type tmp[10] = {0};
-                    tp_gen(cur_inner_tuple, outer_tuple, tmp);
-                    if (tp_pred(tmp)) {
-                        current_size++;
-                    }
-                } else {
-                    current_size++;
-                }
-            } else {
-                break;
-            }
-            position = position + 1;
-            if (position > inner_table->tuple_counts - 1) {
-                // end of data arrary
-                break;
-            }
-        }
-        join_result_size[i] = current_size;
-    }
-}
-
-__global__ void
-get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
-                int join_column_counts, TupleGenerator tp_gen,
-                TupleFilter tp_pred, int output_arity,
-                column_type *output_raw_data, tuple_size_t *res_count_array,
-                tuple_size_t *res_offset, JoinDirection direction) {
-    int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= outer_table->tuple_counts)
-        return;
-
-    int stride = blockDim.x * gridDim.x;
-
-    for (tuple_size_t i = index; i < outer_table->tuple_counts; i += stride) {
-        if (res_count_array[i] == 0) {
-            continue;
-        }
-        tuple_type outer_tuple = outer_table->tuples[i];
-
-        int current_new_tuple_cnt = 0;
-        u64 hash_val = prefix_hash(outer_tuple, outer_table->index_column_size);
-        // the index value "pointer" position in the index hash table
-        tuple_size_t index_position = hash_val % inner_table->index_map_size;
-        bool index_not_exists = false;
-        while (true) {
-            if (inner_table->index_map[index_position].key == hash_val &&
-                tuple_eq(
-                    outer_tuple,
-                    inner_table
-                        ->tuples[inner_table->index_map[index_position].value],
-                    outer_table->index_column_size)) {
-                break;
-            } else if (inner_table->index_map[index_position].key ==
-                       EMPTY_HASH_ENTRY) {
-                index_not_exists = true;
-                break;
-            }
-            index_position = (index_position + 1) % inner_table->index_map_size;
-        }
-        if (index_not_exists) {
-            continue;
-        }
-
-        // pull all joined elements
-        tuple_size_t position = inner_table->index_map[index_position].value;
-        while (true) {
-            // TODO: always put join columns ahead? could be various benefits
-            // but memory is issue to mantain multiple copies
-            bool cmp_res = tuple_eq(inner_table->tuples[position], outer_tuple,
-                                    join_column_counts);
-            if (cmp_res) {
-                // tuple prefix match, join here
-                tuple_type inner_tuple = inner_table->tuples[position];
-                tuple_type new_tuple =
-                    output_raw_data +
-                    (res_offset[i] + current_new_tuple_cnt) * output_arity;
-
-                // for (int j = 0; j < output_arity; j++) {
-                // TODO: this will cause max arity of a relation is 20
-                if (tp_pred.arity > 0) {
-                    column_type tmp[20];
-                    tp_gen(inner_tuple, outer_tuple, tmp);
-                    if (tp_pred(tmp)) {
-                        tp_gen(inner_tuple, outer_tuple, new_tuple);
-                        current_new_tuple_cnt++;
-                    }
-                } else {
-                    tp_gen(inner_tuple, outer_tuple, new_tuple);
-                    current_new_tuple_cnt++;
-                }
-                if (current_new_tuple_cnt > res_count_array[i]) {
-                    break;
-                }
-            } else {
-                // bucket end
-                break;
-            }
-            position = position + 1;
-            if (position > (inner_table->tuple_counts - 1)) {
-                // end of data arrary
-                break;
-            }
-        }
-    }
-}
-
-__global__ void
-get_join_inner(MEntity *inner_index_map, tuple_size_t inner_index_map_size,
-               tuple_size_t inner_tuple_counts, tuple_type *inner_tuples,
-               tuple_type *outer_tuples, tuple_size_t outer_tuple_counts,
-               int join_column_counts, bool *join_result_bitmap) {
-    u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= outer_tuple_counts)
-        return;
-    u64 stride = blockDim.x * gridDim.x;
-
-    for (tuple_size_t i = index; i < outer_tuple_counts; i += stride) {
-        tuple_type outer_tuple = outer_tuples[i];
-
-        u64 hash_val = prefix_hash(outer_tuple, join_column_counts);
-        // the index value "pointer" position in the index hash table
-        tuple_size_t index_position = hash_val % inner_index_map_size;
-        bool index_not_exists = false;
-        while (true) {
-            if (inner_index_map[index_position].key == hash_val &&
-                tuple_eq(outer_tuple,
-                         inner_tuples[inner_index_map[index_position].value],
-                         join_column_counts)) {
-                break;
-            } else if (inner_index_map[index_position].key ==
-                       EMPTY_HASH_ENTRY) {
-                index_not_exists = true;
-                break;
-            }
-            index_position = (index_position + 1) % inner_index_map_size;
-        }
-        if (index_not_exists) {
-            continue;
-        }
-        // pull all joined elements
-        tuple_size_t position = inner_index_map[index_position].value;
-        while (true) {
-            bool cmp_res = tuple_eq(inner_tuples[position], outer_tuple,
-                                    join_column_counts);
-            if (cmp_res) {
-                join_result_bitmap[position] = true;
-            } else {
-                break;
-            }
-            position = position + 1;
-            if (position > inner_tuple_counts - 1) {
-                // end of data arrary
-                break;
-            }
-        }
-    }
-}
-
-__global__ void flatten_tuples_raw_data(tuple_type *tuple_pointers,
-                                        column_type *raw,
-                                        tuple_size_t tuple_counts, int arity) {
-    int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-    if (index >= tuple_counts)
-        return;
-
-    int stride = blockDim.x * gridDim.x;
-    for (tuple_size_t i = index; i < tuple_counts; i += stride) {
-        for (int j = 0; j < arity; j++) {
-            raw[i * arity + j] = tuple_pointers[i][j];
-        }
-    }
-}
 
 __global__ void get_copy_result(tuple_type *src_tuples,
                                 column_type *dest_raw_data, int output_arity,
@@ -386,7 +112,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     KernelTimer timer;
     timer.start_timer();
     tuple_type *tuple_full_buf;
-    tuple_size_t new_full_size = current_full_size + delta->tuple_counts;
+    tuple_size_t new_full_size = full->tuple_counts + delta->tuple_counts;
 
     bool extened_mem = false;
 
@@ -409,7 +135,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
             std::cout << "extend mem" << std::endl;
             extened_mem = true;
             tuple_merge_buffer_size =
-                current_full_size + (delta->tuple_counts * multiplier);
+                full->tuple_counts + (delta->tuple_counts * multiplier);
             u64 tuple_full_buf_mem_size =
                 tuple_merge_buffer_size * sizeof(tuple_type);
 
@@ -419,7 +145,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
                 std::cout << "multiplier : " << multiplier << std::endl;
                 multiplier--;
                 tuple_merge_buffer_size =
-                    current_full_size + (delta->tuple_counts * multiplier);
+                    full->tuple_counts + (delta->tuple_counts * multiplier);
                 tuple_full_buf_mem_size =
                     tuple_merge_buffer_size * sizeof(tuple_type);
                 if (multiplier == 2) {
@@ -443,7 +169,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
             tuple_full_buf = tuple_merge_buffer;
         }
     } else {
-        tuple_merge_buffer_size = current_full_size + delta->tuple_counts;
+        tuple_merge_buffer_size = full->tuple_counts + delta->tuple_counts;
         u64 tuple_full_buf_mem_size =
             tuple_merge_buffer_size * sizeof(tuple_type);
         checkCuda(
@@ -470,19 +196,19 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     // }
     timer.start_timer();
     tuple_type *end_tuple_full_buf = thrust::merge(
-        thrust::device, tuple_full, tuple_full + current_full_size,
+        thrust::device, full->tuples, full->tuples + full->tuple_counts,
         delta->tuples, delta->tuples + delta->tuple_counts, tuple_full_buf,
         tuple_indexed_less(delta->index_column_size, delta->arity));
     timer.stop_timer();
     // std::cout << "merge time : " << timer.get_spent_time() << std::endl;
     detail_time[1] = timer.get_spent_time();
     // checkCuda(cudaDeviceSynchronize());
-    current_full_size = new_full_size;
+    full->tuple_counts = new_full_size;
 
     timer.start_timer();
     if (!fully_disable_merge_buffer_flag && pre_allocated_merge_buffer_flag) {
-        auto old_full = tuple_full;
-        tuple_full = tuple_merge_buffer;
+        auto old_full = full->tuples;
+        full->tuples = tuple_merge_buffer;
         tuple_merge_buffer = old_full;
         if (extened_mem) {
             checkCuda(cudaFree(tuple_merge_buffer));
@@ -493,18 +219,14 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
                                  tuple_full_buf_mem_size));
         }
     } else {
-        checkCuda(cudaFree(tuple_full));
-        tuple_full = tuple_full_buf;
+        checkCuda(cudaFree(full->tuples));
+        full->tuples = tuple_full_buf;
     }
     timer.stop_timer();
     detail_time[2] = timer.get_spent_time();
     buffered_delta_vectors.push_back(delta);
-    full->tuples = tuple_full;
-    full->tuple_counts = current_full_size;
     if (index_flag) {
-        reload_full_temp(full, arity, tuple_full, current_full_size,
-                         index_column_size, dependent_column_size,
-                         full->index_map_load_factor, grid_size, block_size);
+        full->build_index(grid_size, block_size);
     }
 }
 
@@ -543,77 +265,25 @@ void load_relation_container(GHashRelContainer *target, int arity,
     }
     if (tuples_array_flag) {
         // init tuple to be unsorted raw tuple data address
-        u64 target_tuples_mem_size = data_row_size * sizeof(tuple_type);
-        checkCuda(cudaMalloc((void **)&target->tuples, target_tuples_mem_size));
-        checkCuda(cudaDeviceSynchronize());
-        checkCuda(cudaMemset(target->tuples, 0, target_tuples_mem_size));
-        // std::cout << "grid size : " << grid_size << "    " << block_size <<
-        // std::endl;
-        init_tuples_unsorted<<<grid_size, block_size>>>(
-            target->tuples, target->data_raw, arity, data_row_size);
-        checkCuda(cudaGetLastError());
-        checkCuda(cudaDeviceSynchronize());
+        target->reload(target->data_raw, data_row_size);
     }
     // sort raw data
     if (!sorted_flag) {
         timer.start_timer();
-        if (arity <= RADIX_SORT_THRESHOLD) {
-            sort_tuples(target->tuples, data_row_size, arity, index_column_size,
-                        grid_size, block_size);
-        } else {
-            thrust::sort(thrust::device, target->tuples,
-                         target->tuples + data_row_size,
-                         tuple_indexed_less(index_column_size, arity));
-            // checkCuda(cudaDeviceSynchronize());
-        }
+        target->sort();
         // print_tuple_rows(target, "after sort");
         timer.stop_timer();
         detail_time[0] = timer.get_spent_time();
         // deduplication here?
         timer.start_timer();
-        tuple_type *new_end =
-            thrust::unique(thrust::device, target->tuples,
-                           target->tuples + data_row_size, t_equal(arity));
-        // checkCuda(cudaDeviceSynchronize());
-        data_row_size = new_end - target->tuples;
+        target->dedup();
         timer.stop_timer();
         detail_time[1] = timer.get_spent_time();
     }
 
-    target->tuple_counts = data_row_size;
-    // print_tuple_rows(target, "after dedup");
-
     if (build_index_flag) {
         timer.start_timer();
-        // init the index map
-        // set the size of index map same as data, (this should give us almost
-        // no conflict) however this can be memory inefficient
-        target->index_map_size =
-            std::ceil(data_row_size / index_map_load_factor);
-        // target->index_map_size = data_row_size;
-        u64 index_map_mem_size = target->index_map_size * sizeof(MEntity);
-        checkCuda(
-            cudaMalloc((void **)&(target->index_map), index_map_mem_size));
-        checkCuda(cudaMemset(target->index_map, 0, index_map_mem_size));
-
-        // load inited data struct into GPU memory
-        GHashRelContainer *target_device;
-        checkCuda(
-            cudaMalloc((void **)&target_device, sizeof(GHashRelContainer)));
-        checkCuda(cudaMemcpy(target_device, target, sizeof(GHashRelContainer),
-                             cudaMemcpyHostToDevice));
-        init_index_map<<<grid_size, block_size>>>(target_device);
-        checkCuda(cudaGetLastError());
-        checkCuda(cudaDeviceSynchronize());
-        // std::cout << "finish init index map" << std::endl;
-        // print_hashes(target, "after construct index map");
-        // calculate hash
-        calculate_index_hash<<<grid_size, block_size>>>(
-            target_device,
-            tuple_indexed_less(target->index_column_size, target->arity));
-        checkCuda(cudaGetLastError());
-        checkCuda(cudaDeviceSynchronize());
-        checkCuda(cudaFree(target_device));
+        target->build_index(grid_size, block_size);
         timer.stop_timer();
         detail_time[2] = timer.get_spent_time();
     }
@@ -640,19 +310,7 @@ void repartition_relation_index(GHashRelContainer *target, int arity,
     if (data_row_size == 0) {
         return;
     }
-    // load raw data from host
-    target->data_raw = data;
-    // init tuple to be unsorted raw tuple data address
-    u64 target_tuples_mem_size = data_row_size * sizeof(tuple_type);
-    checkCuda(cudaMalloc((void **)&target->tuples, target_tuples_mem_size));
-    checkCuda(cudaDeviceSynchronize());
-    checkCuda(cudaMemset(target->tuples, 0, target_tuples_mem_size));
-    // std::cout << "grid size : " << grid_size << "    " << block_size <<
-    // std::endl;
-    init_tuples_unsorted<<<grid_size, block_size>>>(
-        target->tuples, target->data_raw, arity, data_row_size);
-    checkCuda(cudaGetLastError());
-    checkCuda(cudaDeviceSynchronize());
+    target->reload(data, data_row_size);
 
     timer.start_timer();
     if (arity <= RADIX_SORT_THRESHOLD) {
@@ -678,32 +336,7 @@ void repartition_relation_index(GHashRelContainer *target, int arity,
     // print_tuple_rows(target, "after dedup");
 
     timer.start_timer();
-    // init the index map
-    // set the size of index map same as data, (this should give us almost
-    // no conflict) however this can be memory inefficient
-    target->index_map_size = std::ceil(data_row_size / index_map_load_factor);
-    // target->index_map_size = data_row_size;
-    u64 index_map_mem_size = target->index_map_size * sizeof(MEntity);
-    checkCuda(cudaMalloc((void **)&(target->index_map), index_map_mem_size));
-    checkCuda(cudaMemset(target->index_map, 0, index_map_mem_size));
-
-    // load inited data struct into GPU memory
-    GHashRelContainer *target_device;
-    checkCuda(cudaMalloc((void **)&target_device, sizeof(GHashRelContainer)));
-    checkCuda(cudaMemcpy(target_device, target, sizeof(GHashRelContainer),
-                         cudaMemcpyHostToDevice));
-    init_index_map<<<grid_size, block_size>>>(target_device);
-    checkCuda(cudaGetLastError());
-    checkCuda(cudaDeviceSynchronize());
-    // std::cout << "finish init index map" << std::endl;
-    // print_hashes(target, "after construct index map");
-    // calculate hash
-    calculate_index_hash<<<grid_size, block_size>>>(
-        target_device,
-        tuple_indexed_less(target->index_column_size, target->arity));
-    checkCuda(cudaGetLastError());
-    checkCuda(cudaDeviceSynchronize());
-    checkCuda(cudaFree(target_device));
+    target->build_index(grid_size, block_size);
     timer.stop_timer();
     detail_time[2] = timer.get_spent_time();
 }
@@ -722,81 +355,24 @@ void reload_full_temp(GHashRelContainer *target, int arity, tuple_type *tuples,
     target->tuples = tuples;
     target->index_map_size = std::ceil(data_row_size / index_map_load_factor);
     // target->index_map_size = data_row_size;
-    if (target->index_map != nullptr) {
-        cudaFree(target->index_map);
-    }
-    u64 index_map_mem_size = target->index_map_size * sizeof(MEntity);
-    checkCuda(cudaMalloc((void **)&(target->index_map), index_map_mem_size));
-    cudaMemset(target->index_map, 0, index_map_mem_size);
-
-    // load inited data struct into GPU memory
-    GHashRelContainer *target_device;
-    checkCuda(cudaMalloc((void **)&target_device, sizeof(GHashRelContainer)));
-    checkCuda(cudaMemcpy(target_device, target, sizeof(GHashRelContainer),
-                         cudaMemcpyHostToDevice));
-    checkCuda(cudaDeviceSynchronize());
-    init_index_map<<<grid_size, block_size>>>(target_device);
-    checkCuda(cudaGetLastError());
-    checkCuda(cudaDeviceSynchronize());
-    // std::cout << "finish init index map" << std::endl;
-    // print_hashes(target, "after construct index map");
-    // calculate hash
-    calculate_index_hash<<<grid_size, block_size>>>(
-        target_device,
-        tuple_indexed_less(target->index_column_size, target->arity));
-    checkCuda(cudaGetLastError());
-    checkCuda(cudaDeviceSynchronize());
-    checkCuda(cudaFree(target_device));
+    target->build_index(grid_size, block_size);
 }
 
-void copy_relation_container(GHashRelContainer *dst, GHashRelContainer *src,
-                             int grid_size, int block_size) {
-    // dst->index_map_size = src->index_map_size;
-    // dst->index_map_load_factor = src->index_map_load_factor;
-    // checkCuda(cudaMalloc((void **)&dst->index_map,
-    //                      dst->index_map_size * sizeof(MEntity)));
-    // cudaMemcpy(dst->index_map, src->index_map,
-    //            dst->index_map_size * sizeof(MEntity),
-    //            cudaMemcpyDeviceToDevice);
-    // dst->index_column_size = src->index_column_size;
-
-    // dst->tuple_counts = src->tuple_counts;
-    // dst->data_raw_row_size = src->data_raw_row_size;
-    // dst->arity = src->arity;
-    // checkCuda(cudaMalloc((void **)&dst->tuples,
-    //                      dst->tuple_counts * sizeof(tuple_type)));
-    // cudaMemcpy(dst->tuples, src->tuples, src->tuple_counts *
-    // sizeof(tuple_type),
-    //            cudaMemcpyDeviceToDevice);
-
-    free_relation_container(dst);
-    checkCuda(cudaMalloc((void **)&dst->data_raw,
-                         src->arity * src->tuple_counts * sizeof(column_type)));
-    checkCuda(cudaMemcpy(dst->data_raw, src->data_raw,
-                         src->arity * src->tuple_counts * sizeof(column_type),
-                         cudaMemcpyDeviceToDevice));
-    float detail_time[5];
-    load_relation_container(dst, src->arity, dst->data_raw, src->tuple_counts,
-                            src->index_column_size, src->dependent_column_size,
-                            0.8, grid_size, block_size, detail_time, true, true,
-                            true);
-}
-
-void free_relation_container(GHashRelContainer *target) {
-    target->tuple_counts = 0;
-    target->index_map_size = 0;
-    target->data_raw_row_size = 0;
-    if (target->index_map != nullptr) {
-        checkCuda(cudaFree(target->index_map));
-        target->index_map = nullptr;
+void GHashRelContainer::free() {
+    tuple_counts = 0;
+    index_map_size = 0;
+    data_raw_row_size = 0;
+    if (index_map != nullptr) {
+        checkCuda(cudaFree(index_map));
+        index_map = nullptr;
     }
-    if (target->tuples != nullptr) {
-        checkCuda(cudaFree(target->tuples));
-        target->tuples = nullptr;
+    if (tuples != nullptr) {
+        checkCuda(cudaFree(tuples));
+        tuples = nullptr;
     }
-    if (target->data_raw != nullptr) {
-        checkCuda(cudaFree(target->data_raw));
-        target->data_raw = nullptr;
+    if (data_raw != nullptr) {
+        checkCuda(cudaFree(data_raw));
+        data_raw = nullptr;
     }
 }
 
@@ -839,7 +415,7 @@ void GHashRelContainer::dedup() {
 }
 
 void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
-    if (this->data_raw != nullptr) {
+    if (this->data_raw != nullptr && this->data_raw != data) {
         checkCuda(cudaFree(this->data_raw));
     }
     data_raw = data;
@@ -902,13 +478,13 @@ void GHashRelContainer::fit() {
         return;
     }
     column_type *new_data;
-    checkCuda(cudaMalloc((void **)&new_data,
-                         this->arity * this->tuple_counts * sizeof(column_type)));
+    checkCuda(cudaMalloc((void **)&new_data, this->arity * this->tuple_counts *
+                                                 sizeof(column_type)));
     thrust::for_each(
         thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
         thrust::make_counting_iterator<tuple_size_t>(this->tuple_counts),
-        [gh_tps = this->tuples, arity = this->arity, new_data] __device__(
-            tuple_size_t i) {
+        [gh_tps = this->tuples, arity = this->arity,
+         new_data] __device__(tuple_size_t i) {
             for (int j = 0; j < arity; j++) {
                 new_data[i * arity + j] = gh_tps[i][j];
             }
@@ -945,9 +521,27 @@ void Relation::defragement(RelationVersion ver, int grid_size, int block_size) {
             return;
         }
         for (int j = 0; j < buffered_delta_vectors.size() - 1; j++) {
-            free_relation_container(buffered_delta_vectors[j]);
+            buffered_delta_vectors[j]->free();
         }
     }
+}
+
+bool is_number(const std::string &s) {
+    for (char const &c : s) {
+        if (std::isdigit(c) == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" \t\n");
+    if (std::string::npos == first) {
+        return str;
+    }
+    size_t last = str.find_last_not_of(" \t\f\v\n\r");
+    return str.substr(first, (last - first + 1));
 }
 
 void file_to_buffer(std::string file_path,
@@ -964,7 +558,8 @@ void file_to_buffer(std::string file_path,
         }
         while (std::getline(iss, token, '\t')) {
             // if token is number (including hex start with 0x)
-            if (token.find_first_not_of("0123456789") == std::string::npos) {
+            auto trimed_token = trim(token);
+            if (is_number(trimed_token)) {
                 buffer.push_back(std::stoull(token));
             } else if (token.find("0x") == 0) {
                 buffer.push_back(std::stoull(token, 0, 16));

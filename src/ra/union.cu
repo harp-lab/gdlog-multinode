@@ -1,7 +1,7 @@
 
-#include "../include/exception.cuh"
-#include "../include/relational_algebra.cuh"
-#include "../include/print.cuh"
+#include "../../include/exception.cuh"
+#include "../../include/relational_algebra.cuh"
+#include "../../include/print.cuh"
 
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>

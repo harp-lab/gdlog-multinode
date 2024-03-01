@@ -1,6 +1,6 @@
 
-#include "../include/relational_algebra.cuh"
-#include "../include/exception.cuh"
+#include "../../include/relational_algebra.cuh"
+#include "../../include/exception.cuh"
 
 #include <thrust/copy.h>
 #include <thrust/count.h>

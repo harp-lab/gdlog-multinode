@@ -1,18 +1,169 @@
 #include <iostream>
-#include <vector>
+#include <mpi.h>
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
 #include <thrust/scan.h>
-#include <thrust/unique.h>  
-#include <mpi.h>
+#include <thrust/unique.h>
+#include <vector>
+
+#include "../../include/exception.cuh"
+#include "../../include/print.cuh"
+#include "../../include/relational_algebra.cuh"
+#include "../../include/timer.cuh"
 
 
-#include "../include/exception.cuh"
-#include "../include/print.cuh"
-#include "../include/relational_algebra.cuh"
-#include "../include/timer.cuh"
+__global__ void get_join_result_size(GHashRelContainer *inner_table,
+                                     GHashRelContainer *outer_table,
+                                     int join_column_counts,
+                                     TupleGenerator tp_gen, TupleFilter tp_pred,
+                                     tuple_size_t *join_result_size) {
+    u64 index = (blockIdx.x * blockDim.x) + threadIdx.x;
+    if (index >= outer_table->tuple_counts)
+        return;
+    u64 stride = blockDim.x * gridDim.x;
 
+    for (tuple_size_t i = index; i < outer_table->tuple_counts; i += stride) {
+        tuple_type outer_tuple = outer_table->tuples[i];
 
+        tuple_size_t current_size = 0;
+        join_result_size[i] = 0;
+        u64 hash_val = prefix_hash(outer_tuple, outer_table->index_column_size);
+        // the index value "pointer" position in the index hash table
+        tuple_size_t index_position = hash_val % inner_table->index_map_size;
+        bool index_not_exists = false;
+        while (true) {
+            if (inner_table->index_map[index_position].key == hash_val &&
+                tuple_eq(
+                    outer_tuple,
+                    inner_table
+                        ->tuples[inner_table->index_map[index_position].value],
+                    outer_table->index_column_size)) {
+                break;
+            } else if (inner_table->index_map[index_position].key ==
+                       EMPTY_HASH_ENTRY) {
+                index_not_exists = true;
+                break;
+            }
+            index_position = (index_position + 1) % inner_table->index_map_size;
+        }
+        if (index_not_exists) {
+            continue;
+        }
+        // pull all joined elements
+        tuple_size_t position = inner_table->index_map[index_position].value;
+        while (true) {
+            tuple_type cur_inner_tuple = inner_table->tuples[position];
+            bool cmp_res = tuple_eq(inner_table->tuples[position], outer_tuple,
+                                    join_column_counts);
+            if (cmp_res) {
+                // hack to apply filter
+                // TODO: this will cause max arity of a relation is 20
+                if (tp_pred.arity > 0) {
+                    column_type tmp[10] = {0};
+                    tp_gen(cur_inner_tuple, outer_tuple, tmp);
+                    if (tp_pred(tmp)) {
+                        current_size++;
+                    }
+                } else {
+                    current_size++;
+                }
+            } else {
+                break;
+            }
+            position = position + 1;
+            if (position > inner_table->tuple_counts - 1) {
+                // end of data arrary
+                break;
+            }
+        }
+        join_result_size[i] = current_size;
+    }
+}
+
+__global__ void
+get_join_result(GHashRelContainer *inner_table, GHashRelContainer *outer_table,
+                int join_column_counts, TupleGenerator tp_gen,
+                TupleFilter tp_pred, int output_arity,
+                column_type *output_raw_data, tuple_size_t *res_count_array,
+                tuple_size_t *res_offset, JoinDirection direction) {
+    int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+    if (index >= outer_table->tuple_counts)
+        return;
+
+    int stride = blockDim.x * gridDim.x;
+
+    for (tuple_size_t i = index; i < outer_table->tuple_counts; i += stride) {
+        if (res_count_array[i] == 0) {
+            continue;
+        }
+        tuple_type outer_tuple = outer_table->tuples[i];
+
+        int current_new_tuple_cnt = 0;
+        u64 hash_val = prefix_hash(outer_tuple, outer_table->index_column_size);
+        // the index value "pointer" position in the index hash table
+        tuple_size_t index_position = hash_val % inner_table->index_map_size;
+        bool index_not_exists = false;
+        while (true) {
+            if (inner_table->index_map[index_position].key == hash_val &&
+                tuple_eq(
+                    outer_tuple,
+                    inner_table
+                        ->tuples[inner_table->index_map[index_position].value],
+                    outer_table->index_column_size)) {
+                break;
+            } else if (inner_table->index_map[index_position].key ==
+                       EMPTY_HASH_ENTRY) {
+                index_not_exists = true;
+                break;
+            }
+            index_position = (index_position + 1) % inner_table->index_map_size;
+        }
+        if (index_not_exists) {
+            continue;
+        }
+
+        // pull all joined elements
+        tuple_size_t position = inner_table->index_map[index_position].value;
+        while (true) {
+            // TODO: always put join columns ahead? could be various benefits
+            // but memory is issue to mantain multiple copies
+            bool cmp_res = tuple_eq(inner_table->tuples[position], outer_tuple,
+                                    join_column_counts);
+            if (cmp_res) {
+                // tuple prefix match, join here
+                tuple_type inner_tuple = inner_table->tuples[position];
+                tuple_type new_tuple =
+                    output_raw_data +
+                    (res_offset[i] + current_new_tuple_cnt) * output_arity;
+
+                // for (int j = 0; j < output_arity; j++) {
+                // TODO: this will cause max arity of a relation is 20
+                if (tp_pred.arity > 0) {
+                    column_type tmp[20];
+                    tp_gen(inner_tuple, outer_tuple, tmp);
+                    if (tp_pred(tmp)) {
+                        tp_gen(inner_tuple, outer_tuple, new_tuple);
+                        current_new_tuple_cnt++;
+                    }
+                } else {
+                    tp_gen(inner_tuple, outer_tuple, new_tuple);
+                    current_new_tuple_cnt++;
+                }
+                if (current_new_tuple_cnt > res_count_array[i]) {
+                    break;
+                }
+            } else {
+                // bucket end
+                break;
+            }
+            position = position + 1;
+            if (position > (inner_table->tuple_counts - 1)) {
+                // end of data arrary
+                break;
+            }
+        }
+    }
+}
 
 void RelationalJoin::operator()() {
 
@@ -79,13 +230,13 @@ void RelationalJoin::operator()() {
         if (i + MAX_REDUCE_SIZE > outer->tuple_counts) {
             reduce_size = outer->tuple_counts - i;
         }
-        tuple_size_t reduce_v = thrust::reduce(
-            thrust::device, result_counts_array + i,
-            result_counts_array + i + reduce_size, 0);
+        tuple_size_t reduce_v =
+            thrust::reduce(thrust::device, result_counts_array + i,
+                           result_counts_array + i + reduce_size, 0);
         total_result_rows += reduce_v;
         // checkCuda(cudaDeviceSynchronize());
     }
-    
+
     tuple_size_t *result_counts_offset;
     checkCuda(cudaMalloc((void **)&result_counts_offset,
                          outer->tuple_counts * sizeof(tuple_size_t)));
@@ -161,57 +312,11 @@ void RelationalJoin::operator()() {
             detail_time[3] += load_relation_container_time[0];
             detail_time[4] += load_relation_container_time[1];
             detail_time[5] += load_relation_container_time[2];
-            // checkCuda(cudaDeviceSynchronize());
-            tuple_type *tp_buffer;
-            u64 tp_buffer_mem_size =
-                (newt_tmp->tuple_counts + old_newt->tuple_counts) *
-                sizeof(tuple_type);
-            checkCuda(cudaMalloc((void **)&tp_buffer, tp_buffer_mem_size));
-            cudaMemset(tp_buffer, 0, tp_buffer_mem_size);
-            timer.start_timer();
-            tuple_type *tp_buffer_end = thrust::merge(
-                thrust::device, newt_tmp->tuples,
-                newt_tmp->tuples + newt_tmp->tuple_counts, old_newt->tuples,
-                old_newt->tuples + old_newt->tuple_counts, tp_buffer,
-                tuple_indexed_less(output_rel->index_column_size,
-                                   output_rel->arity));
-            // checkCuda(cudaDeviceSynchronize());
-            timer.stop_timer();
-            detail_time[6] += timer.get_spent_time();
-            // cudaFree(newt_tmp->tuples);
-            // cudaFree(old_newt->tuples);
-            timer.start_timer();
-            tp_buffer_end =
-                thrust::unique(thrust::device, tp_buffer, tp_buffer_end,
-                               t_equal(output_rel->arity));
-            checkCuda(cudaDeviceSynchronize());
-            timer.stop_timer();
-            detail_time[7] += timer.get_spent_time();
-            tuple_size_t new_newt_counts = tp_buffer_end - tp_buffer;
-
-            timer.start_timer();
-            column_type *new_newt_raw;
-            u64 new_newt_raw_mem_size =
-                new_newt_counts * output_rel->arity * sizeof(column_type);
-            checkCuda(
-                cudaMalloc((void **)&new_newt_raw, new_newt_raw_mem_size));
-            checkCuda(cudaMemset(new_newt_raw, 0, new_newt_raw_mem_size));
-            flatten_tuples_raw_data<<<grid_size, block_size>>>(
-                tp_buffer, new_newt_raw, new_newt_counts, output_rel->arity);
-            checkCuda(cudaGetLastError());
-            checkCuda(cudaDeviceSynchronize());
-            timer.stop_timer();
-            detail_time[4] += timer.get_spent_time();
-            checkCuda(cudaFree(tp_buffer));
-            free_relation_container(old_newt);
-            free_relation_container(newt_tmp);
-            // TODO: free newt_tmp pointer
-            load_relation_container(
-                output_rel->newt, output_arity, new_newt_raw, new_newt_counts,
-                output_rel->index_column_size,
-                output_rel->dependent_column_size, 0.8, grid_size, block_size,
-                load_relation_container_time, true, true, false);
-            checkCuda(cudaDeviceSynchronize());
+            RelationalUnion ru(newt_tmp, output_rel->newt);
+            ru();
+            output_rel->newt->fit();
+            newt_tmp->free();
+            delete newt_tmp;
         } else {
             // output relation is tmp relation, directly merge without sort
             GHashRelContainer *old_newt = output_rel->newt;
@@ -232,7 +337,7 @@ void RelationalJoin::operator()() {
                 join_res_raw_data,
                 total_result_rows * output_rel->arity * sizeof(column_type),
                 cudaMemcpyDeviceToDevice));
-            free_relation_container(old_newt);
+            old_newt->free();
             checkCuda(cudaFree(join_res_raw_data));
             load_relation_container(
                 output_rel->newt, output_arity, newt_tmp_raw, new_newt_counts,

@@ -252,7 +252,7 @@ struct RelationalClear {
 
     RelationalClear(Relation *rel, RelationVersion ver) : rel(rel), ver(ver) {}
 
-    void operator()() { free_relation_container(get_relation_ver(rel, ver)); };
+    void operator()() { get_relation_ver(rel, ver)->free(); };
 };
 
 struct RelationalBroadcast {

@@ -1,8 +1,7 @@
 
-#include "../include/relational_algebra.cuh"
-
 #include <thrust/transform.h>
 #include <thrust/execution_policy.h>
+#include "../../include/relational_algebra.cuh"
 
 void RelationalArithm::operator()() {
     GHashRelContainer *src;

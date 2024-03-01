@@ -14,52 +14,6 @@
 #include "../include/print.cuh"
 #include "../include/timer.cuh"
 
-//////////////////////////////////////////////////////
-
-long int get_row_size(const char *data_path) {
-    std::ifstream f;
-    f.open(data_path);
-    char c;
-    long i = 0;
-    while (f.get(c))
-        if (c == '\n')
-            ++i;
-    f.close();
-    return i;
-}
-
-enum ColumnT { U64, U32 };
-
-column_type *get_relation_from_file(const char *file_path, int total_rows,
-                                    int total_columns, char separator,
-                                    ColumnT ct) {
-    column_type *data =
-        (column_type *)malloc(total_rows * total_columns * sizeof(column_type));
-    FILE *data_file = fopen(file_path, "r");
-    for (int i = 0; i < total_rows; i++) {
-        for (int j = 0; j < total_columns; j++) {
-            if (j != (total_columns - 1)) {
-                if (ct == U64) {
-                    fscanf(data_file, "%lld%c", &data[(i * total_columns) + j],
-                           &separator);
-                } else {
-                    fscanf(data_file, "%ld%c", &data[(i * total_columns) + j],
-                           &separator);
-                }
-            } else {
-                if (ct == U64) {
-                    fscanf(data_file, "%lld", &data[(i * total_columns) + j]);
-                } else {
-                    fscanf(data_file, "%ld", &data[(i * total_columns) + j]);
-                }
-            }
-        }
-    }
-    return data;
-}
-
-////////////////////////////////////////////////////////////////
-
 void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     KernelTimer timer;
     int relation_columns = 2;
@@ -75,10 +29,12 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     assign_fact_ss << dataset_path << "/assign.facts";
     std::stringstream dereference_fact_ss;
     dereference_fact_ss << dataset_path << "/dereference.facts";
-    // std::cout << assign_fact_ss.str() << std::endl;
-    tuple_size_t assign_counts = get_row_size(assign_fact_ss.str().c_str());
-    column_type *raw_assign_data = get_relation_from_file(
-        assign_fact_ss.str().c_str(), assign_counts, 2, '\t', U32);
+    thrust::host_vector<column_type> raw_assign_vec;
+    std::map<column_type, std::string> string_map;
+    file_to_buffer(dataset_path, raw_assign_vec, string_map);
+    tuple_size_t assign_counts = raw_assign_vec.size() / 2;
+    column_type *raw_assign_data = raw_assign_vec.data();
+    
     column_type *raw_reverse_assign_data =
         (column_type *)malloc(assign_counts * 2 * sizeof(column_type));
     for (tuple_size_t i = 0; i < assign_counts; i++) {
@@ -86,10 +42,14 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
         raw_reverse_assign_data[i * 2] = raw_assign_data[i * 2 + 1];
     }
 
-    tuple_size_t dereference_counts =
-        get_row_size(dereference_fact_ss.str().c_str());
-    column_type *raw_dereference_data = get_relation_from_file(
-        dereference_fact_ss.str().c_str(), dereference_counts, 2, '\t', U32);
+    // tuple_size_t dereference_counts =
+    //     get_row_size(dereference_fact_ss.str().c_str());
+    // column_type *raw_dereference_data = get_relation_from_file(
+    //     dereference_fact_ss.str().c_str(), dereference_counts, 2, '\t', U32);
+    thrust::host_vector<column_type> raw_dereference_vec;
+    file_to_buffer(dataset_path, raw_dereference_vec, string_map);
+    tuple_size_t dereference_counts = raw_dereference_vec.size() / 2;
+    column_type *raw_dereference_data = raw_dereference_vec.data();
     column_type *raw_reverse_dereference_data =
         (column_type *)malloc(dereference_counts * 2 * sizeof(column_type));
     for (tuple_size_t i = 0; i < dereference_counts; i++) {
