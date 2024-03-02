@@ -192,11 +192,6 @@ struct Relation {
     GHashRelContainer *newt;
     GHashRelContainer *full;
 
-    // TODO: out dataed remove these, directly use GHashRelContainer
-    // **full** a buffer for tuple pointer in full
-    tuple_size_t current_full_size = 0;
-    tuple_type *tuple_full;
-
     tuple_type *tuple_merge_buffer;
     tuple_size_t tuple_merge_buffer_size = 0;
     bool pre_allocated_merge_buffer_flag = true;

@@ -133,12 +133,6 @@ void LIE::fixpoint_loop() {
     }
     // init full tuple buffer for all relation involved
     for (Relation *rel : update_relations) {
-        checkCuda(cudaMalloc((void **)&rel->tuple_full,
-                             rel->full->tuple_counts * sizeof(tuple_type)));
-        checkCuda(cudaMemcpy(rel->tuple_full, rel->full->tuples,
-                             rel->full->tuple_counts * sizeof(tuple_type),
-                             cudaMemcpyDeviceToDevice));
-        rel->current_full_size = rel->full->tuple_counts;
         rel->delta->free();
         checkCuda(cudaMalloc((void **)&rel->delta->data_raw,
                              rel->full->arity * rel->full->tuple_counts *
@@ -221,7 +215,7 @@ void LIE::fixpoint_loop() {
                 tuple_type *deuplicated_end = thrust::set_difference(
                     thrust::device, rel->newt->tuples,
                     rel->newt->tuples + rel->newt->tuple_counts,
-                    rel->tuple_full, rel->tuple_full + rel->current_full_size,
+                    rel->full->tuples, rel->full->tuples + rel->full->tuple_counts,
                     deduplicated_newt_tuples,
                     tuple_indexed_less(rel->full->index_column_size,
                                        rel->full->arity -
@@ -290,7 +284,6 @@ void LIE::fixpoint_loop() {
             rebuild_rel_unique_time += load_detail_time[1];
             rebuild_rel_index_time += load_detail_time[2];
 
-            // auto old_full = rel->tuple_full;
             float flush_detail_time[5] = {0, 0, 0, 0, 0};
             timer.start_timer();
             rel->flush_delta(grid_size, block_size, flush_detail_time);
@@ -307,7 +300,7 @@ void LIE::fixpoint_loop() {
                           << rel->name << " rank " << mcomm->getRank()
                           << " finish dedup new tuples : " << deduplicate_size
                           << " delta tuple size: " << rel->delta->tuple_counts
-                          << " full counts " << rel->current_full_size
+                          << " full counts " << rel->full->tuple_counts
                           << std::endl;
             }
         }

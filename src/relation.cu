@@ -113,7 +113,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     KernelTimer timer;
     timer.start_timer();
     tuple_type *tuple_full_buf;
-    tuple_size_t new_full_size = current_full_size + delta->tuple_counts;
+    tuple_size_t new_full_size = full->tuple_counts + delta->tuple_counts;
 
     bool extened_mem = false;
 
@@ -136,7 +136,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
             std::cout << "extend mem" << std::endl;
             extened_mem = true;
             tuple_merge_buffer_size =
-                current_full_size + (delta->tuple_counts * multiplier);
+                full->tuple_counts + (delta->tuple_counts * multiplier);
             u64 tuple_full_buf_mem_size =
                 tuple_merge_buffer_size * sizeof(tuple_type);
 
@@ -146,7 +146,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
                 std::cout << "multiplier : " << multiplier << std::endl;
                 multiplier--;
                 tuple_merge_buffer_size =
-                    current_full_size + (delta->tuple_counts * multiplier);
+                    full->tuple_counts + (delta->tuple_counts * multiplier);
                 tuple_full_buf_mem_size =
                     tuple_merge_buffer_size * sizeof(tuple_type);
                 if (multiplier == 2) {
@@ -170,7 +170,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
             tuple_full_buf = tuple_merge_buffer;
         }
     } else {
-        tuple_merge_buffer_size = current_full_size + delta->tuple_counts;
+        tuple_merge_buffer_size = full->tuple_counts + delta->tuple_counts;
         u64 tuple_full_buf_mem_size =
             tuple_merge_buffer_size * sizeof(tuple_type);
         checkCuda(
@@ -197,19 +197,19 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     // }
     timer.start_timer();
     tuple_type *end_tuple_full_buf = thrust::merge(
-        thrust::device, tuple_full, tuple_full + current_full_size,
+        thrust::device, full->tuples, full->tuples + full->tuple_counts,
         delta->tuples, delta->tuples + delta->tuple_counts, tuple_full_buf,
         tuple_indexed_less(delta->index_column_size, delta->arity));
     timer.stop_timer();
     // std::cout << "merge time : " << timer.get_spent_time() << std::endl;
     detail_time[1] = timer.get_spent_time();
     // checkCuda(cudaDeviceSynchronize());
-    current_full_size = new_full_size;
+    full->tuple_counts = new_full_size;
 
     timer.start_timer();
     if (!fully_disable_merge_buffer_flag && pre_allocated_merge_buffer_flag) {
-        auto old_full = tuple_full;
-        tuple_full = tuple_merge_buffer;
+        auto old_full = full->tuples;
+        full->tuples = tuple_merge_buffer;
         tuple_merge_buffer = old_full;
         if (extened_mem) {
             checkCuda(cudaFree(tuple_merge_buffer));
@@ -220,18 +220,14 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
                                  tuple_full_buf_mem_size));
         }
     } else {
-        checkCuda(cudaFree(tuple_full));
-        tuple_full = tuple_full_buf;
+        checkCuda(cudaFree(full->tuples));
+        full->tuples = tuple_full_buf;
     }
     timer.stop_timer();
     detail_time[2] = timer.get_spent_time();
     buffered_delta_vectors.push_back(delta);
-    full->tuples = tuple_full;
-    full->tuple_counts = current_full_size;
     if (index_flag) {
-        reload_full_temp(full, arity, tuple_full, current_full_size,
-                         index_column_size, dependent_column_size,
-                         full->index_map_load_factor, grid_size, block_size);
+        full->build_index(grid_size, block_size);
     }
 }
 
