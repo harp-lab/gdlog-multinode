@@ -216,32 +216,32 @@ target_compile_options(gpu_ra PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
     --default-stream per-thread
     --extended-lambda>)
 
-# add_executable(TC ${source_file_tc})
-# target_link_libraries(TC gpu_ra)
-# target_compile_features(TC PUBLIC cxx_std_17)
-# target_compile_options(TC PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
-#     -lineinfo
-#     --expt-relaxed-constexpr
-#     --default-stream per-thread
-#     --extended-lambda>)
-# set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+add_executable(TC ${source_file_tc})
+target_link_libraries(TC gpu_ra)
+target_compile_features(TC PUBLIC cxx_std_17)
+target_compile_options(TC PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
+    -lineinfo
+    --expt-relaxed-constexpr
+    --default-stream per-thread
+    --extended-lambda>)
+set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
-# add_executable(CSPA ${source_cspa})
-# target_link_libraries(CSPA gpu_ra)
-# target_compile_features(CSPA PUBLIC cxx_std_17)
-# set_target_properties(CSPA PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+add_executable(CSPA ${source_cspa})
+target_link_libraries(CSPA gpu_ra)
+target_compile_features(CSPA PUBLIC cxx_std_17)
+set_target_properties(CSPA PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
-# add_executable(SG ${source_file_sg})
-# target_link_libraries(SG gpu_ra)
-# target_compile_features(SG PUBLIC cxx_std_17)
-# set_target_properties(SG PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+add_executable(SG ${source_file_sg})
+target_link_libraries(SG gpu_ra)
+target_compile_features(SG PUBLIC cxx_std_17)
+set_target_properties(SG PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
 
-# file(GLOB source_file_block_overlap
-#     "${test_dir}/block_overlap.cu"
-# )
-# add_executable(BLOCK_OVERLAP ${source_file_block_overlap})
-# target_link_libraries(BLOCK_OVERLAP gpu_ra)
-# target_compile_features(BLOCK_OVERLAP PUBLIC cxx_std_17)
-# set_target_properties(BLOCK_OVERLAP PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+file(GLOB source_file_block_overlap
+    "${test_dir}/block_overlap.cu"
+)
+add_executable(BLOCK_OVERLAP ${source_file_block_overlap})
+target_link_libraries(BLOCK_OVERLAP gpu_ra)
+target_compile_features(BLOCK_OVERLAP PUBLIC cxx_std_17)
+set_target_properties(BLOCK_OVERLAP PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
