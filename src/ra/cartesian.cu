@@ -3,6 +3,7 @@
 #include "../../include/relational_algebra.cuh"
 
 #include <thrust/device_vector.h>
+#include <rmm/device_vector.hpp>
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
 #include <thrust/scan.h>
@@ -102,7 +103,9 @@ void RelationalCartesian::operator()() {
     // print_tuple_rows(outer, "outer");
     // get the size of the result
     tuple_size_t *d_size;
-    cudaMalloc((void **)&d_size, outer->tuple_counts * sizeof(tuple_size_t));
+    rmm::device_vector<tuple_size_t> d_size_v(outer->tuple_counts);
+    // cudaMalloc((void **)&d_size, outer->tuple_counts * sizeof(tuple_size_t));
+    d_size = d_size_v.data().get();
     cartesian_product_size<<<grid_size, block_size>>>(
         outer->data_raw, inner->data_raw, d_size, outer->tuple_counts,
         outer->arity, inner->tuple_counts, inner->arity, tuple_pred);
@@ -134,7 +137,9 @@ void RelationalCartesian::operator()() {
         tuple_pred);
     cudaDeviceSynchronize();
     // free the memory
-    cudaFree(d_size);
+    // cudaFree(d_size);
+    d_size_v.clear();
+    d_size_v.shrink_to_fit();
     // set the result
     if (output_rel->newt->tuple_counts == 0) {
         output_rel->newt->reload(d_result, result_size);

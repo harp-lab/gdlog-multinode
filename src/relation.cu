@@ -127,53 +127,17 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     }
 
     if (!fully_disable_merge_buffer_flag && pre_allocated_merge_buffer_flag) {
-        if (tuple_merge_buffer_size <= new_full_size) {
-            if (tuple_merge_buffer != nullptr) {
-                checkCuda(cudaFree(tuple_merge_buffer));
-                tuple_merge_buffer = nullptr;
-            }
-            std::cout << "extend mem" << std::endl;
-            extened_mem = true;
-            tuple_merge_buffer_size =
-                full->tuple_counts + (delta->tuple_counts * multiplier);
-            u64 tuple_full_buf_mem_size =
-                tuple_merge_buffer_size * sizeof(tuple_type);
-
-            while (((free_mem - tuple_full_buf_mem_size) * 1.0 /
-                    total_mem_size) < 0.4 &&
-                   delta_mem_size * multiplier > 0.1 * free_mem) {
-                std::cout << "multiplier : " << multiplier << std::endl;
-                multiplier--;
-                tuple_merge_buffer_size =
-                    full->tuple_counts + (delta->tuple_counts * multiplier);
-                tuple_full_buf_mem_size =
-                    tuple_merge_buffer_size * sizeof(tuple_type);
-                if (multiplier == 2) {
-                    std::cout << "not enough memory for merge buffer"
-                              << std::endl;
-                    // not enough space for pre-allocated buffer
-                    pre_allocated_merge_buffer_flag = false;
-                    tuple_merge_buffer_size = 0;
-                    // cudaFree(tuple_merge_buffer);
-                    checkCuda(cudaMalloc((void **)&tuple_full_buf,
-                                         tuple_full_buf_mem_size));
-                    break;
-                }
-            }
-            if (pre_allocated_merge_buffer_flag) {
-                checkCuda(cudaMalloc((void **)&tuple_merge_buffer,
-                                     tuple_full_buf_mem_size));
-                tuple_full_buf = tuple_merge_buffer;
-            }
-        } else {
-            tuple_full_buf = tuple_merge_buffer;
-        }
+        tuple_merge_buffer.resize(full->tuple_counts +
+                                  delta->tuple_counts * multiplier);
+        tuple_merge_buffer.shrink_to_fit();
+        tuple_merge_buffer_size =
+            full->tuple_counts + delta->tuple_counts * multiplier;
+        tuple_full_buf = tuple_merge_buffer.data().get();
     } else {
         tuple_merge_buffer_size = full->tuple_counts + delta->tuple_counts;
-        u64 tuple_full_buf_mem_size =
-            tuple_merge_buffer_size * sizeof(tuple_type);
-        checkCuda(
-            cudaMalloc((void **)&tuple_full_buf, tuple_full_buf_mem_size));
+        tuple_merge_buffer.resize(tuple_merge_buffer_size);
+        tuple_merge_buffer.shrink_to_fit();
+        tuple_full_buf = tuple_merge_buffer.data().get();
         // checkCuda(cudaMemset(tuple_full_buf, 0, tuple_full_buf_mem_size));
         // checkCuda(cudaDeviceSynchronize());
     }
@@ -207,20 +171,17 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
 
     timer.start_timer();
     if (!fully_disable_merge_buffer_flag && pre_allocated_merge_buffer_flag) {
-        auto old_full = full->tuples;
-        full->tuples = tuple_merge_buffer;
-        tuple_merge_buffer = old_full;
+        auto &old_full = full->tuples_vec;
+        full->tuples = tuple_merge_buffer.data().get();
+        tuple_merge_buffer.swap(old_full);
         if (extened_mem) {
-            checkCuda(cudaFree(tuple_merge_buffer));
-            tuple_merge_buffer = nullptr;
-            u64 tuple_full_buf_mem_size =
-                tuple_merge_buffer_size * sizeof(tuple_type);
-            checkCuda(cudaMalloc((void **)&tuple_merge_buffer,
-                                 tuple_full_buf_mem_size));
+            tuple_merge_buffer.resize(new_full_size);
         }
     } else {
-        checkCuda(cudaFree(full->tuples));
-        full->tuples = tuple_full_buf;
+        full->tuples_vec.swap(tuple_merge_buffer);
+        full->tuples = full->tuples_vec.data().get();
+        tuple_merge_buffer.clear();
+        tuple_merge_buffer.shrink_to_fit();
     }
     timer.stop_timer();
     detail_time[2] = timer.get_spent_time();
@@ -302,35 +263,18 @@ void repartition_relation_index(GHashRelContainer *target, int arity,
     target->index_map_load_factor = index_map_load_factor;
     target->index_column_size = index_column_size;
     target->dependent_column_size = dependent_column_size;
-    // load index selection into gpu
-    // u64 index_columns_mem_size = index_column_size * sizeof(u64);
-    // checkCuda(cudaMalloc((void**) &(target->index_columns),
-    // index_columns_mem_size)); cudaMemcpy(target->index_columns,
-    // index_columns, index_columns_mem_size, cudaMemcpyHostToDevice);
     if (data_row_size == 0) {
         return;
     }
     target->reload(data, data_row_size);
 
     timer.start_timer();
-    if (arity <= RADIX_SORT_THRESHOLD) {
-        sort_tuples(target->tuples, data_row_size, index_column_size,
-                    index_column_size, grid_size, block_size);
-    } else {
-        thrust::sort(thrust::device, target->tuples,
-                     target->tuples + data_row_size,
-                     tuple_indexed_less(index_column_size, arity));
-
-        checkCuda(cudaDeviceSynchronize());
-    }
+    thrust::sort(thrust::device, target->tuples, target->tuples + data_row_size,
+                 tuple_indexed_less(index_column_size, arity));
     // print_tuple_rows(target, "after sort");
     timer.stop_timer();
     detail_time[0] = timer.get_spent_time();
     detail_time[1] = timer.get_spent_time();
-    if (arity <= RADIX_SORT_THRESHOLD) {
-        sort_tuple_by_hash(target->tuples, data_row_size, arity,
-                           index_column_size, grid_size, block_size);
-    }
 
     target->tuple_counts = data_row_size;
     // print_tuple_rows(target, "after dedup");
@@ -367,7 +311,9 @@ void GHashRelContainer::free() {
         index_map = nullptr;
     }
     if (tuples != nullptr) {
-        checkCuda(cudaFree(tuples));
+        // checkCuda(cudaFree(tuples));
+        tuples_vec.clear();
+        tuples_vec.shrink_to_fit();
         tuples = nullptr;
     }
     if (data_raw != nullptr) {
@@ -420,18 +366,19 @@ void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
     }
     data_raw = data;
     this->data_raw_row_size = data_row_size;
-    if (this->tuples != nullptr) {
-        checkCuda(cudaFree(this->tuples));
-    }
+    // if (this->tuples != nullptr) {
+    //     // checkCuda(cudaFree(this->tuples));
+    //     tuples_vec.clear();
+    // }
 
-    u64 target_tuples_mem_size = data_row_size * sizeof(tuple_type);
-    checkCuda(cudaMalloc((void **)&this->tuples, target_tuples_mem_size));
+    tuples_vec.resize(data_row_size);
     thrust::transform(
         thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
         thrust::make_counting_iterator<tuple_size_t>(data_row_size),
-        this->tuples,
+        tuples_vec.begin(),
         [raw_ptr = this->data_raw, arity = this->arity] __device__(
             tuple_size_t i) -> tuple_type { return raw_ptr + i * arity; });
+    tuples = tuples_vec.data().get();
     // TODO: use thrust tabulate to init tuples instead of transform
     this->tuple_counts = data_row_size;
 }

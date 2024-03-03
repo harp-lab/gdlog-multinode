@@ -187,7 +187,9 @@ void LIE::fixpoint_loop() {
                 rel->delta->index_map = nullptr;
             }
             if (rel->delta->tuples != nullptr) {
-                checkCuda(cudaFree(rel->delta->tuples));
+                // checkCuda(cudaFree(rel->delta->tuples));
+                rel->delta->tuples_vec.resize(0);
+                rel->delta->tuples_vec.shrink_to_fit();
                 rel->delta->tuples = nullptr;
             }
 
