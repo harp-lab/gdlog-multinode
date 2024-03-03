@@ -12,6 +12,7 @@
 #include <sstream>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
+#include <rmm/exec_policy.hpp>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/merge.h>
 #include <thrust/sort.h>
@@ -160,7 +161,7 @@ void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     // }
     timer.start_timer();
     tuple_type *end_tuple_full_buf = thrust::merge(
-        thrust::device, full->tuples, full->tuples + full->tuple_counts,
+        rmm::exec_policy(), full->tuples, full->tuples + full->tuple_counts,
         delta->tuples, delta->tuples + delta->tuple_counts, tuple_full_buf,
         tuple_indexed_less(delta->index_column_size, delta->arity));
     timer.stop_timer();
@@ -269,7 +270,7 @@ void repartition_relation_index(GHashRelContainer *target, int arity,
     target->reload(data, data_row_size);
 
     timer.start_timer();
-    thrust::sort(thrust::device, target->tuples, target->tuples + data_row_size,
+    thrust::sort(rmm::exec_policy(), target->tuples, target->tuples + data_row_size,
                  tuple_indexed_less(index_column_size, arity));
     // print_tuple_rows(target, "after sort");
     timer.stop_timer();
@@ -348,14 +349,14 @@ void load_relation(Relation *target, std::string name, int arity,
 }
 
 void GHashRelContainer::sort() {
-    thrust::sort(thrust::device, this->tuples,
+    thrust::sort(rmm::exec_policy(), this->tuples,
                  this->tuples + this->tuple_counts,
                  tuple_indexed_less(this->index_column_size, arity));
 }
 
 void GHashRelContainer::dedup() {
     tuple_type *new_end =
-        thrust::unique(thrust::device, this->tuples,
+        thrust::unique(rmm::exec_policy(), this->tuples,
                        this->tuples + this->tuple_counts, t_equal(this->arity));
     this->tuple_counts = new_end - this->tuples;
 }
@@ -372,6 +373,7 @@ void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
     // }
 
     tuples_vec.resize(data_row_size);
+    tuples_vec.shrink_to_fit();
     thrust::transform(
         thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
         thrust::make_counting_iterator<tuple_size_t>(data_row_size),

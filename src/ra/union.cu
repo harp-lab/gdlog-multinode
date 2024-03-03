@@ -5,6 +5,7 @@
 
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
+#include <rmm/exec_policy.hpp>
 #include <thrust/merge.h>
 #include <thrust/for_each.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -24,7 +25,7 @@ void RelationalUnion::operator()() {
     thrust::device_vector<tuple_type> merged_tuple(unioned_size);
     merged_tuple.shrink_to_fit();
     thrust::merge(
-        thrust::device, src->tuples, src->tuples + src->tuple_counts,
+        rmm::exec_policy(), src->tuples, src->tuples + src->tuple_counts,
         dest->tuples, dest->tuples + dest->tuple_counts, merged_tuple.begin(),
         tuple_indexed_less(dest->index_column_size, dest->arity));
 

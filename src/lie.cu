@@ -7,6 +7,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/merge.h>
 #include <thrust/set_operations.h>
+#include <rmm/exec_policy.hpp>
 
 #include <variant>
 
@@ -215,7 +216,7 @@ void LIE::fixpoint_loop() {
                                      deduplicated_newt_tuples_mem_size));
                 //////
                 tuple_type *deuplicated_end = thrust::set_difference(
-                    thrust::device, rel->newt->tuples,
+                    rmm::exec_policy(), rel->newt->tuples,
                     rel->newt->tuples + rel->newt->tuple_counts,
                     rel->full->tuples, rel->full->tuples + rel->full->tuple_counts,
                     deduplicated_newt_tuples,
@@ -256,7 +257,7 @@ void LIE::fixpoint_loop() {
             // checkCuda(
             //     cudaMemset(deduplicated_raw, 0, dedeuplicated_raw_mem_size));
             thrust::for_each(
-                thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
+                rmm::exec_policy(), thrust::make_counting_iterator<tuple_size_t>(0),
                 thrust::make_counting_iterator<tuple_size_t>(deduplicate_size),
                 [gh_tps = deduplicated_newt_tuples, arity = rel->newt->arity,
                  new_data = deduplicated_raw] __device__(tuple_size_t i) {

@@ -13,6 +13,7 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
+#include <rmm/exec_policy.hpp>
 
 void Communicator::init(int argc, char **argv) {
     // Initialize the MPI environment
@@ -44,7 +45,7 @@ void Communicator::distribute(GHashRelContainer *container) {
         });
 
     // stable sort the tuples based on the rank
-    thrust::stable_sort_by_key(thrust::device, tuple_rank_mapping.begin(),
+    thrust::stable_sort_by_key(rmm::exec_policy(), tuple_rank_mapping.begin(),
                                tuple_rank_mapping.end(), container->tuples);
     // tuple size need to send to each rank
     thrust::device_vector<int> rank_tuple_counts(total_rank);

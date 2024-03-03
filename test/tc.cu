@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     grid_size = 32 * number_of_sm;
     std::locale loc("");
     rmm::mr::cuda_memory_resource cuda_mr{};
-    rmm::mr::pool_memory_resource<rmm::mr::cuda_memory_resource> mr{&cuda_mr};
+    rmm::mr::pool_memory_resource<rmm::mr::cuda_memory_resource> mr{&cuda_mr, 4 * 256 * 1024 };
     // rmm::mr::managed_memory_resource mr;
     // rmm::mr::arena_memory_resource<rmm::mr::device_memory_resource> mr{&cuda_mr};
 

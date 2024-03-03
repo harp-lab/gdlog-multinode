@@ -5,6 +5,7 @@
 #include <thrust/scan.h>
 #include <thrust/unique.h>
 #include <vector>
+#include <rmm/exec_policy.hpp>
 
 #include "../../include/exception.cuh"
 #include "../../include/print.cuh"
@@ -231,7 +232,7 @@ void RelationalJoin::operator()() {
             reduce_size = outer->tuple_counts - i;
         }
         tuple_size_t reduce_v =
-            thrust::reduce(thrust::device, result_counts_array + i,
+            thrust::reduce(rmm::exec_policy(), result_counts_array + i,
                            result_counts_array + i + reduce_size, 0);
         total_result_rows += reduce_v;
         // checkCuda(cudaDeviceSynchronize());
@@ -243,7 +244,7 @@ void RelationalJoin::operator()() {
     checkCuda(cudaMemcpy(result_counts_offset, result_counts_array,
                          outer->tuple_counts * sizeof(tuple_size_t),
                          cudaMemcpyDeviceToDevice));
-    thrust::exclusive_scan(thrust::device, result_counts_offset,
+    thrust::exclusive_scan(rmm::exec_policy(), result_counts_offset,
                            result_counts_offset + outer->tuple_counts,
                            result_counts_offset);
 
