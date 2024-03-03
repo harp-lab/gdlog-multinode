@@ -90,7 +90,6 @@ __global__ void calculate_index_hash(GHashRelContainer *target,
 
 // template <typename tp_gen_t>
 
-
 __global__ void get_copy_result(tuple_type *src_tuples,
                                 column_type *dest_raw_data, int output_arity,
                                 tuple_size_t tuple_counts,
@@ -479,13 +478,13 @@ void GHashRelContainer::fit() {
         return;
     }
     column_type *new_data;
-    checkCuda(cudaMalloc((void **)&new_data,
-                         this->arity * this->tuple_counts * sizeof(column_type)));
+    checkCuda(cudaMalloc((void **)&new_data, this->arity * this->tuple_counts *
+                                                 sizeof(column_type)));
     thrust::for_each(
         thrust::device, thrust::make_counting_iterator<tuple_size_t>(0),
         thrust::make_counting_iterator<tuple_size_t>(this->tuple_counts),
-        [gh_tps = this->tuples, arity = this->arity, new_data] __device__(
-            tuple_size_t i) {
+        [gh_tps = this->tuples, arity = this->arity,
+         new_data] __device__(tuple_size_t i) {
             for (int j = 0; j < arity; j++) {
                 new_data[i * arity + j] = gh_tps[i][j];
             }
@@ -527,6 +526,24 @@ void Relation::defragement(RelationVersion ver, int grid_size, int block_size) {
     }
 }
 
+bool is_number(const std::string &s) {
+    for (char const &c : s) {
+        if (std::isdigit(c) == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" \t\n");
+    if (std::string::npos == first) {
+        return str;
+    }
+    size_t last = str.find_last_not_of(" \t\f\v\n\r");
+    return str.substr(first, (last - first + 1));
+}
+
 void file_to_buffer(std::string file_path,
                     thrust::host_vector<column_type> &buffer,
                     std::map<column_type, std::string> &string_map) {
@@ -541,7 +558,8 @@ void file_to_buffer(std::string file_path,
         }
         while (std::getline(iss, token, '\t')) {
             // if token is number (including hex start with 0x)
-            if (token.find_first_not_of("0123456789") == std::string::npos) {
+            auto trimed_token = trim(token);
+            if (is_number(trimed_token)) {
                 buffer.push_back(std::stoull(token));
             } else if (token.find("0x") == 0) {
                 buffer.push_back(std::stoull(token, 0, 16));

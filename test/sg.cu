@@ -13,62 +13,17 @@
 #include "../include/print.cuh"
 #include "../include/timer.cuh"
 
-//////////////////////////////////////////////////////
-
-long int get_row_size(const char *data_path) {
-    std::ifstream f;
-    f.open(data_path);
-    char c;
-    long i = 0;
-    while (f.get(c))
-        if (c == '\n')
-            ++i;
-    f.close();
-    return i;
-}
-
-enum ColumnT { U64, U32 };
-
-column_type *get_relation_from_file(const char *file_path, int total_rows,
-                                    int total_columns, char separator,
-                                    ColumnT ct) {
-    column_type *data =
-        (column_type *)malloc(total_rows * total_columns * sizeof(column_type));
-    FILE *data_file = fopen(file_path, "r");
-    for (int i = 0; i < total_rows; i++) {
-        for (int j = 0; j < total_columns; j++) {
-            if (j != (total_columns - 1)) {
-                if (ct == U64) {
-                    fscanf(data_file, "%lld%c", &data[(i * total_columns) + j],
-                           &separator);
-                } else {
-                    fscanf(data_file, "%ld%c", &data[(i * total_columns) + j],
-                           &separator);
-                }
-            } else {
-                if (ct == U64) {
-                    fscanf(data_file, "%lld", &data[(i * total_columns) + j]);
-                } else {
-                    fscanf(data_file, "%ld", &data[(i * total_columns) + j]);
-                }
-            }
-        }
-    }
-    return data;
-}
-
-//////////////////////////////////////////////////////////////////
-
 void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     KernelTimer timer;
     Communicator comm;
     comm.init(argc, argv);
     auto dataset_path = argv[1];
     // load the raw graph
-    tuple_size_t graph_edge_counts = get_row_size(dataset_path);
-    // u64 graph_edge_counts = 2100;
-    column_type *raw_graph_data =
-        get_relation_from_file(dataset_path, graph_edge_counts, 2, '\t', U32);
+    thrust::host_vector<column_type> raw_graph_data_vec;
+    std::map<column_type, std::string> string_map;
+    file_to_buffer(dataset_path, raw_graph_data_vec, string_map);
+    tuple_size_t graph_edge_counts = raw_graph_data_vec.size() / 2;
+    column_type *raw_graph_data = raw_graph_data_vec.data();
     column_type *raw_reverse_graph_data =
         (column_type *)malloc(graph_edge_counts * 2 * sizeof(column_type));
     for (tuple_size_t i = 0; i < graph_edge_counts; i++) {
