@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <thrust/host_vector.h>
+#include <rmm/device_vector.hpp>
 
 #ifndef RADIX_SORT_THRESHOLD
 #define RADIX_SORT_THRESHOLD 0
@@ -59,6 +60,8 @@ struct GHashRelContainer {
 
     // the pointer to flatten tuple, all tuple pointer here need to be sorted
     tuple_type *tuples = nullptr;
+    rmm::device_vector<tuple_type> tuples_vec;
+
     // flatten tuple data
     column_type *data_raw = nullptr;
     // number of tuples
@@ -192,7 +195,8 @@ struct Relation {
     GHashRelContainer *newt;
     GHashRelContainer *full;
 
-    tuple_type *tuple_merge_buffer;
+    // tuple_type *tuple_merge_buffer;
+    rmm::device_vector<tuple_type> tuple_merge_buffer;
     tuple_size_t tuple_merge_buffer_size = 0;
     bool pre_allocated_merge_buffer_flag = true;
     bool fully_disable_merge_buffer_flag = true;

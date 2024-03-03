@@ -14,6 +14,7 @@ using column_type = uint64_t;
 #endif
 using tuple_type = column_type *;
 using tuple_size_t = unsigned long long;
+using tuple_permutation_t = int;
 
 #define EMPTY_HASH_ENTRY UINT64_MAX
 #define MAX_ARITY 10
@@ -221,17 +222,6 @@ struct tuple_weak_less {
     };
 };
 
-// cuda kernel extract the k th column from tuples
-__global__ void extract_column(tuple_type *tuples, tuple_size_t rows,
-                               tuple_size_t k, column_type *column);
-
 __global__ void compute_hash(tuple_type *tuples, tuple_size_t rows,
                              tuple_size_t index_column_size,
                              column_type *hashes);
-
-void sort_tuples(tuple_type *tuples, tuple_size_t rows, tuple_size_t arity,
-                 tuple_size_t index_column_size, int grid_size, int block_size);
-
-void sort_tuple_by_hash(tuple_type *tuples, tuple_size_t rows,
-                        tuple_size_t arity, tuple_size_t index_column_size,
-                        int grid_size, int block_size);

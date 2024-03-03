@@ -1,11 +1,11 @@
 
-#include "../../include/relational_algebra.cuh"
 #include "../../include/exception.cuh"
+#include "../../include/relational_algebra.cuh"
 
+#include <rmm/device_vector.hpp>
 #include <thrust/copy.h>
 #include <thrust/count.h>
 #include <thrust/execution_policy.h>
-// #include <rmm/device_vector.h>
 
 void RelationalFilter::operator()() {
     GHashRelContainer *src;
@@ -16,7 +16,7 @@ void RelationalFilter::operator()() {
     } else {
         src = src_rel->newt;
     }
-    
+
     std::cout << "Flitering " << src_rel->name << std::endl;
 
     if (src->tuple_counts == 0) {
@@ -24,18 +24,18 @@ void RelationalFilter::operator()() {
     }
 
     // count filtered
-    int filtered_size = thrust::count_if(
-        thrust::device, src->tuples, src->tuples + src->tuple_counts, tuple_pred);
+    int filtered_size =
+        thrust::count_if(thrust::device, src->tuples_vec.begin(),
+                         src->tuples_vec.end(), tuple_pred);
 
     // Allocate memory for filtered tuples
-    tuple_type *filtered_tuples;
-    checkCuda(cudaMalloc(&filtered_tuples, filtered_size * sizeof(tuple_type)));
-    thrust::copy_if(
-        thrust::device, src->tuples, src->tuples + src->tuple_counts,
-        filtered_tuples, tuple_pred);
-    
+    rmm::device_vector<tuple_type> filtered_tuples_vec(filtered_size);
+    thrust::copy_if(thrust::device, src->tuples_vec.begin(),
+                    src->tuples_vec.end(), filtered_tuples_vec.begin(),
+                    tuple_pred);
+
     // free old tuples and set new ones
-    checkCuda(cudaFree(src->tuples));
-    src->tuples = filtered_tuples;
+    src->tuples_vec.swap(filtered_tuples_vec);
+    src->tuples = src->tuples_vec.data().get();
     src->tuple_counts = filtered_size;
 }
