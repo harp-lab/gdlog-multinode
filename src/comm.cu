@@ -2,6 +2,7 @@
 #include "../include/comm.h"
 #include "../include/exception.cuh"
 #include "../include/print.cuh"
+#include "../include/timer.cuh"
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
 #include <thrust/host_vector.h>
@@ -14,6 +15,7 @@
 #include <thrust/transform.h>
 #include <thrust/unique.h>
 #include <rmm/exec_policy.hpp>
+#include <rmm/device_vector.hpp>
 
 void Communicator::init(int argc, char **argv) {
     // Initialize the MPI environment
@@ -33,9 +35,12 @@ void Communicator::distribute(GHashRelContainer *container) {
     }
     auto arity = container->arity;
 
-    tuple_rank_mapping.clear();
+    KernelTimer timer;
+
+    // tuple_rank_mapping.clear();
     tuple_rank_mapping.resize(container->tuple_counts);
 
+    timer.start_timer();
     thrust::transform(
         thrust::device, container->tuples,
         container->tuples + container->tuple_counts, tuple_rank_mapping.begin(),
@@ -43,19 +48,27 @@ void Communicator::distribute(GHashRelContainer *container) {
             const tuple_type &tuple) -> uint8_t {
             return (uint8_t)(prefix_hash(tuple, jc) % total_rank);
         });
+    timer.stop_timer();
+    time_detail[0] += timer.get_spent_time();
 
     // stable sort the tuples based on the rank
+    timer.start_timer();
     thrust::stable_sort_by_key(rmm::exec_policy(), tuple_rank_mapping.begin(),
                                tuple_rank_mapping.end(), container->tuples);
+    timer.stop_timer();
+    time_detail[1] += timer.get_spent_time();
     // tuple size need to send to each rank
-    thrust::device_vector<int> rank_tuple_counts(total_rank);
-    thrust::device_vector<uint8_t> reduced_rank(total_rank);
+    rmm::device_vector<int> rank_tuple_counts(total_rank);
+    rmm::device_vector<uint8_t> reduced_rank(total_rank);
 
+    timer.start_timer();
     auto reduced_end = thrust::reduce_by_key(
         thrust::device, tuple_rank_mapping.begin(), tuple_rank_mapping.end(),
         thrust::constant_iterator<int>(1), reduced_rank.begin(),
         rank_tuple_counts.begin());
     auto rank_tuple_counts_size = reduced_end.first - reduced_rank.begin();
+    timer.stop_timer();
+    time_detail[2] += timer.get_spent_time();
     rank_tuple_counts.resize(rank_tuple_counts_size);
     reduced_rank.resize(rank_tuple_counts_size);
     // create a host copy of the rank tuple counts and reduced rank
@@ -68,6 +81,7 @@ void Communicator::distribute(GHashRelContainer *container) {
     }
     thrust::host_vector<int> h_rank_tuple_recv_counts(total_rank);
 
+    timer.start_timer();
     int total_send = thrust::reduce(h_rank_tuple_send_counts.begin(),
                                     h_rank_tuple_send_counts.end());
 
@@ -77,9 +91,13 @@ void Communicator::distribute(GHashRelContainer *container) {
 
     int total_recv = thrust::reduce(h_rank_tuple_recv_counts.begin(),
                                     h_rank_tuple_recv_counts.end());
+    timer.stop_timer();
+    time_detail[3] += timer.get_spent_time();
 
+
+    timer.start_timer();
     // allocate memory for the send and receive buffers
-    thrust::device_vector<column_type> d_send_buffer(total_send * arity);
+    rmm::device_vector<column_type> d_send_buffer(total_send * arity);
 
     // copy tuples to the send buffer
     thrust::for_each(
@@ -98,6 +116,8 @@ void Communicator::distribute(GHashRelContainer *container) {
                 dest_tp[i] = tuple[i];
             }
         });
+    timer.stop_timer();
+    time_detail[4] += timer.get_spent_time();
 
     // print send buffer on each rank after copy
 
@@ -128,8 +148,9 @@ void Communicator::distribute(GHashRelContainer *container) {
             recv_displacements[i - 1] + h_rank_tuple_recv_counts[i - 1];
     }
 
-    // thrust::device_vector<tuple_type> d_recv_buffer(total_recv * arity);
+    // rmm::device_vector<tuple_type> d_recv_buffer(total_recv * arity);
     // use cuda malloc to allocate the memory for the receive buffer
+    timer.start_timer();
     column_type *recv_buffer;
     checkCuda(
         cudaMalloc(&recv_buffer, total_recv * arity * sizeof(column_type)));
@@ -157,11 +178,20 @@ void Communicator::distribute(GHashRelContainer *container) {
                    total_recv * arity * sizeof(column_type),
                    cudaMemcpyHostToDevice);
     }
+    timer.stop_timer();
+    time_detail[5] += timer.get_spent_time();
 
     // container
     container->reload(recv_buffer, total_recv);
+
+    timer.start_timer();
     container->sort();
+    timer.stop_timer();
+    time_detail[6] += timer.get_spent_time();
+    timer.start_timer();
     container->dedup();
+    timer.stop_timer();
+    time_detail[7] += timer.get_spent_time();
 }
 
 void Communicator::broadcast(GHashRelContainer *container) {
@@ -202,7 +232,7 @@ void Communicator::broadcast(GHashRelContainer *container) {
     checkCuda(cudaMalloc(&recv_buffer, total_recv * sizeof(column_type)));
 
     // prepare the device send buffer
-    thrust::device_vector<column_type> d_send_buffer(total_send);
+    rmm::device_vector<column_type> d_send_buffer(total_send);
     for (int i = 0; i < total_rank; i++) {
         cudaMemcpy(d_send_buffer.data().get() +
                        i * container->data_raw_row_size * container->arity,

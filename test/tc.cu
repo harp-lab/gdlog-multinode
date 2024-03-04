@@ -31,7 +31,8 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     file_to_buffer(dataset_path, raw_graph_data_vec, string_map);
     tuple_size_t graph_edge_counts = raw_graph_data_vec.size() / 2;
     column_type *raw_graph_data = raw_graph_data_vec.data();
-    // std::cout << "reversing graph ... " << graph_edge_counts * 2 * sizeof(column_type) << std::endl;
+    // std::cout << "reversing graph ... " << graph_edge_counts * 2 *
+    // sizeof(column_type) << std::endl;
     column_type *raw_reverse_graph_data =
         (column_type *)malloc(graph_edge_counts * 2 * sizeof(column_type));
 
@@ -70,8 +71,8 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     std::vector<int> join_order = {1, 3};
     TupleGenerator tp1_hook(2, 2, join_order);
     tc_scc.add_ra(RelationalJoin(edge_2__2_1, FULL, path_2__1_2, DELTA,
-                                 path_2__1_2, tp1_hook,
-                                 grid_size, block_size, join_detail));
+                                 path_2__1_2, tp1_hook, grid_size, block_size,
+                                 join_detail));
 
     tc_scc.fixpoint_loop();
     timer.stop_timer();
@@ -90,6 +91,24 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
         std::cout << "merge time:         " << join_detail[6] << std::endl;
         std::cout << "unique time:        " << join_detail[4] + join_detail[7]
                   << std::endl;
+        std::cout << "comm detail: " << std::endl;
+
+        std::cout << "send buffer create time "
+                  << " : " << comm.time_detail[0] << std::endl;
+        std::cout << "send buffer sort time "
+                  << " : " << comm.time_detail[1] << std::endl;
+        std::cout << "send buffer reduce time "
+                  << " : " << comm.time_detail[2] << std::endl;
+        std::cout << "send size comm time : " << comm.time_detail[3]
+                  << std::endl;
+        std::cout << "send data copy time : " << comm.time_detail[4]
+                  << std::endl;
+        std::cout << "recv data comm/buffer time "
+                  << " : " << comm.time_detail[5] << std::endl;
+        std::cout << "recv data sort time "
+                  << " : " << comm.time_detail[6] << std::endl;
+        std::cout << "recv data dedup time "
+                  << " : " << comm.time_detail[7] << std::endl;
     }
 }
 
@@ -107,9 +126,11 @@ int main(int argc, char *argv[]) {
     grid_size = 32 * number_of_sm;
     std::locale loc("");
     rmm::mr::cuda_memory_resource cuda_mr{};
-    rmm::mr::pool_memory_resource<rmm::mr::cuda_memory_resource> mr{&cuda_mr, 4 * 256 * 1024 };
+    rmm::mr::pool_memory_resource<rmm::mr::cuda_memory_resource> mr{
+        &cuda_mr, 4 * 256 * 1024};
     // rmm::mr::managed_memory_resource mr;
-    // rmm::mr::arena_memory_resource<rmm::mr::device_memory_resource> mr{&cuda_mr};
+    // rmm::mr::arena_memory_resource<rmm::mr::device_memory_resource>
+    // mr{&cuda_mr};
 
     rmm::mr::set_current_device_resource(&mr);
     analysis_bench(argc, argv, block_size, grid_size);
