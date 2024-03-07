@@ -40,7 +40,7 @@ void RelationalJoin::operator()() {
         return;
     }
     if (inner->tuples == nullptr || inner->tuple_counts == 0) {
-        outer->tuple_counts = 0;
+        inner->tuple_counts = 0;
         return;
     }
 
