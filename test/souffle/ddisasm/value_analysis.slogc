@@ -1,0 +1,2612 @@
+parsing + compilation took 1188 ms.
+ir-small: 
+RULES:
+------------------------------------------------------
+/slog/out/value_analysis.slog 1:
+[((rel-arity block_next 3 db) Block EA Dest) <--
+  (= $_59 ((rel-arity block_last_instruction 2 db) Block EA))
+  (= $_60 ((rel-arity jump_table_target 2 db) EA Dest))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 2:
+[((rel-arity $rule2-inter-body 2 db) EA_jmp Reg) <--
+  (= $_135 ((rel-arity compare_and_jump_immediate 5 db) $_137 EA_jmp $const34 Reg $_138))
+  (= $_1461 ((rel-arity = 2 comp) $const34 E))]
+[((rel-arity cmp_defines 3 db) EA_jmp EA_dst Reg) <--
+  (= $_136 ((rel-arity direct_jump 2 db) EA_jmp EA_dst))
+  (= $_1597 ((rel-arity $rule2-inter-body 2 db) EA_jmp Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 3:
+[((rel-arity cmp_defines 3 db) EA_jmp EA_dst Reg) <--
+  (= $_1622 ((rel-arity $rule3-inter-body 2 db) EA_jmp Reg))
+  (= $_241 ((rel-arity may_fallthrough 2 db) EA_jmp EA_dst))]
+[((rel-arity $rule3-inter-body 2 db) EA_jmp Reg) <--
+  (= $_240 ((rel-arity compare_and_jump_immediate 5 db) $_242 EA_jmp $const Reg $_243))
+  (= $_1384 ((rel-arity = 2 comp) $const NE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 4:
+[((rel-arity $bir-sub85 3 db) EA_cmp EA_jmp CC) <--
+  (= $_328 ((rel-arity arch_cmp_operation 1 db) Operation))
+  (= $_339 ((rel-arity $bir-sub84 4 db) EA_cmp Operation EA_jmp CC))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 4:
+[((rel-arity $bir-sub84 4 db) EA_cmp Operation EA_jmp CC) <--
+  (= $_326 ((rel-arity instruction 10 db) EA_cmp $_331 $_332 Operation $_333 $_334 $_335 $_336 $_337 $_338))
+  (= $_327 ((rel-arity flags_and_jump_pair 3 db) EA_cmp EA_jmp CC))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 4:
+[((rel-arity compare_and_jump_immediate 5 db) EA_cmp EA_jmp CC Reg Immediate) <--
+  (= $_340 ((rel-arity $bir-sub85 3 db) EA_cmp EA_jmp CC))
+  (= $_329 ((rel-arity cmp_immediate_to_reg 4 db) EA_cmp Reg $_330 Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 5:
+[((rel-arity $bir-sub107 5 db) EA_cmp EA_jmp CC IndirectOp ImmOp) <--
+  (= $_412 ((rel-arity instruction_get_op 3 db) EA_cmp $_415 ImmOp))
+  (= $_434 ((rel-arity $bir-sub106 4 db) EA_cmp EA_jmp CC IndirectOp))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 5:
+[((rel-arity $bir-sub105 4 db) EA_cmp EA_jmp CC IndirectOp) <--
+  (= $_410 ((rel-arity instruction_get_op 3 db) EA_cmp $_422 IndirectOp))
+  (= $_432 ((rel-arity $bir-sub104 3 db) EA_cmp EA_jmp CC))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 5:
+[((rel-arity compare_and_jump_indirect 5 db) EA_cmp EA_jmp CC IndirectOp Immediate) <--
+  (= $_435 ((rel-arity $bir-sub107 5 db) EA_cmp EA_jmp CC IndirectOp ImmOp))
+  (= $_413 ((rel-arity op_immediate 3 db) ImmOp Immediate $_414))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 5:
+[((rel-arity $bir-sub104 3 db) EA_cmp EA_jmp CC) <--
+  (= $_409 ((rel-arity arch_cmp_operation 1 db) CmpOperation))
+  (= $_431 ((rel-arity $bir-sub103 4 db) EA_cmp CmpOperation EA_jmp CC))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 5:
+[((rel-arity $bir-sub106 4 db) EA_cmp EA_jmp CC IndirectOp) <--
+  (= $_411 ((rel-arity op_indirect 7 db) IndirectOp $_416 $_417 $_418 $_419 $_420 $_421))
+  (= $_433 ((rel-arity $bir-sub105 4 db) EA_cmp EA_jmp CC IndirectOp))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 5:
+[((rel-arity $bir-sub103 4 db) EA_cmp CmpOperation EA_jmp CC) <--
+  (= $_407 ((rel-arity instruction 10 db) EA_cmp $_423 $_424 CmpOperation $_425 $_426 $_427 $_428 $_429 $_430))
+  (= $_408 ((rel-arity flags_and_jump_pair 3 db) EA_cmp EA_jmp CC))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 6:
+[((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp CC Reg1 Reg2) <--
+  (= $_536 ((rel-arity cmp_reg_to_reg 3 db) EA_cmp Reg1 Reg2))
+  (= $_535 ((rel-arity flags_and_jump_pair 3 db) EA_cmp EA_jmp CC))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 7:
+[((rel-arity const_value_reg_used 5 db) UsedEA EADef EARegDef Reg Value) <--
+  (= $_1472 ((rel-arity = 2 comp) $const39 NONE))
+  (= $_1538 ((rel-arity $rule7-inter-body1 6 db) $const39 Value UsedEA EARegDef EADef Reg))]
+[((rel-arity $rule7-inter-body 7 db) $const39 Value UsedEA EARegDef EADef $=0 Reg) <--
+  (= $_641 ((rel-arity value_reg 7 db) EARegDef Reg EADef $const39 $=0 Value $_643))
+  (= $_642 ((rel-arity reg_def_use_def_used 4 db) EARegDef Reg UsedEA $_644))]
+[((rel-arity $rule7-inter-body1 6 db) $const39 Value UsedEA EARegDef EADef Reg) <--
+  (= $_1535 ((rel-arity $rule7-inter-body 7 db) $const39 Value UsedEA EARegDef EADef $=0 Reg))
+  (= $_1473 ((rel-arity = 2 comp) $=0 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 8:
+[((rel-arity def_used_for_address 3 db) EA_def Reg Type) <--
+  (= $_750 ((rel-arity reg_def_use_def_used 4 db) EA_def Reg EA $_752))
+  (= $_751 ((rel-arity reg_used_for 3 db) EA Reg Type))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 9:
+[((rel-arity def_used_for_address 3 db) EA_def Reg Type) <--
+  (= $_868 ((rel-arity def_used_for_address 3 db) EA_used $_870 Type))
+  (= $_869 ((rel-arity reg_def_use_def_used 4 db) EA_def Reg EA_used $_871))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 10:
+[((rel-arity $bir-sub255 4 db) EALoad RegBaseLoad StackPosLoad Type) <--
+  (= $_958 ((rel-arity $bir-sub254 5 db) EALoad RegBaseLoad $const4 StackPosLoad Type))
+  (= $_1389 ((rel-arity = 2 comp) $const4 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 10:
+[((rel-arity $rule10-inter-body 5 db) EAStore Reg1 inlined_IndexReg_548 Type $const15) <--
+  (= $_948 ((rel-arity arch_memory_access 9 db) $const15 EAStore $_951 $_952 Reg1 RegBaseStore inlined_IndexReg_548 $_953 StackPosStore))
+  (= $_960 ((rel-arity $bir-sub256 4 db) Type EAStore RegBaseStore StackPosStore))]
+[((rel-arity $bir-sub257 4 db) Type EAStore Reg1 inlined_IndexReg_548) <--
+  (= $_1410 ((rel-arity = 2 comp) $const15 STORE))
+  (= $_1585 ((rel-arity $rule10-inter-body 5 db) EAStore Reg1 inlined_IndexReg_548 Type $const15))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 10:
+[((rel-arity def_used_for_address 3 db) EA_def Reg1 Type) <--
+  (= $_962 ((rel-arity $bir-sub258 3 db) Type EAStore Reg1))
+  (= $_949 ((rel-arity reg_def_use_def_used 4 db) EA_def Reg1 EAStore $_950))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 10:
+[((rel-arity $rule10-inter-body1 6 db) RegBaseLoad inlined_IndexReg_113 StackPosLoad EALoad Type $const19) <--
+  (= $_946 ((rel-arity def_used_for_address 3 db) EALoad Reg2 Type))
+  (= $_945 ((rel-arity arch_memory_access 9 db) $const19 EALoad $_955 $_956 Reg2 RegBaseLoad inlined_IndexReg_113 $_957 StackPosLoad))]
+[((rel-arity $bir-sub254 5 db) EALoad RegBaseLoad inlined_IndexReg_113 StackPosLoad Type) <--
+  (= $_1625 ((rel-arity $rule10-inter-body1 6 db) RegBaseLoad inlined_IndexReg_113 StackPosLoad EALoad Type $const19))
+  (= $_1421 ((rel-arity = 2 comp) $const19 LOAD))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 10:
+[((rel-arity $bir-sub256 4 db) Type EAStore RegBaseStore StackPosStore) <--
+  (= $_947 ((rel-arity stack_def_use_def_used 7 db) EAStore RegBaseStore StackPosStore EALoad RegBaseLoad StackPosLoad $_954))
+  (= $_959 ((rel-arity $bir-sub255 4 db) EALoad RegBaseLoad StackPosLoad Type))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 10:
+[((rel-arity $bir-sub258 3 db) Type EAStore Reg1) <--
+  (= $_1462 ((rel-arity = 2 comp) $const35 NONE))
+  (= $_961 ((rel-arity $bir-sub257 4 db) Type EAStore Reg1 $const35))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 11:
+[((rel-arity $bir-sub280 2 db) EA_flags EA_jmp) <--
+  (= $_1065 ((rel-arity $bir-sub279 2 db) EA_flags EA_jmp))
+  (= $_1062 ((rel-arity arch_jump 1 db) EA_jmp))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 11:
+[((rel-arity $bir-sub279 2 db) EA_flags EA_jmp) <--
+  (= $_1061 ((rel-arity arch_condition_flags_reg 1 db) Reg))
+  (= $_1060 ((rel-arity reg_def_use_def_used 4 db) EA_flags Reg EA_jmp $_1064))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 11:
+[((rel-arity flags_and_jump_pair 3 db) EA_flags EA_jmp CC) <--
+  (= $_1063 ((rel-arity arch_conditional 2 db) EA_jmp CC))
+  (= $_1066 ((rel-arity $bir-sub280 2 db) EA_flags EA_jmp))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $bir-sub290 6 db) EA Size TableStartAddr Reg1 EA_add Reg2) <--
+  (= $_1128 ((rel-arity $bir-sub289 7 db) EA Size TableStartAddr Reg1 EA_add EA2 Reg2))
+  (= $_1109 ((rel-arity take_address 2 db) EA2 TableStartAddr))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $bir-sub286 4 db) EA Size TableStartAddr Type) <--
+  (= $_1106 ((rel-arity def_used_for_address 3 db) EA $_1117 Type))
+  (= $_1124 ((rel-arity $bir-sub285 3 db) EA Size TableStartAddr))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $rule12-inter-body3 4 db) TableStartAddr Size $=0 EA) <--
+  (= $_1490 ((rel-arity = 2 comp) $=1 1))
+  (= $_1662 ((rel-arity $rule12-inter-body2 5 db) TableStartAddr Size $=0 $=1 EA))]
+[((rel-arity $bir-sub291 3 db) EA Size TableStartAddr) <--
+  (= $_1665 ((rel-arity $rule12-inter-body3 4 db) TableStartAddr Size $=0 EA))
+  (= $_1491 ((rel-arity = 2 comp) $=0 0))]
+[((rel-arity $rule12-inter-body2 5 db) TableStartAddr Size $=0 $=1 EA) <--
+  (= $_1110 ((rel-arity arch_reg_reg_arithmetic_operation 6 db) EA_add $_1114 Reg2 Reg1 $=1 $=0))
+  (= $_1129 ((rel-arity $bir-sub290 6 db) EA Size TableStartAddr Reg1 EA_add Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $bir-sub287 3 db) EA Size TableStartAddr) <--
+  (= $_1460 ((rel-arity = 2 comp) $const33 Jump))
+  (= $_1125 ((rel-arity $bir-sub286 4 db) EA Size TableStartAddr $const33))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $rule12-inter-body 2 db) TableStartAddr EA) <--
+  (= $_1383 ((rel-arity = 2 comp) $=1 1))
+  (= $_1105 ((rel-arity pc_relative_operand 3 db) EA $=1 TableStartAddr))]
+[((rel-arity $bir-sub285 3 db) EA Size TableStartAddr) <--
+  (= $_1607 ((rel-arity $rule12-inter-body 2 db) TableStartAddr EA))
+  (= $_1104 ((rel-arity data_access 8 db) EA $_1118 $_1119 $_1120 $_1121 $_1122 $_1123 Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity jump_table_element_access 4 db) EA Size TableStartAddr $const30) <--
+  (= $_1616 ((rel-arity $rule12-inter-body1 3 db) TableStartAddr Size EA))
+  (= $_1456 ((rel-arity = 2 comp) $const30 NONE))]
+[((rel-arity $rule12-inter-body1 3 db) TableStartAddr Size EA) <--
+  (= $_1132 ((rel-arity $bir-sub293 4 db) EA Size TableStartAddr End))
+  (= $_1113 ((rel-arity <= 2 comp) TableStartAddr End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $bir-sub292 5 db) EA Size TableStartAddr Beg End) <--
+  (= $_1130 ((rel-arity $bir-sub291 3 db) EA Size TableStartAddr))
+  (= $_1111 ((rel-arity data_segment 2 db) Beg End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $bir-sub289 7 db) EA Size TableStartAddr Reg1 EA_add EA2 Reg2) <--
+  (= $_1108 ((rel-arity reg_def_use_def_used 4 db) EA2 Reg2 EA_add $_1115))
+  (= $_1127 ((rel-arity $bir-sub288 5 db) EA Size TableStartAddr Reg1 EA_add))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $bir-sub288 5 db) EA Size TableStartAddr Reg1 EA_add) <--
+  (= $_1126 ((rel-arity $bir-sub287 3 db) EA Size TableStartAddr))
+  (= $_1107 ((rel-arity reg_def_use_def_used 4 db) EA Reg1 EA_add $_1116))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 12:
+[((rel-arity $bir-sub293 4 db) EA Size TableStartAddr End) <--
+  (= $_1112 ((rel-arity >= 2 comp) TableStartAddr Beg))
+  (= $_1131 ((rel-arity $bir-sub292 5 db) EA Size TableStartAddr Beg End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub307 4 db) EA Size TableStartAddr End) <--
+  (= $_1190 ((rel-arity $bir-sub306 5 db) EA Size TableStartAddr Beg End))
+  (= $_1171 ((rel-arity >= 2 comp) TableStartAddr Beg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $rule13-inter-body2 3 db) TableStartAddr Size EA) <--
+  (= $_1191 ((rel-arity $bir-sub307 4 db) EA Size TableStartAddr End))
+  (= $_1172 ((rel-arity <= 2 comp) TableStartAddr End))]
+[((rel-arity jump_table_element_access 4 db) EA Size TableStartAddr $const20) <--
+  (= $_1520 ((rel-arity $rule13-inter-body2 3 db) TableStartAddr Size EA))
+  (= $_1422 ((rel-arity = 2 comp) $const20 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub302 5 db) EA Size TableStartAddr Reg1 EA_add) <--
+  (= $_1166 ((rel-arity reg_def_use_def_used 4 db) EA Reg1 EA_add $_1175))
+  (= $_1185 ((rel-arity $bir-sub301 3 db) EA Size TableStartAddr))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub305 3 db) EA Size TableStartAddr) <--
+  (= $_1505 ((rel-arity $rule13-inter-body1 4 db) TableStartAddr Size $=1 EA))
+  (= $_1444 ((rel-arity = 2 comp) $=1 1))]
+[((rel-arity $rule13-inter-body1 4 db) TableStartAddr Size $=1 EA) <--
+  (= $_1445 ((rel-arity = 2 comp) $=0 0))
+  (= $_1502 ((rel-arity $rule13-inter-body 5 db) TableStartAddr Size $=0 $=1 EA))]
+[((rel-arity $rule13-inter-body 5 db) TableStartAddr Size $=0 $=1 EA) <--
+  (= $_1188 ((rel-arity $bir-sub304 6 db) EA Size TableStartAddr Reg1 EA_add Reg2))
+  (= $_1169 ((rel-arity arch_reg_reg_arithmetic_operation 6 db) EA_add $_1173 Reg2 Reg1 $=1 $=0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub301 3 db) EA Size TableStartAddr) <--
+  (= $_1184 ((rel-arity $bir-sub300 4 db) EA Size TableStartAddr $const14))
+  (= $_1409 ((rel-arity = 2 comp) $const14 Call))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub299 3 db) EA Size TableStartAddr) <--
+  (= $_1163 ((rel-arity data_access 8 db) EA $_1177 $_1178 $_1179 $_1180 $_1181 $_1182 Size))
+  (= $_1658 ((rel-arity $rule13-inter-body3 2 db) TableStartAddr EA))]
+[((rel-arity $rule13-inter-body3 2 db) TableStartAddr EA) <--
+  (= $_1459 ((rel-arity = 2 comp) $=1 1))
+  (= $_1164 ((rel-arity pc_relative_operand 3 db) EA $=1 TableStartAddr))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub304 6 db) EA Size TableStartAddr Reg1 EA_add Reg2) <--
+  (= $_1187 ((rel-arity $bir-sub303 7 db) EA Size TableStartAddr Reg1 EA_add EA2 Reg2))
+  (= $_1168 ((rel-arity take_address 2 db) EA2 TableStartAddr))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub306 5 db) EA Size TableStartAddr Beg End) <--
+  (= $_1189 ((rel-arity $bir-sub305 3 db) EA Size TableStartAddr))
+  (= $_1170 ((rel-arity data_segment 2 db) Beg End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub300 4 db) EA Size TableStartAddr Type) <--
+  (= $_1165 ((rel-arity def_used_for_address 3 db) EA $_1176 Type))
+  (= $_1183 ((rel-arity $bir-sub299 3 db) EA Size TableStartAddr))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 13:
+[((rel-arity $bir-sub303 7 db) EA Size TableStartAddr Reg1 EA_add EA2 Reg2) <--
+  (= $_1167 ((rel-arity reg_def_use_def_used 4 db) EA2 Reg2 EA_add $_1174))
+  (= $_1186 ((rel-arity $bir-sub302 5 db) EA Size TableStartAddr Reg1 EA_add))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 14:
+[((rel-arity $bir-sub322 5 db) RegBase EA Size TableStart End) <--
+  (= $_1241 ((rel-arity >= 2 comp) TableStart Beg))
+  (= $_1250 ((rel-arity $bir-sub321 6 db) RegBase EA Size TableStart Beg End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 14:
+[((rel-arity $rule14-inter-body1 6 db) Size RegIndex $=1 $const49 RegBase EA) <--
+  (= $_1236 ((rel-arity =/= 2 comp) RegBase NONE))
+  (= $_1547 ((rel-arity $rule14-inter-body 6 db) Size RegIndex $=1 $const49 RegBase EA))]
+[((rel-arity $rule14-inter-body 6 db) Size RegIndex $=1 $const49 RegBase EA) <--
+  (= $_1237 ((rel-arity data_access 8 db) EA $_1245 $const49 RegBase RegIndex $=1 $=0 Size))
+  (= $_1494 ((rel-arity = 2 comp) $=0 0))]
+[((rel-arity $bir-sub317 4 db) RegBase EA RegIndex Size) <--
+  (= $_1551 ((rel-arity $rule14-inter-body2 5 db) Size RegIndex RegBase $=1 EA))
+  (= $_1493 ((rel-arity = 2 comp) $=1 1))]
+[((rel-arity $rule14-inter-body2 5 db) Size RegIndex RegBase $=1 EA) <--
+  (= $_1492 ((rel-arity = 2 comp) $const49 NONE))
+  (= $_1548 ((rel-arity $rule14-inter-body1 6 db) Size RegIndex $=1 $const49 RegBase EA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 14:
+[((rel-arity $bir-sub318 4 db) RegBase EA RegIndex Size) <--
+  (= $_1238 ((rel-arity =/= 2 comp) RegIndex NONE))
+  (= $_1246 ((rel-arity $bir-sub317 4 db) RegBase EA RegIndex Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 14:
+[((rel-arity $bir-sub319 4 db) RegBase EA RegIndex Size) <--
+  (= $_1247 ((rel-arity $bir-sub318 4 db) RegBase EA RegIndex Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 14:
+[((rel-arity $bir-sub321 6 db) RegBase EA Size TableStart Beg End) <--
+  (= $_1249 ((rel-arity $bir-sub320 4 db) RegBase EA Size TableStart))
+  (= $_1240 ((rel-arity data_segment 2 db) Beg End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 14:
+[((rel-arity jump_table_element_access 4 db) EA Size TableStart RegBase) <--
+  (= $_1251 ((rel-arity $bir-sub322 5 db) RegBase EA Size TableStart End))
+  (= $_1242 ((rel-arity <= 2 comp) TableStart End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 14:
+[((rel-arity $bir-sub320 4 db) RegBase EA Size TableStart) <--
+  (= $_1248 ((rel-arity $bir-sub319 4 db) RegBase EA RegIndex Size))
+  (= $_1239 ((rel-arity const_value_reg_used 5 db) EA $_1243 $_1244 RegIndex TableStart))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub334 6 db) RegBase EA RegIndex _tmp_70 Offset Size) <--
+  (= $_1302 ((rel-arity =/= 2 comp) RegBase NONE))
+  (= $_1673 ((rel-arity $rule15-inter-body 6 db) Size RegIndex RegBase Offset _tmp_70 EA))]
+[((rel-arity $rule15-inter-body 6 db) Size RegIndex RegBase Offset _tmp_70 EA) <--
+  (= $_1478 ((rel-arity = 2 comp) $const43 NONE))
+  (= $_1303 ((rel-arity data_access 8 db) EA $_1312 $const43 RegBase RegIndex _tmp_70 Offset Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity jump_table_element_access 4 db) EA Size _tmp_1 RegIndex) <--
+  (= $_1320 ((rel-arity $bir-sub341 5 db) EA RegIndex Size Size1 _tmp_1))
+  (= $_1452 ((rel-arity = 2 comp) Size Size1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub338 8 db) EA RegIndex _tmp_70 Offset Size Base Beg End) <--
+  (= $_1316 ((rel-arity $bir-sub337 6 db) EA RegIndex _tmp_70 Offset Size Base))
+  (= $_1306 ((rel-arity data_segment 2 db) Beg End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub336 6 db) EA RegIndex _tmp_70 Offset Size RegBase_nn) <--
+  (= $_1314 ((rel-arity $bir-sub335 6 db) EA RegIndex _tmp_70 Offset Size RegBase_nn))
+  (= $_1304 ((rel-arity =/= 2 comp) RegIndex NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub340 6 db) EA RegIndex _tmp_70 Size End _tmp_1) <--
+  (= $_1308 ((rel-arity >= 2 comp) _tmp_1 Beg))
+  (= $_1318 ((rel-arity $bir-sub339 7 db) EA RegIndex _tmp_70 Size Beg End _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub335 6 db) EA RegIndex _tmp_70 Offset Size RegBase_nn) <--
+  (= RegBase_nn ((rel-arity as 2 db) RegBase register))
+  (= $_1313 ((rel-arity $bir-sub334 6 db) RegBase EA RegIndex _tmp_70 Offset Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub339 7 db) EA RegIndex _tmp_70 Size Beg End _tmp_1) <--
+  (= $_1307 ((rel-arity + 3 comp) Base Offset _tmp_1))
+  (= $_1317 ((rel-arity $bir-sub338 8 db) EA RegIndex _tmp_70 Offset Size Base Beg End))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub341 5 db) EA RegIndex _tmp_70 Size _tmp_1) <--
+  (= $_1309 ((rel-arity <= 2 comp) _tmp_1 End))
+  (= $_1319 ((rel-arity $bir-sub340 6 db) EA RegIndex _tmp_70 Size End _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 15:
+[((rel-arity $bir-sub337 6 db) EA RegIndex _tmp_70 Offset Size Base) <--
+  (= $_1315 ((rel-arity $bir-sub336 6 db) EA RegIndex _tmp_70 Offset Size RegBase_nn))
+  (= $_1305 ((rel-arity const_value_reg_used 5 db) EA $_1310 $_1311 RegBase_nn Base))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 16:
+[((rel-arity jump_table_signed 2 db) TableStart Signed) <--
+  (= $_1638 ((rel-arity $rule16-inter-body 4 db) TableStart Size Signed _tmp_71))
+  (= $_3 ((rel-arity * 3 comp) 8 Size _tmp_71))]
+[((rel-arity $rule16-inter-body 4 db) TableStart Size Signed _tmp_71) <--
+  (= $_2 ((rel-arity arch_extend_load 3 db) EA Signed _tmp_71))
+  (= $_1 ((rel-arity jump_table_element_access 4 db) EA Size TableStart $_4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 17:
+[((rel-arity $bir-sub13 4 db) EA_used Reg Size TableStart) <--
+  (= $_62 ((rel-arity value_reg 7 db) EA_used $_66 EA Reg $_67 $_68 $_69))
+  (= $_63 ((rel-arity jump_table_element_access 4 db) EA Size TableStart $_70))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 17:
+[((rel-arity $rule17-inter-body 4 db) TableStart Size Signed _tmp_72) <--
+  (= $_71 ((rel-arity $bir-sub13 4 db) EA_used Reg Size TableStart))
+  (= $_65 ((rel-arity arch_extend_reg 4 db) EA_used Reg Signed _tmp_72))]
+[((rel-arity jump_table_signed 2 db) TableStart Signed) <--
+  (= $_64 ((rel-arity * 3 comp) 8 Size _tmp_72))
+  (= $_1619 ((rel-arity $rule17-inter-body 4 db) TableStart Size Signed _tmp_72))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub36 4 db) TableStart DefReg DefRegMapped UsedReg) <--
+  (= $_163 ((rel-arity $bir-sub35 4 db) TableStart DefReg DefRegMapped Op))
+  (= $_146 ((rel-arity op_regdirect 2 db) Op UsedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub33 4 db) EA TableStart DefReg DefRegMapped) <--
+  (= $_143 ((rel-arity reg_map 2 db) DefReg DefRegMapped))
+  (= $_160 ((rel-arity $bir-sub32 3 db) EA TableStart DefReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub38 3 db) TableStart UsedReg DefSize) <--
+  (= $_165 ((rel-arity $bir-sub37 3 db) TableStart DefReg UsedReg))
+  (= $_148 ((rel-arity arch_register_size_bytes 2 db) DefReg DefSize))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity jump_table_signed 2 db) TableStart $=0) <--
+  (= $_1683 ((rel-arity $rule18-inter-body 1 db) TableStart))
+  (= $_1396 ((rel-arity = 2 comp) $=0 0))]
+[((rel-arity $rule18-inter-body 1 db) TableStart) <--
+  (= $_150 ((rel-arity > 2 comp) UsedSize DefSize))
+  (= $_167 ((rel-arity $bir-sub39 3 db) TableStart DefSize UsedSize))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub37 3 db) TableStart DefReg UsedReg) <--
+  (= $_147 ((rel-arity reg_map 2 db) UsedReg DefRegMapped))
+  (= $_164 ((rel-arity $bir-sub36 4 db) TableStart DefReg DefRegMapped UsedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub31 3 db) EA DstOp TableStart) <--
+  (= $_141 ((rel-arity jump_table_element_access 4 db) EA $_157 TableStart $_158))
+  (= $_140 ((rel-arity instruction_get_dest_op 3 db) EA $_156 DstOp))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub32 3 db) EA TableStart DefReg) <--
+  (= $_159 ((rel-arity $bir-sub31 3 db) EA DstOp TableStart))
+  (= $_142 ((rel-arity op_regdirect 2 db) DstOp DefReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub39 3 db) TableStart DefSize UsedSize) <--
+  (= $_166 ((rel-arity $bir-sub38 3 db) TableStart UsedReg DefSize))
+  (= $_149 ((rel-arity arch_register_size_bytes 2 db) UsedReg UsedSize))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub34 4 db) TableStart DefReg DefRegMapped EA_used) <--
+  (= $_161 ((rel-arity $bir-sub33 4 db) EA TableStart DefReg DefRegMapped))
+  (= $_144 ((rel-arity value_reg 7 db) EA_used $_152 EA DefRegMapped $_153 $_154 $_155))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 18:
+[((rel-arity $bir-sub35 4 db) TableStart DefReg DefRegMapped Op) <--
+  (= $_162 ((rel-arity $bir-sub34 4 db) TableStart DefReg DefRegMapped EA_used))
+  (= $_145 ((rel-arity instruction_get_src_op 3 db) EA_used $_151 Op))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 19:
+[((rel-arity $rule19-inter-body 1 db) TableStart) <--
+  (= $_245 ((rel-arity jump_table_element_access 4 db) $_246 $=8 TableStart $_247))
+  (= $_1416 ((rel-arity = 2 comp) $=8 8))]
+[((rel-arity jump_table_signed 2 db) TableStart $=1) <--
+  (= $_1417 ((rel-arity = 2 comp) $=1 1))
+  (= $_1591 ((rel-arity $rule19-inter-body 1 db) TableStart))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 20:
+[((rel-arity $rule20-inter-body1 4 db) ImageBase EA_jump $=1 _tmp_1) <--
+  (= $_1639 ((rel-arity $rule20-inter-body 3 db) ImageBase EA_jump _tmp_1))
+  (= $_1435 ((rel-arity = 2 comp) $=1 1))]
+[((rel-arity jump_table_start 5 db) EA_jump $=4 _tmp_1 ImageBase $=1) <--
+  (= $_1642 ((rel-arity $rule20-inter-body1 4 db) ImageBase EA_jump $=1 _tmp_1))
+  (= $_1434 ((rel-arity = 2 comp) $=4 4))]
+[((rel-arity $rule20-inter-body 3 db) ImageBase EA_jump _tmp_1) <--
+  (= $_348 ((rel-arity $bir-sub87 3 db) Value EA_jump ImageBase))
+  (= $_345 ((rel-arity + 3 comp) ImageBase Value _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 20:
+[((rel-arity $bir-sub87 3 db) Value EA_jump ImageBase) <--
+  (= $_344 ((rel-arity base_address 1 db) ImageBase))
+  (= $_347 ((rel-arity $bir-sub86 2 db) Value EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 20:
+[((rel-arity $bir-sub86 2 db) Value EA_jump) <--
+  (= $_342 ((rel-arity base_relative_operand 3 db) EA_base $_346 Value))
+  (= $_343 ((rel-arity base_relative_jump 2 db) EA_base EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 21:
+[((rel-arity $bir-sub108 7 db) EA_add RegJump Reg Scale Base Size TableStart) <--
+  (= $_438 ((rel-arity jump_table_element_access 4 db) EA Size TableStart $_447))
+  (= $_437 ((rel-arity value_reg 7 db) EA_add RegJump EA Reg Scale Base $_446))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 21:
+[((rel-arity $bir-sub109 6 db) EA_add RegJump Scale Base Size TableStart) <--
+  (= $_439 ((rel-arity =/= 2 comp) Reg NONE))
+  (= $_448 ((rel-arity $bir-sub108 7 db) EA_add RegJump Reg Scale Base Size TableStart))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 21:
+[((rel-arity $bir-sub111 5 db) Scale Base Size TableStart EA_jump) <--
+  (= $_441 ((rel-arity reg_call 2 db) EA_jump $_444))
+  (= $_450 ((rel-arity $bir-sub110 5 db) Scale Base Size TableStart EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 21:
+[((rel-arity $bir-sub110 5 db) Scale Base Size TableStart EA_jump) <--
+  (= $_449 ((rel-arity $bir-sub109 6 db) EA_add RegJump Scale Base Size TableStart))
+  (= $_440 ((rel-arity reg_def_use_def_used 4 db) EA_add RegJump EA_jump $_445))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 21:
+[((rel-arity jump_table_start 5 db) EA_jump Size TableStart Base Scale) <--
+  (= $_442 ((rel-arity code_in_block 2 db) EA_jump $_443))
+  (= $_451 ((rel-arity $bir-sub111 5 db) Scale Base Size TableStart EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 22:
+[((rel-arity $bir-sub138 5 db) Scale Base Size TableStart EA_jump) <--
+  (= $_550 ((rel-arity $bir-sub137 6 db) EA_add RegJump Scale Base Size TableStart))
+  (= $_541 ((rel-arity reg_def_use_def_used 4 db) EA_add RegJump EA_jump $_546))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 22:
+[((rel-arity $bir-sub137 6 db) EA_add RegJump Scale Base Size TableStart) <--
+  (= $_549 ((rel-arity $bir-sub136 7 db) EA_add RegJump Reg Scale Base Size TableStart))
+  (= $_540 ((rel-arity =/= 2 comp) Reg NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 22:
+[((rel-arity jump_table_start 5 db) EA_jump Size TableStart Base Scale) <--
+  (= $_543 ((rel-arity code_in_block 2 db) EA_jump $_544))
+  (= $_552 ((rel-arity $bir-sub139 5 db) Scale Base Size TableStart EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 22:
+[((rel-arity $bir-sub136 7 db) EA_add RegJump Reg Scale Base Size TableStart) <--
+  (= $_539 ((rel-arity jump_table_element_access 4 db) EA Size TableStart $_548))
+  (= $_538 ((rel-arity value_reg 7 db) EA_add RegJump EA Reg Scale Base $_547))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 22:
+[((rel-arity $bir-sub139 5 db) Scale Base Size TableStart EA_jump) <--
+  (= $_551 ((rel-arity $bir-sub138 5 db) Scale Base Size TableStart EA_jump))
+  (= $_542 ((rel-arity reg_call 2 db) EA_jump $_545))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 23:
+[((rel-arity $bir-sub171 6 db) EA_add RegJump Scale Base Size TableStart) <--
+  (= $_657 ((rel-arity $bir-sub170 7 db) EA_add RegJump Reg Scale Base Size TableStart))
+  (= $_648 ((rel-arity =/= 2 comp) Reg NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 23:
+[((rel-arity jump_table_start 5 db) EA_jump Size TableStart Base Scale) <--
+  (= $_660 ((rel-arity $bir-sub173 5 db) Scale Base Size TableStart EA_jump))
+  (= $_651 ((rel-arity code_in_block 2 db) EA_jump $_652))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 23:
+[((rel-arity $bir-sub173 5 db) Scale Base Size TableStart EA_jump) <--
+  (= $_650 ((rel-arity reg_jump 2 db) EA_jump $_653))
+  (= $_659 ((rel-arity $bir-sub172 5 db) Scale Base Size TableStart EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 23:
+[((rel-arity $bir-sub170 7 db) EA_add RegJump Reg Scale Base Size TableStart) <--
+  (= $_646 ((rel-arity value_reg 7 db) EA_add RegJump EA Reg Scale Base $_655))
+  (= $_647 ((rel-arity jump_table_element_access 4 db) EA Size TableStart $_656))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 23:
+[((rel-arity $bir-sub172 5 db) Scale Base Size TableStart EA_jump) <--
+  (= $_649 ((rel-arity reg_def_use_def_used 4 db) EA_add RegJump EA_jump $_654))
+  (= $_658 ((rel-arity $bir-sub171 6 db) EA_add RegJump Scale Base Size TableStart))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 24:
+[((rel-arity $bir-sub210 5 db) EA_jump EA_base Reg Size _tmp_73) <--
+  (= $_758 ((rel-arity jump_table_element_access 4 db) EA_base Size _tmp_73 $_762))
+  (= $_777 ((rel-arity $bir-sub209 3 db) EA_jump EA_base Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 24:
+[((rel-arity $rule24-inter-body 3 db) TableReference EA_jump Size) <--
+  (= $_1420 ((rel-arity = 2 comp) TableReference TableReference1))
+  (= $_779 ((rel-arity $bir-sub211 4 db) EA_jump Size TableReference TableReference1))]
+[((rel-arity jump_table_start 5 db) EA_jump Size TableReference TableReference $=1) <--
+  (= $_1418 ((rel-arity = 2 comp) $=1 1))
+  (= $_1600 ((rel-arity $rule24-inter-body 3 db) TableReference EA_jump Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 24:
+[((rel-arity $bir-sub208 4 db) EA_jump EA_base Reg inlined_Operation_591) <--
+  (= $_775 ((rel-arity $bir-sub207 3 db) EA_jump EA_base Reg))
+  (= $_757 ((rel-arity instruction 10 db) EA_base $_763 $_764 inlined_Operation_591 $_765 $_766 $_767 $_768 $_769 $_770))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 24:
+[((rel-arity $bir-sub206 1 db) EA_jump) <--
+  (= $_755 ((rel-arity reg_jump 2 db) EA_jump $_773))
+  (= $_754 ((rel-arity code_in_block 2 db) EA_jump $_772))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 24:
+[((rel-arity $bir-sub207 3 db) EA_jump EA_base Reg) <--
+  (= $_774 ((rel-arity $bir-sub206 1 db) EA_jump))
+  (= $_756 ((rel-arity reg_def_use_def_used 4 db) EA_base Reg EA_jump $_771))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 24:
+[((rel-arity $bir-sub209 3 db) EA_jump EA_base Reg) <--
+  (= $_776 ((rel-arity $bir-sub208 4 db) EA_jump EA_base Reg $const32))
+  (= $_1458 ((rel-arity = 2 comp) $const32 ADD))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 24:
+[((rel-arity $bir-sub211 4 db) EA_jump Size _tmp_73 TableReference) <--
+  (= $_778 ((rel-arity $bir-sub210 5 db) EA_jump EA_base Reg Size _tmp_73))
+  (= $_759 ((rel-arity const_value_reg_used 5 db) EA_base $_760 $_761 Reg TableReference))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 25:
+[((rel-arity $bir-sub246 4 db) EA_jump Size _tmp_74 TableReference) <--
+  (= $_897 ((rel-arity $bir-sub245 5 db) EA_jump EA_base Reg Size _tmp_74))
+  (= $_878 ((rel-arity const_value_reg_used 5 db) EA_base $_879 $_880 Reg TableReference))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 25:
+[((rel-arity $bir-sub244 3 db) EA_jump EA_base Reg) <--
+  (= $_895 ((rel-arity $bir-sub243 4 db) EA_jump EA_base Reg $const27))
+  (= $_1443 ((rel-arity = 2 comp) $const27 SUB))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 25:
+[((rel-arity $bir-sub241 1 db) EA_jump) <--
+  (= $_873 ((rel-arity code_in_block 2 db) EA_jump $_891))
+  (= $_874 ((rel-arity reg_jump 2 db) EA_jump $_892))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 25:
+[((rel-arity $bir-sub245 5 db) EA_jump EA_base Reg Size _tmp_74) <--
+  (= $_896 ((rel-arity $bir-sub244 3 db) EA_jump EA_base Reg))
+  (= $_877 ((rel-arity jump_table_element_access 4 db) EA_base Size _tmp_74 $_881))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 25:
+[((rel-arity $bir-sub243 4 db) EA_jump EA_base Reg inlined_Operation_593) <--
+  (= $_894 ((rel-arity $bir-sub242 3 db) EA_jump EA_base Reg))
+  (= $_876 ((rel-arity instruction 10 db) EA_base $_882 $_883 inlined_Operation_593 $_884 $_885 $_886 $_887 $_888 $_889))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 25:
+[((rel-arity jump_table_start 5 db) EA_jump Size TableReference TableReference $=-1) <--
+  (= $_1463 ((rel-arity = 2 comp) $=-1 -1))
+  (= $_1661 ((rel-arity $rule25-inter-body 3 db) TableReference EA_jump Size))]
+[((rel-arity $rule25-inter-body 3 db) TableReference EA_jump Size) <--
+  (= $_898 ((rel-arity $bir-sub246 4 db) EA_jump Size TableReference TableReference3))
+  (= $_1464 ((rel-arity = 2 comp) TableReference TableReference3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 25:
+[((rel-arity $bir-sub242 3 db) EA_jump EA_base Reg) <--
+  (= $_875 ((rel-arity reg_def_use_def_used 4 db) EA_base Reg EA_jump $_890))
+  (= $_893 ((rel-arity $bir-sub241 1 db) EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $bir-sub259 1 db) EA_jump) <--
+  (= $_965 ((rel-arity reg_jump 2 db) EA_jump $_985))
+  (= $_964 ((rel-arity code_in_block 2 db) EA_jump $_984))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $bir-sub260 3 db) EA_jump EA_base Reg) <--
+  (= $_966 ((rel-arity reg_def_use_def_used 4 db) EA_base Reg EA_jump $_983))
+  (= $_986 ((rel-arity $bir-sub259 1 db) EA_jump))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $bir-sub261 4 db) EA_jump EA_base Reg inlined_Operation_590) <--
+  (= $_967 ((rel-arity instruction 10 db) EA_base $_975 $_976 inlined_Operation_590 $_977 $_978 $_979 $_980 $_981 $_982))
+  (= $_987 ((rel-arity $bir-sub260 3 db) EA_jump EA_base Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $bir-sub262 3 db) EA_jump EA_base Reg) <--
+  (= $_988 ((rel-arity $bir-sub261 4 db) EA_jump EA_base Reg $const8))
+  (= $_1394 ((rel-arity = 2 comp) $const8 ADD))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $bir-sub263 5 db) EA_jump EA_base Reg Size TableStart) <--
+  (= $_968 ((rel-arity jump_table_element_access 4 db) EA_base Size TableStart $_974))
+  (= $_989 ((rel-arity $bir-sub262 3 db) EA_jump EA_base Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $rule26-inter-body 4 db) TableStart Size TableReference EA_jump) <--
+  (= $_992 ((rel-arity $bir-sub265 5 db) EA_jump Size TableStart TableReference TableReference2))
+  (= $_1437 ((rel-arity = 2 comp) TableReference TableReference2))]
+[((rel-arity jump_table_start 5 db) EA_jump Size TableStart TableReference $=1) <--
+  (= $_1676 ((rel-arity $rule26-inter-body 4 db) TableStart Size TableReference EA_jump))
+  (= $_1436 ((rel-arity = 2 comp) $=1 1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $bir-sub264 4 db) EA_jump Size TableStart TableReference) <--
+  (= $_990 ((rel-arity $bir-sub263 5 db) EA_jump EA_base Reg Size TableStart))
+  (= $_969 ((rel-arity const_value_reg_used 5 db) EA_base $_972 $_973 Reg TableReference))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 26:
+[((rel-arity $bir-sub265 5 db) EA_jump Size TableStart TableReference _tmp_153) <--
+  (= $_991 ((rel-arity $bir-sub264 4 db) EA_jump Size TableStart TableReference))
+  (= $_970 ((rel-arity code_in_block 2 db) _tmp_153 $_971))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 27:
+[((rel-arity jump_table_target 2 db) EA Dest) <--
+  (= $_1069 ((rel-arity relative_jump_table_entry_candidate 7 db) $_1072 TableStart Size $_1073 Dest $_1074 $_1075))
+  (= $_1068 ((rel-arity jump_table_start 5 db) EA Size TableStart $_1070 $_1071))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 28:
+[((rel-arity last_value_reg_limit 6 db) From To Reg Value LimitType $=0) <--
+  (= $_1134 ((rel-arity value_reg_limit 5 db) From To Reg Value LimitType))
+  (= $_1474 ((rel-arity = 2 comp) $=0 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 29:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_1199 ((rel-arity + 3 comp) Steps 1 _tmp_1))
+  (= $_1205 ((rel-arity $bir-sub312 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 29:
+[((rel-arity $bir-sub310 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_1202 ((rel-arity $bir-sub309 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))
+  (= $_1196 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 29:
+[((rel-arity $bir-sub312 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_1204 ((rel-arity $bir-sub311 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_1198 ((rel-arity ~ 1 (agg (rel-arity conditional_jump 1 db))) BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 29:
+[((rel-arity $bir-sub309 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_1195 ((rel-arity code_in_block 2 db) EA Block))
+  (= $_1201 ((rel-arity $bir-sub308 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 29:
+[((rel-arity $bir-sub308 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_1193 ((rel-arity <= 2 comp) Steps 3))
+  (= $_1194 ((rel-arity last_value_reg_limit 6 db) $_1200 EA PropagatedReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 29:
+[((rel-arity $bir-sub311 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_1203 ((rel-arity $bir-sub310 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))
+  (= $_1197 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 30:
+[((rel-arity $bir-sub324 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_1261 ((rel-arity $bir-sub323 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))
+  (= $_1255 ((rel-arity code_in_block 2 db) EA Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 30:
+[((rel-arity $bir-sub326 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_1263 ((rel-arity $bir-sub325 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))
+  (= $_1257 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 30:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_1265 ((rel-arity $bir-sub327 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_1259 ((rel-arity + 3 comp) Steps 1 _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 30:
+[((rel-arity $bir-sub325 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_1256 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))
+  (= $_1262 ((rel-arity $bir-sub324 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 30:
+[((rel-arity $bir-sub327 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_1264 ((rel-arity $bir-sub326 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_1258 ((rel-arity no_value_reg_limit 1 db) BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 30:
+[((rel-arity $bir-sub323 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_1254 ((rel-arity last_value_reg_limit 6 db) $_1260 EA PropagatedReg PropagatedVal PropagatedType Steps))
+  (= $_1253 ((rel-arity <= 2 comp) Steps 3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 31:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_1336 ((rel-arity $bir-sub347 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_1329 ((rel-arity + 3 comp) Steps 1 _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 31:
+[((rel-arity $bir-sub343 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_1331 ((rel-arity $bir-sub342 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))
+  (= $_1324 ((rel-arity code_in_block 2 db) EA Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 31:
+[((rel-arity $bir-sub347 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_1335 ((rel-arity $bir-sub346 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Reg))
+  (= $_1328 ((rel-arity =/= 2 comp) Reg PropagatedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 31:
+[((rel-arity $bir-sub346 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Reg) <--
+  (= $_1334 ((rel-arity $bir-sub345 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_1327 ((rel-arity cmp_defines 3 db) BlockEnd BlockNext Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 31:
+[((rel-arity $bir-sub342 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_1323 ((rel-arity last_value_reg_limit 6 db) $_1330 EA PropagatedReg PropagatedVal PropagatedType Steps))
+  (= $_1322 ((rel-arity <= 2 comp) Steps 3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 31:
+[((rel-arity $bir-sub344 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_1325 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))
+  (= $_1332 ((rel-arity $bir-sub343 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 31:
+[((rel-arity $bir-sub345 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_1326 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))
+  (= $_1333 ((rel-arity $bir-sub344 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 32:
+[((rel-arity $bir-sub1 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_8 ((rel-arity code_in_block 2 db) EA Block))
+  (= $_15 ((rel-arity $bir-sub 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 32:
+[((rel-arity $bir-sub4 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Reg) <--
+  (= $_18 ((rel-arity $bir-sub3 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_11 ((rel-arity cmp_defines 3 db) BlockEnd BlockNext Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 32:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_13 ((rel-arity + 3 comp) Steps 1 _tmp_1))
+  (= $_20 ((rel-arity $bir-sub5 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 32:
+[((rel-arity $bir-sub 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_6 ((rel-arity <= 2 comp) Steps 3))
+  (= $_7 ((rel-arity last_value_reg_limit 6 db) $_14 EA PropagatedReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 32:
+[((rel-arity $bir-sub3 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_17 ((rel-arity $bir-sub2 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))
+  (= $_10 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 32:
+[((rel-arity $bir-sub5 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_12 ((rel-arity =/= 2 comp) Reg PropagatedReg))
+  (= $_19 ((rel-arity $bir-sub4 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 32:
+[((rel-arity $bir-sub2 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_16 ((rel-arity $bir-sub1 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))
+  (= $_9 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 33:
+[((rel-arity $bir-sub19 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_86 ((rel-arity $bir-sub18 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext DefinedNext))
+  (= $_79 ((rel-arity =/= 2 comp) BlockNext DefinedNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 33:
+[((rel-arity $bir-sub16 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_76 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))
+  (= $_83 ((rel-arity $bir-sub15 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 33:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_87 ((rel-arity $bir-sub19 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_80 ((rel-arity + 3 comp) Steps 1 _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 33:
+[((rel-arity $bir-sub15 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_75 ((rel-arity code_in_block 2 db) EA Block))
+  (= $_82 ((rel-arity $bir-sub14 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 33:
+[((rel-arity $bir-sub17 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_77 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))
+  (= $_84 ((rel-arity $bir-sub16 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 33:
+[((rel-arity $bir-sub14 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_73 ((rel-arity <= 2 comp) Steps 3))
+  (= $_74 ((rel-arity last_value_reg_limit 6 db) $_81 EA PropagatedReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 33:
+[((rel-arity $bir-sub18 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext DefinedNext) <--
+  (= $_85 ((rel-arity $bir-sub17 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_78 ((rel-arity cmp_defines 3 db) BlockEnd DefinedNext PropagatedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 34:
+[((rel-arity $bir-sub42 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_181 ((rel-arity $bir-sub41 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))
+  (= $_172 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 34:
+[((rel-arity $bir-sub44 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Reg) <--
+  (= $_183 ((rel-arity $bir-sub43 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_174 ((rel-arity value_reg_limit 5 db) BlockEnd BlockNext Reg $_177 $_178))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 34:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_176 ((rel-arity + 3 comp) Steps 1 _tmp_1))
+  (= $_185 ((rel-arity $bir-sub45 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 34:
+[((rel-arity $bir-sub40 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_170 ((rel-arity last_value_reg_limit 6 db) $_179 EA PropagatedReg PropagatedVal PropagatedType Steps))
+  (= $_169 ((rel-arity <= 2 comp) Steps 3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 34:
+[((rel-arity $bir-sub41 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_171 ((rel-arity code_in_block 2 db) EA Block))
+  (= $_180 ((rel-arity $bir-sub40 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 34:
+[((rel-arity $bir-sub45 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_175 ((rel-arity =/= 2 comp) Reg PropagatedReg))
+  (= $_184 ((rel-arity $bir-sub44 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 34:
+[((rel-arity $bir-sub43 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_182 ((rel-arity $bir-sub42 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))
+  (= $_173 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub67 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_255 ((rel-arity < 2 comp) PropagatedVal Val))
+  (= $_264 ((rel-arity $bir-sub66 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub62 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_252 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))
+  (= $_259 ((rel-arity $bir-sub61 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub66 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val) <--
+  (= $_1427 ((rel-arity = 2 comp) $const23 MAX))
+  (= $_263 ((rel-arity $bir-sub65 8 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val $const23))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_256 ((rel-arity + 3 comp) Steps 1 _tmp_1))
+  (= $_265 ((rel-arity $bir-sub67 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub65 8 db) Steps PropagatedReg PropagatedVal $const21 BlockEnd BlockNext Val Type) <--
+  (= $_262 ((rel-arity $bir-sub64 8 db) Steps PropagatedReg PropagatedVal $const21 BlockEnd BlockNext Val Type))
+  (= $_1423 ((rel-arity = 2 comp) $const21 MAX))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub61 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_258 ((rel-arity $bir-sub60 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))
+  (= $_251 ((rel-arity code_in_block 2 db) EA Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub60 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_249 ((rel-arity <= 2 comp) Steps 3))
+  (= $_250 ((rel-arity last_value_reg_limit 6 db) $_257 EA PropagatedReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub63 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_253 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))
+  (= $_260 ((rel-arity $bir-sub62 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 35:
+[((rel-arity $bir-sub64 8 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val Type) <--
+  (= $_254 ((rel-arity value_reg_limit 5 db) BlockEnd BlockNext PropagatedReg Val Type))
+  (= $_261 ((rel-arity $bir-sub63 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub94 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val) <--
+  (= $_364 ((rel-arity $bir-sub93 8 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val $const46))
+  (= $_1481 ((rel-arity = 2 comp) $const46 MIN))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub95 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_365 ((rel-arity $bir-sub94 7 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val))
+  (= $_356 ((rel-arity > 2 comp) PropagatedVal Val))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub89 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block) <--
+  (= $_352 ((rel-arity code_in_block 2 db) EA Block))
+  (= $_359 ((rel-arity $bir-sub88 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub91 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext) <--
+  (= $_354 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block PropagatedReg))
+  (= $_361 ((rel-arity $bir-sub90 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub93 8 db) Steps PropagatedReg PropagatedVal $const17 BlockEnd BlockNext Val Type) <--
+  (= $_363 ((rel-arity $bir-sub92 8 db) Steps PropagatedReg PropagatedVal $const17 BlockEnd BlockNext Val Type))
+  (= $_1412 ((rel-arity = 2 comp) $const17 MIN))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub92 8 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext Val Type) <--
+  (= $_355 ((rel-arity value_reg_limit 5 db) BlockEnd BlockNext PropagatedReg Val Type))
+  (= $_362 ((rel-arity $bir-sub91 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub88 5 db) Steps EA PropagatedReg PropagatedVal PropagatedType) <--
+  (= $_350 ((rel-arity <= 2 comp) Steps 3))
+  (= $_351 ((rel-arity last_value_reg_limit 6 db) $_358 EA PropagatedReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1) <--
+  (= $_366 ((rel-arity $bir-sub95 6 db) Steps PropagatedReg PropagatedVal PropagatedType BlockEnd BlockNext))
+  (= $_357 ((rel-arity + 3 comp) Steps 1 _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 36:
+[((rel-arity $bir-sub90 7 db) Steps PropagatedReg PropagatedVal PropagatedType Block BlockEnd BlockNext) <--
+  (= $_360 ((rel-arity $bir-sub89 5 db) Steps PropagatedReg PropagatedVal PropagatedType Block))
+  (= $_353 ((rel-arity block_next 3 db) Block BlockEnd BlockNext))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub115 9 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_457 ((rel-arity limit_reg_op 4 db) BlockEnd DstReg SrcReg Offset))
+  (= $_470 ((rel-arity $bir-sub114 7 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub119 8 db) Steps SrcReg PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next) <--
+  (= $_474 ((rel-arity $bir-sub118 8 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))
+  (= $_461 ((rel-arity block_next 3 db) Block BlockEnd EA_next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub118 8 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_473 ((rel-arity $bir-sub117 8 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))
+  (= $_460 ((rel-arity code_in_block 2 db) BlockEnd Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub114 7 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd) <--
+  (= $_456 ((rel-arity block_last_instruction 2 db) Block BlockEnd))
+  (= $_469 ((rel-arity $bir-sub113 6 db) Steps EA SrcReg PropagatedVal PropagatedType Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub113 6 db) Steps EA SrcReg PropagatedVal PropagatedType Block) <--
+  (= $_468 ((rel-arity $bir-sub112 5 db) Steps EA SrcReg PropagatedVal PropagatedType))
+  (= $_455 ((rel-arity code_in_block 2 db) EA Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub116 8 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_471 ((rel-arity $bir-sub115 9 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))
+  (= $_458 ((rel-arity <= 2 comp) EA BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub121 7 db) PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next _tmp_1) <--
+  (= $_476 ((rel-arity $bir-sub120 7 db) Steps PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next))
+  (= $_463 ((rel-arity + 3 comp) Steps 1 _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub117 8 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_459 ((rel-arity <= 2 comp) BlockEnd BlockEnd))
+  (= $_472 ((rel-arity $bir-sub116 8 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub112 5 db) Steps EA SrcReg PropagatedVal PropagatedType) <--
+  (= $_453 ((rel-arity <= 2 comp) Steps 3))
+  (= $_454 ((rel-arity last_value_reg_limit 6 db) $_467 EA SrcReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $bir-sub120 7 db) Steps PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next) <--
+  (= $_475 ((rel-arity $bir-sub119 8 db) Steps SrcReg PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next))
+  (= $_462 ((rel-arity ~ 2 (agg (rel-arity $reg_def_use_block_last_def'2 2 db))) BlockEnd SrcReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd EA_next DstReg _tmp_2 PropagatedType _tmp_1) <--
+  (= $_477 ((rel-arity $bir-sub121 7 db) PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next _tmp_1))
+  (= $_464 ((rel-arity + 3 comp) PropagatedVal Offset _tmp_2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 37:
+[((rel-arity $reg_def_use_block_last_def'2 2 db) $x1 $x3) <--
+  (= $_466 ((rel-arity reg_def_use_block_last_def 3 db) $x1 $x2 $x3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub147 9 db) Steps From SrcReg PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next) <--
+  (= $_562 ((rel-arity block_next 3 db) Block BlockEnd EA_next))
+  (= $_572 ((rel-arity $bir-sub146 9 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub142 8 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd) <--
+  (= $_567 ((rel-arity $bir-sub141 7 db) Steps From EA SrcReg PropagatedVal PropagatedType Block))
+  (= $_557 ((rel-arity block_last_instruction 2 db) Block BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub148 7 db) Steps PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next) <--
+  (= $_573 ((rel-arity $bir-sub147 9 db) Steps From SrcReg PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next))
+  (= $_563 ((rel-arity reg_def_use_block_last_def 3 db) BlockEnd From SrcReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub141 7 db) Steps From EA SrcReg PropagatedVal PropagatedType Block) <--
+  (= $_556 ((rel-arity code_in_block 2 db) EA Block))
+  (= $_566 ((rel-arity $bir-sub140 6 db) Steps From EA SrcReg PropagatedVal PropagatedType))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub143 10 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_568 ((rel-arity $bir-sub142 8 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd))
+  (= $_558 ((rel-arity limit_reg_op 4 db) BlockEnd DstReg SrcReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub140 6 db) Steps From EA SrcReg PropagatedVal PropagatedType) <--
+  (= $_555 ((rel-arity last_value_reg_limit 6 db) From EA SrcReg PropagatedVal PropagatedType Steps))
+  (= $_554 ((rel-arity <= 2 comp) Steps 3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub146 9 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_561 ((rel-arity code_in_block 2 db) BlockEnd Block))
+  (= $_571 ((rel-arity $bir-sub145 9 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub145 9 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_570 ((rel-arity $bir-sub144 9 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))
+  (= $_560 ((rel-arity <= 2 comp) BlockEnd BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub144 9 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset) <--
+  (= $_559 ((rel-arity <= 2 comp) EA BlockEnd))
+  (= $_569 ((rel-arity $bir-sub143 10 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity $bir-sub149 7 db) PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next _tmp_1) <--
+  (= $_564 ((rel-arity + 3 comp) Steps 1 _tmp_1))
+  (= $_574 ((rel-arity $bir-sub148 7 db) Steps PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 38:
+[((rel-arity last_value_reg_limit 6 db) BlockEnd EA_next DstReg _tmp_2 PropagatedType _tmp_1) <--
+  (= $_575 ((rel-arity $bir-sub149 7 db) PropagatedVal PropagatedType BlockEnd DstReg Offset EA_next _tmp_1))
+  (= $_565 ((rel-arity + 3 comp) PropagatedVal Offset _tmp_2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub176 8 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd) <--
+  (= $_665 ((rel-arity block_last_instruction 2 db) Block BlockEnd))
+  (= $_678 ((rel-arity $bir-sub175 7 db) Steps From EA SrcReg PropagatedVal PropagatedType Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub183 10 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_193 EA_next) <--
+  (= $_685 ((rel-arity $bir-sub182 9 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_193))
+  (= $_672 ((rel-arity may_fallthrough 2 db) EA_mov EA_next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub178 10 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset) <--
+  (= $_667 ((rel-arity <= 2 comp) EA EA_mov))
+  (= $_680 ((rel-arity $bir-sub177 11 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub180 9 db) Steps From SrcReg PropagatedVal PropagatedType BlockEnd EA_mov DstReg Offset) <--
+  (= $_669 ((rel-arity code_in_block 2 db) EA_mov Block))
+  (= $_682 ((rel-arity $bir-sub179 10 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub174 6 db) Steps From EA SrcReg PropagatedVal PropagatedType) <--
+  (= $_662 ((rel-arity <= 2 comp) Steps 3))
+  (= $_663 ((rel-arity last_value_reg_limit 6 db) From EA SrcReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub181 8 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset) <--
+  (= $_670 ((rel-arity =/= 2 comp) EA_mov BlockEnd))
+  (= $_683 ((rel-arity $bir-sub180 9 db) Steps From SrcReg PropagatedVal PropagatedType BlockEnd EA_mov DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub179 10 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset) <--
+  (= $_668 ((rel-arity <= 2 comp) EA_mov BlockEnd))
+  (= $_681 ((rel-arity $bir-sub178 10 db) Steps From SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub175 7 db) Steps From EA SrcReg PropagatedVal PropagatedType Block) <--
+  (= $_677 ((rel-arity $bir-sub174 6 db) Steps From EA SrcReg PropagatedVal PropagatedType))
+  (= $_664 ((rel-arity code_in_block 2 db) EA Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub185 7 db) Steps PropagatedVal PropagatedType EA_mov DstReg Offset EA_next) <--
+  (= $_687 ((rel-arity $bir-sub184 9 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset EA_next))
+  (= $_674 ((rel-arity reg_def_use_block_last_def 3 db) EA_mov From SrcReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub177 11 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset) <--
+  (= $_679 ((rel-arity $bir-sub176 8 db) Steps From EA SrcReg PropagatedVal PropagatedType Block BlockEnd))
+  (= $_666 ((rel-arity limit_reg_op 4 db) EA_mov DstReg SrcReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub184 9 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset EA_next) <--
+  (= $_686 ((rel-arity $bir-sub183 10 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_193 EA_next))
+  (= $_673 ((rel-arity code_in_block 2 db) EA_next inlined_Block_193))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity last_value_reg_limit 6 db) EA_mov EA_next DstReg _tmp_2 PropagatedType _tmp_1) <--
+  (= $_676 ((rel-arity + 3 comp) PropagatedVal Offset _tmp_2))
+  (= $_689 ((rel-arity $bir-sub186 7 db) PropagatedVal PropagatedType EA_mov DstReg Offset EA_next _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub182 9 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_193) <--
+  (= $_671 ((rel-arity code_in_block 2 db) EA_mov inlined_Block_193))
+  (= $_684 ((rel-arity $bir-sub181 8 db) Steps From SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 39:
+[((rel-arity $bir-sub186 7 db) PropagatedVal PropagatedType EA_mov DstReg Offset EA_next _tmp_1) <--
+  (= $_675 ((rel-arity + 3 comp) Steps 1 _tmp_1))
+  (= $_688 ((rel-arity $bir-sub185 7 db) Steps PropagatedVal PropagatedType EA_mov DstReg Offset EA_next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity last_value_reg_limit 6 db) EA_mov EA_next DstReg _tmp_2 PropagatedType _tmp_1) <--
+  (= $_811 ((rel-arity $bir-sub224 7 db) PropagatedVal PropagatedType EA_mov DstReg Offset EA_next _tmp_1))
+  (= $_795 ((rel-arity + 3 comp) PropagatedVal Offset _tmp_2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub221 9 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_194 EA_next) <--
+  (= $_807 ((rel-arity $bir-sub220 8 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_194))
+  (= $_791 ((rel-arity may_fallthrough 2 db) EA_mov EA_next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub218 8 db) Steps SrcReg PropagatedVal PropagatedType BlockEnd EA_mov DstReg Offset) <--
+  (= $_804 ((rel-arity $bir-sub217 9 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset))
+  (= $_788 ((rel-arity code_in_block 2 db) EA_mov Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $reg_def_use_block_last_def'3 2 db) $x1 $x3) <--
+  (= $_797 ((rel-arity reg_def_use_block_last_def 3 db) $x1 $x2 $x3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub214 7 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd) <--
+  (= $_800 ((rel-arity $bir-sub213 6 db) Steps EA SrcReg PropagatedVal PropagatedType Block))
+  (= $_784 ((rel-arity block_last_instruction 2 db) Block BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub213 6 db) Steps EA SrcReg PropagatedVal PropagatedType Block) <--
+  (= $_783 ((rel-arity code_in_block 2 db) EA Block))
+  (= $_799 ((rel-arity $bir-sub212 5 db) Steps EA SrcReg PropagatedVal PropagatedType))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub224 7 db) PropagatedVal PropagatedType EA_mov DstReg Offset EA_next _tmp_1) <--
+  (= $_794 ((rel-arity + 3 comp) Steps 1 _tmp_1))
+  (= $_810 ((rel-arity $bir-sub223 7 db) Steps PropagatedVal PropagatedType EA_mov DstReg Offset EA_next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub219 7 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset) <--
+  (= $_805 ((rel-arity $bir-sub218 8 db) Steps SrcReg PropagatedVal PropagatedType BlockEnd EA_mov DstReg Offset))
+  (= $_789 ((rel-arity =/= 2 comp) EA_mov BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub220 8 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_194) <--
+  (= $_806 ((rel-arity $bir-sub219 7 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset))
+  (= $_790 ((rel-arity code_in_block 2 db) EA_mov inlined_Block_194))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub215 10 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset) <--
+  (= $_801 ((rel-arity $bir-sub214 7 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd))
+  (= $_785 ((rel-arity limit_reg_op 4 db) EA_mov DstReg SrcReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub223 7 db) Steps PropagatedVal PropagatedType EA_mov DstReg Offset EA_next) <--
+  (= $_809 ((rel-arity $bir-sub222 8 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset EA_next))
+  (= $_793 ((rel-arity ~ 2 (agg (rel-arity $reg_def_use_block_last_def'3 2 db))) EA_mov SrcReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub217 9 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset) <--
+  (= $_803 ((rel-arity $bir-sub216 9 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset))
+  (= $_787 ((rel-arity <= 2 comp) EA_mov BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub222 8 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset EA_next) <--
+  (= $_808 ((rel-arity $bir-sub221 9 db) Steps SrcReg PropagatedVal PropagatedType EA_mov DstReg Offset inlined_Block_194 EA_next))
+  (= $_792 ((rel-arity code_in_block 2 db) EA_next inlined_Block_194))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub212 5 db) Steps EA SrcReg PropagatedVal PropagatedType) <--
+  (= $_781 ((rel-arity <= 2 comp) Steps 3))
+  (= $_782 ((rel-arity last_value_reg_limit 6 db) $_798 EA SrcReg PropagatedVal PropagatedType Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 40:
+[((rel-arity $bir-sub216 9 db) Steps SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset) <--
+  (= $_786 ((rel-arity <= 2 comp) EA EA_mov))
+  (= $_802 ((rel-arity $bir-sub215 10 db) Steps EA SrcReg PropagatedVal PropagatedType Block BlockEnd EA_mov DstReg Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 41:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_900 ((rel-arity compare_and_jump_immediate 5 db) $_901 EA_jmp $const16 $_902 $_903))
+  (= $_1411 ((rel-arity = 2 comp) $const16 O))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 42:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_994 ((rel-arity compare_and_jump_immediate 5 db) $_995 EA_jmp $const26 $_996 $_997))
+  (= $_1433 ((rel-arity = 2 comp) $const26 NO))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 43:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_1451 ((rel-arity = 2 comp) $const29 P))
+  (= $_1077 ((rel-arity compare_and_jump_immediate 5 db) $_1078 EA_jmp $const29 $_1079 $_1080))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 44:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_1136 ((rel-arity compare_and_jump_immediate 5 db) $_1137 EA_jmp $const36 $_1138 $_1139))
+  (= $_1467 ((rel-arity = 2 comp) $const36 PE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 45:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_1207 ((rel-arity compare_and_jump_immediate 5 db) $_1208 EA_jmp $const50 $_1209 $_1210))
+  (= $_1496 ((rel-arity = 2 comp) $const50 S))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 46:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_1267 ((rel-arity compare_and_jump_immediate 5 db) $_1268 EA_jmp $const3 $_1269 $_1270))
+  (= $_1388 ((rel-arity = 2 comp) $const3 NS))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 47:
+[((rel-arity $reg_def_use_block_last_def'6 2 db) $x1 $x3) <--
+  (= $_1344 ((rel-arity reg_def_use_block_last_def 3 db) $x1 $x2 $x3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 47:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_1340 ((rel-arity ~ 2 (agg (rel-arity $reg_def_use_block_last_def'5 2 db))) EA_cmp Reg2))
+  (= $_1346 ((rel-arity $bir-sub348 3 db) EA_cmp EA_jmp Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 47:
+[((rel-arity $bir-sub348 3 db) EA_cmp EA_jmp Reg2) <--
+  (= $_1338 ((rel-arity ~ 2 (agg (rel-arity $reg_def_use_block_last_def'6 2 db))) EA_cmp Reg1))
+  (= $_1339 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp $_1345 Reg1 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 47:
+[((rel-arity $reg_def_use_block_last_def'5 2 db) $x1 $x3) <--
+  (= $_1342 ((rel-arity reg_def_use_block_last_def 3 db) $x1 $x2 $x3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 48:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_32 ((rel-arity $bir-sub7 3 db) EA_cmp EA_jmp Reg2))
+  (= $_25 ((rel-arity ~ 2 (agg (rel-arity $reg_def_use_block_last_def' 2 db))) EA_cmp Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 48:
+[((rel-arity $arch_move_reg_imm' 2 db) $x1 $x2) <--
+  (= $_29 ((rel-arity arch_move_reg_imm 4 db) $x1 $x2 $x3 $x4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 48:
+[((rel-arity $reg_def_use_block_last_def' 2 db) $x1 $x3) <--
+  (= $_27 ((rel-arity reg_def_use_block_last_def 3 db) $x1 $x2 $x3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 48:
+[((rel-arity $bir-sub7 3 db) EA_cmp EA_jmp Reg2) <--
+  (= $_24 ((rel-arity ~ 2 (agg (rel-arity $arch_move_reg_imm' 2 db))) EA Reg1))
+  (= $_31 ((rel-arity $bir-sub6 5 db) EA_cmp EA Reg1 EA_jmp Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 48:
+[((rel-arity $bir-sub6 5 db) EA_cmp EA Reg1 EA_jmp Reg2) <--
+  (= $_23 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp $_30 Reg1 Reg2))
+  (= $_22 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp EA Reg1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 49:
+[((rel-arity $reg_def_use_block_last_def'1 2 db) $x1 $x3) <--
+  (= $_94 ((rel-arity reg_def_use_block_last_def 3 db) $x1 $x2 $x3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 49:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_99 ((rel-arity $bir-sub21 3 db) EA_cmp EA_jmp Reg1))
+  (= $_92 ((rel-arity ~ 2 (agg (rel-arity $reg_def_use_block_last_def'1 2 db))) EA_cmp Reg1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 49:
+[((rel-arity $arch_move_reg_imm'1 2 db) $x1 $x2) <--
+  (= $_96 ((rel-arity arch_move_reg_imm 4 db) $x1 $x2 $x3 $x4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 49:
+[((rel-arity $bir-sub21 3 db) EA_cmp EA_jmp Reg1) <--
+  (= $_91 ((rel-arity ~ 2 (agg (rel-arity $arch_move_reg_imm'1 2 db))) EA Reg2))
+  (= $_98 ((rel-arity $bir-sub20 5 db) EA_cmp EA Reg2 EA_jmp Reg1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 49:
+[((rel-arity $bir-sub20 5 db) EA_cmp EA Reg2 EA_jmp Reg1) <--
+  (= $_89 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp EA Reg2))
+  (= $_90 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp $_97 Reg1 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 50:
+[((rel-arity $bir-sub47 4 db) EA_cmp EA EA_jmp Reg2) <--
+  (= $_189 ((rel-arity ~ 2 (agg (rel-arity $arch_move_reg_imm'3 2 db))) EA Reg1))
+  (= $_198 ((rel-arity $bir-sub46 5 db) EA_cmp EA Reg1 EA_jmp Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 50:
+[((rel-arity $bir-sub48 3 db) EA EA_jmp Reg2) <--
+  (= $_199 ((rel-arity $bir-sub47 4 db) EA_cmp EA EA_jmp Reg2))
+  (= $_190 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp $_196 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 50:
+[((rel-arity $arch_move_reg_imm'3 2 db) $x1 $x2) <--
+  (= $_195 ((rel-arity arch_move_reg_imm 4 db) $x1 $x2 $x3 $x4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 50:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_200 ((rel-arity $bir-sub48 3 db) EA EA_jmp Reg2))
+  (= $_191 ((rel-arity ~ 2 (agg (rel-arity $arch_move_reg_imm'2 2 db))) EA Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 50:
+[((rel-arity $bir-sub46 5 db) EA_cmp EA Reg1 EA_jmp Reg2) <--
+  (= $_187 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp EA Reg1))
+  (= $_188 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp $_197 Reg1 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 50:
+[((rel-arity $arch_move_reg_imm'2 2 db) $x1 $x2) <--
+  (= $_193 ((rel-arity arch_move_reg_imm 4 db) $x1 $x2 $x3 $x4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 51:
+[((rel-arity $bir-sub68 2 db) Operation EA_jmp) <--
+  (= $_268 ((rel-arity flags_and_jump_pair 3 db) EA_cmp EA_jmp $_278))
+  (= $_267 ((rel-arity instruction 10 db) EA_cmp $_270 $_271 Operation $_272 $_273 $_274 $_275 $_276 $_277))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 51:
+[((rel-arity no_value_reg_limit 1 db) EA_jmp) <--
+  (= $_269 ((rel-arity ~ 1 (agg (rel-arity arch_cmp_operation 1 db))) Operation))
+  (= $_279 ((rel-arity $bir-sub68 2 db) Operation EA_jmp))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 52:
+[((rel-arity reg_def_use_def_used 4 db) EA_def Var EA_used Index) <--
+  (= $_368 ((rel-arity reg_def_use_used 3 db) EA_used Var Index))
+  (= $_369 ((rel-arity reg_def_use_block_last_def 3 db) EA_used EA_def Var))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 53:
+[((rel-arity $bir-sub122 4 db) Block Var EA_used Index) <--
+  (= $_1686 ((rel-arity $rule53-inter-body 5 db) Var2 Block Var EA_used Index))
+  (= $_1495 ((rel-arity = 2 comp) Var Var2))]
+[((rel-arity $rule53-inter-body 5 db) Var2 Block Var EA_used Index) <--
+  (= $_479 ((rel-arity reg_def_use_live_var_at_block_end 3 db) Block BlockUsed Var))
+  (= $_480 ((rel-arity reg_def_use_live_var_used 6 db) BlockUsed Var Var2 EA_used Index $_482))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 53:
+[((rel-arity reg_def_use_def_used 4 db) EA_def VarIdentity EA_used Index) <--
+  (= $_483 ((rel-arity $bir-sub122 4 db) Block Var EA_used Index))
+  (= $_481 ((rel-arity reg_def_use_live_var_def 4 db) Block VarIdentity Var EA_def))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 54:
+[((rel-arity $bir-sub150 3 db) EA_def Var NextUsedBlock) <--
+  (= $_578 ((rel-arity reg_def_use_live_var_at_prior_used 3 db) EA_used NextUsedBlock Var))
+  (= $_577 ((rel-arity reg_def_use_def_used 4 db) EA_def Var EA_used $_581))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 54:
+[((rel-arity reg_def_use_def_used 4 db) EA_def Var Next_EA_used NextIndex) <--
+  (= $_1588 ((rel-arity $rule54-inter-body 4 db) NextIndex NextUsedBlock Var Next_EA_used))
+  (= $_582 ((rel-arity $bir-sub150 3 db) EA_def Var NextUsedBlock))]
+[((rel-arity $rule54-inter-body 4 db) NextIndex NextUsedBlock Var Next_EA_used) <--
+  (= $_1408 ((rel-arity = 2 comp) Var Var1))
+  (= $_579 ((rel-arity reg_def_use_live_var_used 6 db) NextUsedBlock Var Var1 Next_EA_used NextIndex $_580))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 55:
+[((rel-arity $bir-sub187 4 db) Reg EA_used Index BlockEnd) <--
+  (= $_691 ((rel-arity reg_def_use_return_val_used 5 db) $_694 Callee Reg EA_used Index))
+  (= $_692 ((rel-arity reg_def_use_return_block_end 4 db) Callee $_695 $_696 BlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 55:
+[((rel-arity reg_def_use_def_used 4 db) EA_def Reg EA_used Index) <--
+  (= $_697 ((rel-arity $bir-sub187 4 db) Reg EA_used Index BlockEnd))
+  (= $_693 ((rel-arity reg_def_use_block_last_def 3 db) BlockEnd EA_def Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 56:
+[((rel-arity reg_def_use_live_var_at_block_end 3 db) PrevBlock Block Var) <--
+  (= $_815 ((rel-arity ~ 3 (agg (rel-arity reg_def_use_flow_def 3 db))) PrevBlockEnd Var Block))
+  (= $_820 ((rel-arity $bir-sub225 4 db) Block Var PrevBlock PrevBlockEnd))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 56:
+[((rel-arity $bir-sub225 4 db) Block Var PrevBlock PrevBlockEnd) <--
+  (= $_814 ((rel-arity block_next 3 db) PrevBlock PrevBlockEnd Block))
+  (= $_813 ((rel-arity reg_def_use_live_var_used 6 db) Block Var $_816 $_817 $_818 $_819))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 57:
+[((rel-arity $bir-sub247 3 db) Block Var BlockUsed) <--
+  (= $_906 ((rel-arity reg_def_use_live_var_at_block_end 3 db) Block BlockUsed Var))
+  (= $_905 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_ref_in_block 2 db))) Block Var))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 57:
+[((rel-arity reg_def_use_live_var_at_block_end 3 db) PrevBlock BlockUsed Var) <--
+  (= $_909 ((rel-arity $bir-sub247 3 db) Block Var BlockUsed))
+  (= $_907 ((rel-arity block_next 3 db) PrevBlock $_908 Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 58:
+[((rel-arity reg_def_use_live_var_at_prior_used 3 db) EA_used BlockUsed Var) <--
+  (= $_1003 ((rel-arity $bir-sub266 4 db) Block EA_used Var BlockUsed))
+  (= $_1001 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block Var))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 58:
+[((rel-arity $bir-sub266 4 db) Block EA_used Var BlockUsed) <--
+  (= $_999 ((rel-arity reg_def_use_used_in_block 4 db) Block EA_used Var $_1002))
+  (= $_1000 ((rel-arity reg_def_use_live_var_at_block_end 3 db) Block BlockUsed Var))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 59:
+[((rel-arity $reg_def_use_block_last_def'4 2 db) $x1 $x3) <--
+  (= $_1086 ((rel-arity reg_def_use_block_last_def 3 db) $x1 $x2 $x3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 59:
+[((rel-arity $rule59-inter-body1 4 db) RetBlock EA_used Index Reg) <--
+  (= $_1083 ((rel-arity ~ 2 (agg (rel-arity $reg_def_use_block_last_def'4 2 db))) RetBlockEnd Reg))
+  (= $_1514 ((rel-arity $rule59-inter-body 5 db) EA_used RetBlockEnd RetBlock Index Reg))]
+[((rel-arity reg_def_use_live_var_used 6 db) RetBlock Reg Reg EA_used Index $=1) <--
+  (= $_1385 ((rel-arity = 2 comp) $=1 1))
+  (= $_1517 ((rel-arity $rule59-inter-body1 4 db) RetBlock EA_used Index Reg))]
+[((rel-arity $rule59-inter-body 5 db) EA_used RetBlockEnd RetBlock Index Reg) <--
+  (= $_1084 ((rel-arity reg_def_use_return_block_end 4 db) Callee $_1088 RetBlock RetBlockEnd))
+  (= $_1082 ((rel-arity reg_def_use_return_val_used 5 db) $_1087 Callee Reg EA_used Index))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 60:
+[((rel-arity reg_def_use_return_val_used 5 db) EA_call Callee Reg EA_used Index_used) <--
+  (= $_1143 ((rel-arity direct_call 2 db) EA_call Callee))
+  (= $_1144 ((rel-arity $bir-sub294 4 db) EA_call Reg EA_used Index_used))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 60:
+[((rel-arity $bir-sub294 4 db) EA_call Reg EA_used Index_used) <--
+  (= $_1141 ((rel-arity reg_def_use_def_used 4 db) EA_call Reg EA_used Index_used))
+  (= $_1142 ((rel-arity arch_return_reg 1 db) Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 61:
+[((rel-arity reg_has_base_image 2 db) EA Reg) <--
+  (= $_1214 ((rel-arity arch_move_reg_reg 3 db) EA Reg Reg2))
+  (= $_1216 ((rel-arity $bir-sub313 2 db) Reg2 EA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 61:
+[((rel-arity $bir-sub313 2 db) Reg2 EA) <--
+  (= $_1213 ((rel-arity reg_has_base_image 2 db) EA2 Reg2))
+  (= $_1212 ((rel-arity reg_def_use_def_used 4 db) EA2 Reg2 EA $_1215))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 62:
+[((rel-arity $rule62-inter-body 4 db) Mult $=0 EA Reg) <--
+  (= $_1278 ((rel-arity $bir-sub328 2 db) Reg2 EA))
+  (= $_1274 ((rel-arity arch_reg_reg_arithmetic_operation 6 db) EA Reg Reg2 $_1276 Mult $=0))]
+[((rel-arity $bir-sub329 3 db) EA Reg Mult) <--
+  (= $_1610 ((rel-arity $rule62-inter-body 4 db) Mult $=0 EA Reg))
+  (= $_1432 ((rel-arity = 2 comp) $=0 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 62:
+[((rel-arity reg_has_base_image 2 db) EA Reg) <--
+  (= $_1279 ((rel-arity $bir-sub329 3 db) EA Reg Mult))
+  (= $_1275 ((rel-arity > 2 comp) Mult 1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 62:
+[((rel-arity $bir-sub328 2 db) Reg2 EA) <--
+  (= $_1272 ((rel-arity reg_def_use_def_used 4 db) EA2 Reg2 EA $_1277))
+  (= $_1273 ((rel-arity reg_has_base_image 2 db) EA2 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 63:
+[((rel-arity reg_reg_arithmetic_operation_defs 8 db) EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset) <--
+  (= $_1362 ((rel-arity $bir-sub353 8 db) EA Reg_def Reg1 Reg2 Mult Offset EA_def1 EA_def2))
+  (= $_1354 ((rel-arity =/= 2 comp) EA EA_def2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 63:
+[((rel-arity $bir-sub351 7 db) EA Reg_def Reg1 Reg2 Mult Offset EA_def1) <--
+  (= $_1359 ((rel-arity $bir-sub350 6 db) EA Reg_def Reg1 Reg2 Mult Offset))
+  (= $_1351 ((rel-arity reg_def_use_def_used 4 db) EA_def1 Reg1 EA $_1356))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 63:
+[((rel-arity $bir-sub352 7 db) EA Reg_def Reg1 Reg2 Mult Offset EA_def1) <--
+  (= $_1360 ((rel-arity $bir-sub351 7 db) EA Reg_def Reg1 Reg2 Mult Offset EA_def1))
+  (= $_1352 ((rel-arity =/= 2 comp) EA EA_def1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 63:
+[((rel-arity $bir-sub353 8 db) EA Reg_def Reg1 Reg2 Mult Offset EA_def1 EA_def2) <--
+  (= $_1353 ((rel-arity reg_def_use_def_used 4 db) EA_def2 Reg2 EA $_1355))
+  (= $_1361 ((rel-arity $bir-sub352 7 db) EA Reg_def Reg1 Reg2 Mult Offset EA_def1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 63:
+[((rel-arity $bir-sub350 6 db) EA Reg_def Reg1 Reg2 Mult Offset) <--
+  (= $_1358 ((rel-arity $bir-sub349 6 db) EA Reg_def Reg1 Reg2 Mult Offset))
+  (= $_1350 ((rel-arity =/= 2 comp) Reg1 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 63:
+[((rel-arity $bir-sub349 6 db) EA Reg_def Reg1 Reg2 Mult Offset) <--
+  (= $_1349 ((rel-arity def_used_for_address 3 db) EA Reg_def $_1357))
+  (= $_1348 ((rel-arity arch_reg_reg_arithmetic_operation 6 db) EA Reg_def Reg1 Reg2 Mult Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 64:
+[((rel-arity $bir-sub8 6 db) VarDefBase VarDefPos VarBase VarPos EA_def BlockUsed) <--
+  (= $_35 ((rel-arity stack_def_use_live_var_at_block_end 4 db) Block BlockUsed VarBase VarPos))
+  (= $_34 ((rel-arity stack_def_use_live_var_def 6 db) Block VarDefBase VarDefPos VarBase VarPos EA_def))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 64:
+[((rel-arity stack_def_use_def_used 7 db) EA_def VarDefBase VarDefPos EA_used VarUsedBase VarUsedPos Index) <--
+  (= $_38 ((rel-arity $bir-sub8 6 db) VarDefBase VarDefPos VarBase VarPos EA_def BlockUsed))
+  (= $_36 ((rel-arity stack_def_use_live_var_used 8 db) BlockUsed VarBase VarPos VarUsedBase VarUsedPos EA_used Index $_37))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 65:
+[((rel-arity $bir-sub24 7 db) EA_def DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index) <--
+  (= $_109 ((rel-arity $bir-sub23 9 db) EA_def EA DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index Block))
+  (= $_104 ((rel-arity code_in_block 2 db) EA Block))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 65:
+[((rel-arity stack_def_use_def_used 7 db) EA_def DefVarBase DefVarPos EA_used UsedVarBase UsedVarPos Index) <--
+  (= $_105 ((rel-arity stack_def_use_def 3 db) EA_def DefVarBase DefVarPos))
+  (= $_110 ((rel-arity $bir-sub24 7 db) EA_def DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 65:
+[((rel-arity $bir-sub22 8 db) EA_def EA DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index) <--
+  (= $_101 ((rel-arity may_fallthrough 2 db) EA_def EA))
+  (= $_102 ((rel-arity stack_def_use_live_var_used_in_block 9 db) $_106 EA DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index $_107))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 65:
+[((rel-arity $bir-sub23 9 db) EA_def EA DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index Block) <--
+  (= $_103 ((rel-arity code_in_block 2 db) EA_def Block))
+  (= $_108 ((rel-arity $bir-sub22 8 db) EA_def EA DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 66:
+[((rel-arity stack_def_use_def_used 7 db) EA_def VarDefBase VarDefPos Next_EA_used VarUsedBase VarUsedPos NextIndex) <--
+  (= $_204 ((rel-arity stack_def_use_live_var_used 8 db) NextUsedBlock VarBase VarPos VarUsedBase VarUsedPos Next_EA_used NextIndex $_205))
+  (= $_207 ((rel-arity $bir-sub49 6 db) EA_def VarDefBase VarDefPos VarBase VarPos NextUsedBlock))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 66:
+[((rel-arity $bir-sub49 6 db) EA_def VarDefBase VarDefPos VarBase VarPos NextUsedBlock) <--
+  (= $_203 ((rel-arity stack_def_use_live_var_at_prior_used 4 db) EA_used NextUsedBlock VarBase VarPos))
+  (= $_202 ((rel-arity stack_def_use_def_used 7 db) EA_def VarDefBase VarDefPos EA_used VarBase VarPos $_206))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 67:
+[((rel-arity $bir-sub69 4 db) Block inlined_BaseReg_374 inlined_StackPos_374 BlockUsed) <--
+  (= $_282 ((rel-arity stack_def_use_live_var_at_block_end 4 db) Block BlockUsed inlined_BaseReg_374 inlined_StackPos_374))
+  (= $_281 ((rel-arity ~ 3 (agg (rel-arity stack_def_use_ref_in_block 3 db))) Block inlined_BaseReg_374 inlined_StackPos_374))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 67:
+[((rel-arity $bir-sub70 4 db) Block inlined_BaseReg_374 inlined_StackPos_374 BlockUsed) <--
+  (= $_283 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block inlined_BaseReg_374))
+  (= $_286 ((rel-arity $bir-sub69 4 db) Block inlined_BaseReg_374 inlined_StackPos_374 BlockUsed))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 67:
+[((rel-arity stack_def_use_live_var_at_block_end 4 db) PrevBlock BlockUsed inlined_BaseReg_374 inlined_StackPos_374) <--
+  (= $_284 ((rel-arity block_next 3 db) PrevBlock $_285 Block))
+  (= $_287 ((rel-arity $bir-sub70 4 db) Block inlined_BaseReg_374 inlined_StackPos_374 BlockUsed))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 68:
+[((rel-arity stack_def_use_live_var_at_block_end 3 db) PrevBlock Block Var) <--
+  (= $_372 ((rel-arity block_next 3 db) PrevBlock $_377 Block))
+  (= $_371 ((rel-arity stack_def_use_live_var_used 6 db) Block Var $_373 $_374 $_375 $_376))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 69:
+[((rel-arity $bir-sub124 5 db) Block EA_used inlined_BaseReg_375 inlined_StackPos_375 BlockUsed) <--
+  (= $_490 ((rel-arity $bir-sub123 5 db) Block EA_used inlined_BaseReg_375 inlined_StackPos_375 BlockUsed))
+  (= $_487 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_defined_in_block 2 db))) Block inlined_BaseReg_375))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 69:
+[((rel-arity stack_def_use_live_var_at_prior_used 4 db) EA_used BlockUsed inlined_BaseReg_375 inlined_StackPos_375) <--
+  (= $_491 ((rel-arity $bir-sub124 5 db) Block EA_used inlined_BaseReg_375 inlined_StackPos_375 BlockUsed))
+  (= $_488 ((rel-arity ~ 3 (agg (rel-arity stack_def_use_defined_in_block 3 db))) Block inlined_BaseReg_375 inlined_StackPos_375))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 69:
+[((rel-arity $bir-sub123 5 db) Block EA_used inlined_BaseReg_375 inlined_StackPos_375 BlockUsed) <--
+  (= $_486 ((rel-arity stack_def_use_live_var_at_block_end 4 db) Block BlockUsed inlined_BaseReg_375 inlined_StackPos_375))
+  (= $_485 ((rel-arity stack_def_use_used_in_block 5 db) Block EA_used inlined_BaseReg_375 inlined_StackPos_375 $_489))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 70:
+[((rel-arity stack_def_use_live_var_used 8 db) Block LiveVarBase LiveVarPos UsedVarBase UsedVarPos EA_used Index Moves) <--
+  (= $_584 ((rel-arity stack_def_use_live_var_used_in_block 9 db) Block Block1 LiveVarBase LiveVarPos UsedVarBase UsedVarPos EA_used Index Moves))
+  (= $_1466 ((rel-arity = 2 comp) Block Block1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 71:
+[((rel-arity $bir-sub190 4 db) Block NextEA _tmp_1 Moves) <--
+  (= $_710 ((rel-arity $bir-sub189 10 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1 BlockUsed))
+  (= $_702 ((rel-arity stack_def_use_live_var_used 8 db) BlockUsed BaseReg StackPos VarUsedBase VarUsedPos EA_used Index Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 71:
+[((rel-arity $bir-sub189 10 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1 BlockUsed) <--
+  (= $_709 ((rel-arity $bir-sub188 9 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1))
+  (= $_701 ((rel-arity stack_def_use_live_var_at_block_end 4 db) Block BlockUsed BaseReg StackPos))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 71:
+[((rel-arity $bir-sub188 9 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1) <--
+  (= $_699 ((rel-arity adjusts_stack_in_block 4 db) Block $_707 BaseReg $_708))
+  (= $_700 ((rel-arity stack_def_use_live_var_used_in_block 9 db) Block NextEA BaseReg StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 71:
+[((rel-arity $bir-sub193 2 db) _tmp_1 Moves) <--
+  (= $_713 ((rel-arity $bir-sub192 4 db) NextEA _tmp_1 Moves LastEA))
+  (= $_705 ((rel-arity next 2 db) LastEA NextEA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 71:
+[((rel-arity $bir-sub191 4 db) Block NextEA _tmp_1 Moves) <--
+  (= $_703 ((rel-arity <= 2 comp) Moves 2))
+  (= $_711 ((rel-arity $bir-sub190 4 db) Block NextEA _tmp_1 Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 71:
+[((rel-arity $bir-sub192 4 db) NextEA _tmp_1 Moves LastEA) <--
+  (= $_712 ((rel-arity $bir-sub191 4 db) Block NextEA _tmp_1 Moves))
+  (= $_704 ((rel-arity block_last_instruction 2 db) Block LastEA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 72:
+[((rel-arity $bir-sub229 4 db) Block NextEA _tmp_1 Moves) <--
+  (= $_826 ((rel-arity <= 2 comp) Moves 2))
+  (= $_834 ((rel-arity $bir-sub228 4 db) Block NextEA _tmp_1 Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 72:
+[((rel-arity $bir-sub226 9 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1) <--
+  (= $_822 ((rel-arity stack_base_reg_move 4 db) Block $_830 $_831 BaseReg))
+  (= $_823 ((rel-arity stack_def_use_live_var_used_in_block 9 db) Block NextEA BaseReg StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 72:
+[((rel-arity $bir-sub228 4 db) Block NextEA _tmp_1 Moves) <--
+  (= $_825 ((rel-arity stack_def_use_live_var_used 8 db) BlockUsed BaseReg StackPos VarUsedBase VarUsedPos EA_used Index Moves))
+  (= $_833 ((rel-arity $bir-sub227 10 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1 BlockUsed))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 72:
+[((rel-arity $bir-sub231 2 db) _tmp_1 Moves) <--
+  (= $_828 ((rel-arity next 2 db) LastEA NextEA))
+  (= $_836 ((rel-arity $bir-sub230 4 db) NextEA _tmp_1 Moves LastEA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 72:
+[((rel-arity $bir-sub227 10 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1 BlockUsed) <--
+  (= $_824 ((rel-arity stack_def_use_live_var_at_block_end 4 db) Block BlockUsed BaseReg StackPos))
+  (= $_832 ((rel-arity $bir-sub226 9 db) Block BaseReg NextEA StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 72:
+[((rel-arity $bir-sub230 4 db) NextEA _tmp_1 Moves LastEA) <--
+  (= $_835 ((rel-arity $bir-sub229 4 db) Block NextEA _tmp_1 Moves))
+  (= $_827 ((rel-arity block_last_instruction 2 db) Block LastEA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 73:
+[((rel-arity $bir-sub249 10 db) Block EA Next BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves) <--
+  (= $_915 ((rel-arity $bir-sub248 10 db) Block EA Next BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves))
+  (= $_913 ((rel-arity ~ 2 (agg (rel-arity reg_def_use_def 2 db))) EA BaseReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 73:
+[((rel-arity stack_def_use_live_var_used_in_block 9 db) Block Next BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves) <--
+  (= $_914 ((rel-arity ~ 3 (agg (rel-arity stack_def_use_def 3 db))) EA BaseReg StackPos))
+  (= $_916 ((rel-arity $bir-sub249 10 db) Block EA Next BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 73:
+[((rel-arity $bir-sub248 10 db) Block EA Next BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves) <--
+  (= $_911 ((rel-arity block_instruction_next 3 db) Block EA Next))
+  (= $_912 ((rel-arity stack_def_use_live_var_used_in_block 9 db) Block EA BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 74:
+[((rel-arity $bir-sub267 10 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves) <--
+  (= $_1005 ((rel-arity block_instruction_next 3 db) Block EA Next))
+  (= $_1006 ((rel-arity stack_def_use_live_var_used_in_block 9 db) Block EA BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 74:
+[((rel-arity $bir-sub269 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset) <--
+  (= $_1014 ((rel-arity $bir-sub268 11 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset))
+  (= $_1008 ((rel-arity ~ 3 (agg (rel-arity stack_def_use_def 3 db))) EA BaseReg _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 74:
+[((rel-arity $bir-sub271 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves StackPos) <--
+  (= $_1016 ((rel-arity $bir-sub270 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset))
+  (= $_1010 ((rel-arity + 3 comp) StackPos Offset _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 74:
+[((rel-arity $bir-sub268 11 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset) <--
+  (= $_1007 ((rel-arity adjusts_stack_in_block 4 db) $_1012 EA BaseReg Offset))
+  (= $_1013 ((rel-arity $bir-sub267 10 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 74:
+[((rel-arity stack_def_use_live_var_used_in_block 9 db) Block Next BaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves) <--
+  (= $_1011 ((rel-arity >= 2 comp) _tmp_1 0))
+  (= $_1017 ((rel-arity $bir-sub271 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves StackPos))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 74:
+[((rel-arity $bir-sub270 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset) <--
+  (= $_1015 ((rel-arity $bir-sub269 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset))
+  (= $_1009 ((rel-arity arch_stack_pointer 1 db) BaseReg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 75:
+[((rel-arity $bir-sub281 10 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves) <--
+  (= $_1091 ((rel-arity stack_def_use_live_var_used_in_block 9 db) Block EA BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves))
+  (= $_1090 ((rel-arity block_instruction_next 3 db) Block EA Next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 75:
+[((rel-arity stack_def_use_live_var_used_in_block 9 db) Block Next BaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves) <--
+  (= $_1100 ((rel-arity $bir-sub284 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset))
+  (= $_1095 ((rel-arity + 3 comp) StackPos Offset _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 75:
+[((rel-arity $bir-sub282 11 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset) <--
+  (= $_1092 ((rel-arity adjusts_stack_in_block 4 db) $_1096 EA BaseReg Offset))
+  (= $_1097 ((rel-arity $bir-sub281 10 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 75:
+[((rel-arity $bir-sub283 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset) <--
+  (= $_1093 ((rel-arity ~ 3 (agg (rel-arity stack_def_use_def 3 db))) EA BaseReg _tmp_1))
+  (= $_1098 ((rel-arity $bir-sub282 11 db) Block EA Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 75:
+[((rel-arity $bir-sub284 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset) <--
+  (= $_1094 ((rel-arity ~ 1 (agg (rel-arity arch_stack_pointer 1 db))) BaseReg))
+  (= $_1099 ((rel-arity $bir-sub283 10 db) Block Next BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 76:
+[((rel-arity $bir-sub295 10 db) Block EA Next SrcBaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves) <--
+  (= $_1147 ((rel-arity stack_def_use_live_var_used_in_block 9 db) Block EA SrcBaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves))
+  (= $_1146 ((rel-arity block_instruction_next 3 db) Block EA Next))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 76:
+[((rel-arity stack_def_use_live_var_used_in_block 9 db) Block Next DstBaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves) <--
+  (= $_1148 ((rel-arity stack_base_reg_move 4 db) $_1149 EA SrcBaseReg DstBaseReg))
+  (= $_1150 ((rel-arity $bir-sub295 10 db) Block EA Next SrcBaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 77:
+[((rel-arity value_reg 7 db) EA Reg EA $const12 $=0 Immediate $=1) <--
+  (= $_1546 ((rel-arity $rule77-inter-body2 5 db) EA Reg $=0 $=1 Immediate))
+  (= $_1401 ((rel-arity = 2 comp) $const12 NONE))]
+[((rel-arity $rule77-inter-body 3 db) EA Reg Immediate) <--
+  (= $_1225 ((rel-arity $bir-sub314 3 db) EA Reg Immediate))
+  (= $_1220 ((rel-arity ~ 1 (agg (rel-arity $instruction_has_relocation' 1 db))) EA))]
+[((rel-arity $rule77-inter-body2 5 db) EA Reg $=0 $=1 Immediate) <--
+  (= $_1402 ((rel-arity = 2 comp) $=0 0))
+  (= $_1543 ((rel-arity $rule77-inter-body1 4 db) EA Reg $=1 Immediate))]
+[((rel-arity $rule77-inter-body1 4 db) EA Reg $=1 Immediate) <--
+  (= $_1403 ((rel-arity = 2 comp) $=1 1))
+  (= $_1542 ((rel-arity $rule77-inter-body 3 db) EA Reg Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 77:
+[((rel-arity $bir-sub314 3 db) EA Reg Immediate) <--
+  (= $_1219 ((rel-arity def_used_for_address 3 db) EA Reg $_1224))
+  (= $_1218 ((rel-arity arch_move_reg_imm 4 db) EA Reg Immediate $_1223))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 77:
+[((rel-arity $instruction_has_relocation' 1 db) $x1) <--
+  (= $_1222 ((rel-arity instruction_has_relocation 2 db) $x1 $x2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 78:
+[((rel-arity $rule78-inter-body1 3 db) EA Reg $=1) <--
+  (= $_1557 ((rel-arity $rule78-inter-body 2 db) EA Reg))
+  (= $_1406 ((rel-arity = 2 comp) $=1 1))]
+[((rel-arity value_reg 7 db) EA Reg EA $const13 $=0 $=0 $=1) <--
+  (= $_1404 ((rel-arity = 2 comp) $const13 NONE))
+  (= $_1561 ((rel-arity $rule78-inter-body2 4 db) EA Reg $=0 $=1))]
+[((rel-arity $rule78-inter-body 2 db) EA Reg) <--
+  (= $_1282 ((rel-arity def_used_for_address 3 db) EA Reg $_1283))
+  (= $_1281 ((rel-arity is_xor_reset 1 db) EA))]
+[((rel-arity $rule78-inter-body2 4 db) EA Reg $=0 $=1) <--
+  (= $_1405 ((rel-arity = 2 comp) $=0 0))
+  (= $_1558 ((rel-arity $rule78-inter-body1 3 db) EA Reg $=1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 79:
+[((rel-arity $rule79-inter-body 3 db) EA Reg Immediate) <--
+  (= $_1365 ((rel-arity def_used_for_address 3 db) EA Reg $_1367))
+  (= $_1364 ((rel-arity reg_def_use_flow_def 4 db) EA Reg $_1366 Immediate))]
+[((rel-arity $rule79-inter-body2 5 db) Immediate $const48 EA Reg $=0) <--
+  (= $_1575 ((rel-arity $rule79-inter-body1 4 db) EA Reg $=0 Immediate))
+  (= $_1485 ((rel-arity = 2 comp) $const48 NONE))]
+[((rel-arity value_reg 7 db) EA Reg EA $const48 $=0 Immediate $=1) <--
+  (= $_1578 ((rel-arity $rule79-inter-body2 5 db) Immediate $const48 EA Reg $=0))
+  (= $_1487 ((rel-arity = 2 comp) $=1 1))]
+[((rel-arity $rule79-inter-body1 4 db) EA Reg $=0 Immediate) <--
+  (= $_1574 ((rel-arity $rule79-inter-body 3 db) EA Reg Immediate))
+  (= $_1486 ((rel-arity = 2 comp) $=0 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 80:
+[((rel-arity $rule80-inter-body1 3 db) EA Reg $=0) <--
+  (= $_1455 ((rel-arity = 2 comp) $=0 0))
+  (= $_1626 ((rel-arity $rule80-inter-body 2 db) EA Reg))]
+[((rel-arity $rule80-inter-body 2 db) EA Reg) <--
+  (= $_40 ((rel-arity value_reg_unsupported 2 db) EA Reg))
+  (= $_41 ((rel-arity def_used_for_address 3 db) EA Reg $_42))]
+[((rel-arity value_reg 7 db) EA Reg EA Reg $=1 $=0 $=1) <--
+  (= $_1629 ((rel-arity $rule80-inter-body1 3 db) EA Reg $=0))
+  (= $_1454 ((rel-arity = 2 comp) $=1 1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 81:
+[((rel-arity $rule81-inter-body 2 db) EA Reg) <--
+  (= $_113 ((rel-arity def_used_for_address 3 db) EA Reg $_114))
+  (= $_112 ((rel-arity value_reg_unsupported 2 db) EA Reg))]
+[((rel-arity $rule81-inter-body1 3 db) EA Reg $=0) <--
+  (= $_1414 ((rel-arity = 2 comp) $=0 0))
+  (= $_1579 ((rel-arity $rule81-inter-body 2 db) EA Reg))]
+[((rel-arity value_reg 7 db) EA Reg EA Reg $=1 $=0 $=1) <--
+  (= $_1582 ((rel-arity $rule81-inter-body1 3 db) EA Reg $=0))
+  (= $_1413 ((rel-arity = 2 comp) $=1 1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 82:
+[((rel-arity $bir-sub52 3 db) Steps Immediate _tmp_2) <--
+  (= $_1438 ((rel-arity = 2 comp) $=1 1))
+  (= $_1501 ((rel-arity $rule82-inter-body2 4 db) Steps _tmp_2 $=1 Immediate))]
+[((rel-arity $rule82-inter-body 8 db) Steps EA1 EA Reg Reg1 _tmp_2 $=1 Immediate) <--
+  (= $_216 ((rel-arity $bir-sub51 5 db) EA Reg Steps Immediate _tmp_2))
+  (= $_212 ((rel-arity value_reg_edge 6 db) EA Reg EA1 Reg1 $=1 Immediate))]
+[((rel-arity $rule82-inter-body1 6 db) Steps Reg1 _tmp_2 $=1 Immediate Reg) <--
+  (= $_1497 ((rel-arity $rule82-inter-body 8 db) Steps EA1 EA Reg Reg1 _tmp_2 $=1 Immediate))
+  (= $_1439 ((rel-arity = 2 comp) EA EA1))]
+[((rel-arity $rule82-inter-body2 4 db) Steps _tmp_2 $=1 Immediate) <--
+  (= $_1440 ((rel-arity = 2 comp) Reg Reg1))
+  (= $_1498 ((rel-arity $rule82-inter-body1 6 db) Steps Reg1 _tmp_2 $=1 Immediate Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 82:
+[((rel-arity $bir-sub53 2 db) Steps _tmp_2) <--
+  (= $_217 ((rel-arity $bir-sub52 3 db) Steps Immediate _tmp_2))
+  (= $_213 ((rel-arity =/= 2 comp) Immediate 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 82:
+[((rel-arity $bir-sub51 5 db) EA Reg Steps Immediate _tmp_2) <--
+  (= $_211 ((rel-arity <= 2 comp) Steps 1))
+  (= $_215 ((rel-arity $bir-sub50 5 db) EA Reg Steps Immediate _tmp_2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 82:
+[((rel-arity $rule82-inter-body4 7 db) $const6 EA Reg Steps $const7 _tmp_2 Immediate) <--
+  (= $_1506 ((rel-arity $rule82-inter-body3 8 db) _tmp_2 $=0 $const6 EA Reg Steps $const7 Immediate))
+  (= $_1393 ((rel-arity = 2 comp) $=0 0))]
+[((rel-arity $rule82-inter-body3 8 db) _tmp_2 $=0 $const6 EA Reg Steps $const7 Immediate) <--
+  (= $_210 ((rel-arity value_reg 7 db) EA Reg EA_from $const6 Immediate Base _tmp_2))
+  (= $_209 ((rel-arity value_reg 7 db) EA Reg EA_from $const7 $=0 Base Steps))]
+[((rel-arity $rule82-inter-body5 6 db) EA Reg Steps $const7 _tmp_2 Immediate) <--
+  (= $_1391 ((rel-arity = 2 comp) $const6 Unknown))
+  (= $_1507 ((rel-arity $rule82-inter-body4 7 db) $const6 EA Reg Steps $const7 _tmp_2 Immediate))]
+[((rel-arity $bir-sub50 5 db) EA Reg Steps Immediate _tmp_2) <--
+  (= $_1510 ((rel-arity $rule82-inter-body5 6 db) EA Reg Steps $const7 _tmp_2 Immediate))
+  (= $_1392 ((rel-arity = 2 comp) $const7 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 83:
+[((rel-arity $bir-sub71 10 db) EA2 Reg2 Multiplier2 Offset2 Steps EA1 Reg1 _tmp_2 _tmp_4 _tmp_5) <--
+  (= $_290 ((rel-arity value_reg 7 db) EA1 Reg1 EA3 Reg3 _tmp_2 _tmp_4 _tmp_5))
+  (= $_289 ((rel-arity value_reg 7 db) EA2 Reg2 EA3 Reg3 Multiplier2 Offset2 Steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 83:
+[((rel-arity $bir-sub73 10 db) EA2 Multiplier2 Offset2 Steps EA1 _tmp_2 _tmp_4 _tmp_5 Multiplier Offset) <--
+  (= $_299 ((rel-arity $bir-sub72 10 db) EA2 Reg2 Multiplier2 Offset2 Steps EA1 Reg1 _tmp_2 _tmp_4 _tmp_5))
+  (= $_292 ((rel-arity value_reg_edge 6 db) EA1 Reg1 EA2 Reg2 Multiplier Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 83:
+[((rel-arity $bir-sub75 6 db) Offset2 Steps _tmp_4 _tmp_5 Multiplier Offset) <--
+  (= $_294 ((rel-arity * 3 comp) Multiplier Multiplier2 _tmp_2))
+  (= $_301 ((rel-arity $bir-sub74 8 db) Multiplier2 Offset2 Steps _tmp_2 _tmp_4 _tmp_5 Multiplier Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 83:
+[((rel-arity $bir-sub76 5 db) Steps _tmp_4 _tmp_5 Offset _tmp_3) <--
+  (= $_295 ((rel-arity * 3 comp) Offset2 Multiplier _tmp_3))
+  (= $_302 ((rel-arity $bir-sub75 6 db) Offset2 Steps _tmp_4 _tmp_5 Multiplier Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 83:
+[((rel-arity $bir-sub74 8 db) Multiplier2 Offset2 Steps _tmp_2 _tmp_4 _tmp_5 Multiplier Offset) <--
+  (= $_300 ((rel-arity $bir-sub73 10 db) EA2 Multiplier2 Offset2 Steps EA1 _tmp_2 _tmp_4 _tmp_5 Multiplier Offset))
+  (= $_293 ((rel-arity > 2 comp) EA1 EA2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 83:
+[((rel-arity $bir-sub72 10 db) EA2 Reg2 Multiplier2 Offset2 Steps EA1 Reg1 _tmp_2 _tmp_4 _tmp_5) <--
+  (= $_298 ((rel-arity $bir-sub71 10 db) EA2 Reg2 Multiplier2 Offset2 Steps EA1 Reg1 _tmp_2 _tmp_4 _tmp_5))
+  (= $_291 ((rel-arity <= 2 comp) Steps 1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 83:
+[((rel-arity $bir-sub77 2 db) Steps _tmp_5) <--
+  (= $_296 ((rel-arity + 3 comp) _tmp_3 Offset _tmp_4))
+  (= $_303 ((rel-arity $bir-sub76 5 db) Steps _tmp_4 _tmp_5 Offset _tmp_3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 84:
+[((rel-arity $rule84-inter-body 3 db) EA Reg Address) <--
+  (= $_386 ((rel-arity $bir-sub96 3 db) EA EA_rel Reg))
+  (= $_381 ((rel-arity symbolic_expr_from_relocation 5 db) EA_rel $_382 $_383 $_384 Address))]
+[((rel-arity $rule84-inter-body1 4 db) EA Reg Address $=0) <--
+  (= $_1666 ((rel-arity $rule84-inter-body 3 db) EA Reg Address))
+  (= $_1399 ((rel-arity = 2 comp) $=0 0))]
+[((rel-arity $rule84-inter-body2 5 db) EA Reg Address $=0 $=1) <--
+  (= $_1400 ((rel-arity = 2 comp) $=1 1))
+  (= $_1667 ((rel-arity $rule84-inter-body1 4 db) EA Reg Address $=0))]
+[((rel-arity value_reg 7 db) EA Reg EA $const11 $=0 Address $=1) <--
+  (= $_1670 ((rel-arity $rule84-inter-body2 5 db) EA Reg Address $=0 $=1))
+  (= $_1398 ((rel-arity = 2 comp) $const11 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 84:
+[((rel-arity $bir-sub96 3 db) EA EA_rel Reg) <--
+  (= $_380 ((rel-arity def_used_for_address 3 db) EA Reg $_385))
+  (= $_379 ((rel-arity instruction_has_relocation 2 db) EA EA_rel))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 85:
+[((rel-arity $rule85-inter-body5 4 db) EA Reg $const22 Offset) <--
+  (= $_1424 ((rel-arity = 2 comp) $const22 NONE))
+  (= $_1569 ((rel-arity $rule85-inter-body4 3 db) EA Reg Offset))]
+[((rel-arity value_reg 7 db) EA Reg EA $const22 $=0 Offset $=1) <--
+  (= $_1426 ((rel-arity = 2 comp) $=1 1))
+  (= $_1573 ((rel-arity $rule85-inter-body6 5 db) EA Reg $const22 $=0 Offset))]
+[((rel-arity $rule85-inter-body6 5 db) EA Reg $const22 $=0 Offset) <--
+  (= $_1425 ((rel-arity = 2 comp) $=0 0))
+  (= $_1570 ((rel-arity $rule85-inter-body5 4 db) EA Reg $const22 Offset))]
+[((rel-arity $rule85-inter-body4 3 db) EA Reg Offset) <--
+  (= $_503 ((rel-arity $bir-sub126 3 db) EA Offset Reg))
+  (= $_496 ((rel-arity track_register 1 db) Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 85:
+[((rel-arity $rule85-inter-body 4 db) EA Op2 $=0 $const28) <--
+  (= $_1450 ((rel-arity = 2 comp) $=0 $=01))
+  (= $_493 ((rel-arity instruction 10 db) EA $_497 $_498 $const28 $_499 Op2 $=0 $=01 $_500 $_501))]
+[((rel-arity $rule85-inter-body1 3 db) EA Op2 $const28) <--
+  (= $_1448 ((rel-arity = 2 comp) $=0 0))
+  (= $_1526 ((rel-arity $rule85-inter-body 4 db) EA Op2 $=0 $const28))]
+[((rel-arity $rule85-inter-body3 4 db) $const28 Offset EA Op2) <--
+  (= $_1447 ((rel-arity = 2 comp) $=1 1))
+  (= $_1528 ((rel-arity $rule85-inter-body2 5 db) $const28 $=1 Offset EA Op2))]
+[((rel-arity $bir-sub125 3 db) EA Op2 Offset) <--
+  (= $_1446 ((rel-arity = 2 comp) $const28 LEA))
+  (= $_1531 ((rel-arity $rule85-inter-body3 4 db) $const28 Offset EA Op2))]
+[((rel-arity $rule85-inter-body2 5 db) $const28 $=1 Offset EA Op2) <--
+  (= $_494 ((rel-arity got_relative_operand 3 db) EA $=1 Offset))
+  (= $_1527 ((rel-arity $rule85-inter-body1 3 db) EA Op2 $const28))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 85:
+[((rel-arity $bir-sub126 3 db) EA Offset Reg) <--
+  (= $_502 ((rel-arity $bir-sub125 3 db) EA Op2 Offset))
+  (= $_495 ((rel-arity op_regdirect_contains_reg 2 db) Op2 Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub152 11 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def EA_def2 Reg2 Mult Offset) <--
+  (= $_589 ((rel-arity =/= 2 comp) EA EA_third))
+  (= $_599 ((rel-arity $bir-sub151 11 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def EA_def2 Reg2 Mult Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub156 11 db) Steps1 EA_third Reg3 Offset1 EA Reg_def Mult Offset Offset2 Steps2 _tmp_3) <--
+  (= $_593 ((rel-arity + 3 comp) Mult1 _tmp_2 _tmp_3))
+  (= $_603 ((rel-arity $bir-sub155 12 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def Mult Offset Offset2 Steps2 _tmp_2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub153 12 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def Mult Offset Mult2 Offset2 Steps2) <--
+  (= $_590 ((rel-arity value_reg 7 db) EA_def2 Reg2 EA_third Reg3 Mult2 Offset2 Steps2))
+  (= $_600 ((rel-arity $bir-sub152 11 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def EA_def2 Reg2 Mult Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub155 12 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def Mult Offset Offset2 Steps2 _tmp_2) <--
+  (= $_592 ((rel-arity * 3 comp) Mult Mult2 _tmp_2))
+  (= $_602 ((rel-arity $bir-sub154 12 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def Mult Offset Mult2 Offset2 Steps2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub151 11 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def EA_def2 Reg2 Mult Offset) <--
+  (= $_586 ((rel-arity <= 2 comp) Steps1 0))
+  (= $_1513 ((rel-arity $rule86-inter-body 11 db) Offset1 Mult1 Reg_def Mult EA_def2 EA_third Offset Reg3 Reg2 Steps1 EA))]
+[((rel-arity $rule86-inter-body 11 db) Offset1 Mult1 Reg_def Mult EA_def2 EA_third Offset Reg3 Reg2 Steps1 EA) <--
+  (= $_587 ((rel-arity value_reg 7 db) EA_def1 Reg1 EA_third Reg3 Mult1 Offset1 Steps1))
+  (= $_588 ((rel-arity reg_reg_arithmetic_operation_defs 8 db) EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub154 12 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def Mult Offset Mult2 Offset2 Steps2) <--
+  (= $_601 ((rel-arity $bir-sub153 12 db) Steps1 EA_third Reg3 Mult1 Offset1 EA Reg_def Mult Offset Mult2 Offset2 Steps2))
+  (= $_591 ((rel-arity <= 2 comp) Steps2 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub159 8 db) Steps1 EA_third Reg3 EA Reg_def Steps2 _tmp_3 _tmp_6) <--
+  (= $_596 ((rel-arity + 3 comp) _tmp_4 _tmp_5 _tmp_6))
+  (= $_606 ((rel-arity $bir-sub158 9 db) Steps1 EA_third Reg3 EA Reg_def Steps2 _tmp_3 _tmp_4 _tmp_5))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub158 9 db) Steps1 EA_third Reg3 EA Reg_def Steps2 _tmp_3 _tmp_4 _tmp_5) <--
+  (= $_595 ((rel-arity * 3 comp) Offset2 Mult _tmp_5))
+  (= $_605 ((rel-arity $bir-sub157 10 db) Steps1 EA_third Reg3 EA Reg_def Mult Offset2 Steps2 _tmp_3 _tmp_4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub157 10 db) Steps1 EA_third Reg3 EA Reg_def Mult Offset2 Steps2 _tmp_3 _tmp_4) <--
+  (= $_604 ((rel-arity $bir-sub156 11 db) Steps1 EA_third Reg3 Offset1 EA Reg_def Mult Offset Offset2 Steps2 _tmp_3))
+  (= $_594 ((rel-arity + 3 comp) Offset Offset1 _tmp_4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity $bir-sub160 7 db) EA_third Reg3 EA Reg_def _tmp_3 _tmp_6 _tmp_7) <--
+  (= $_607 ((rel-arity $bir-sub159 8 db) Steps1 EA_third Reg3 EA Reg_def Steps2 _tmp_3 _tmp_6))
+  (= $_597 ((rel-arity max 3 comp) Steps1 Steps2 _tmp_7))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 86:
+[((rel-arity value_reg 7 db) EA Reg_def EA_third Reg3 _tmp_3 _tmp_6 _tmp_8) <--
+  (= $_598 ((rel-arity + 3 comp) _tmp_7 2 _tmp_8))
+  (= $_608 ((rel-arity $bir-sub160 7 db) EA_third Reg3 EA Reg_def _tmp_3 _tmp_6 _tmp_7))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub202 8 db) Steps1 EA Reg_def EA_third Reg3 Steps2 _tmp_2 _tmp_5) <--
+  (= $_738 ((rel-arity $bir-sub201 9 db) Steps1 EA Reg_def EA_third Reg3 Steps2 _tmp_2 _tmp_3 _tmp_4))
+  (= $_726 ((rel-arity + 3 comp) _tmp_3 _tmp_4 _tmp_5))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $rule87-inter-body 9 db) Reg_def Mult EA_def2 Reg2 $const44 Steps1 Offset1 Offset EA) <--
+  (= $_717 ((rel-arity value_reg 7 db) EA_def1 Reg1 $_729 $const44 $_730 Offset1 Steps1))
+  (= $_718 ((rel-arity reg_reg_arithmetic_operation_defs 8 db) EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset))]
+[((rel-arity $bir-sub194 8 db) Steps1 Offset1 EA Reg_def EA_def2 Reg2 Mult Offset) <--
+  (= $_716 ((rel-arity <= 2 comp) Steps1 0))
+  (= $_1652 ((rel-arity $rule87-inter-body1 8 db) Reg_def Mult EA_def2 Reg2 Steps1 Offset1 Offset EA))]
+[((rel-arity $rule87-inter-body1 8 db) Reg_def Mult EA_def2 Reg2 Steps1 Offset1 Offset EA) <--
+  (= $_1649 ((rel-arity $rule87-inter-body 9 db) Reg_def Mult EA_def2 Reg2 $const44 Steps1 Offset1 Offset EA))
+  (= $_1479 ((rel-arity = 2 comp) $const44 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub195 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2) <--
+  (= $_731 ((rel-arity $bir-sub194 8 db) Steps1 Offset1 EA Reg_def EA_def2 Reg2 Mult Offset))
+  (= $_719 ((rel-arity value_reg 7 db) EA_def2 Reg2 EA_third Reg3 Mult2 Offset2 Steps2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub199 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Offset2 Steps2 _tmp_2) <--
+  (= $_723 ((rel-arity * 3 comp) Mult Mult2 _tmp_2))
+  (= $_735 ((rel-arity $bir-sub198 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity value_reg 7 db) EA Reg_def EA_third Reg3 _tmp_2 _tmp_5 _tmp_7) <--
+  (= $_728 ((rel-arity + 3 comp) _tmp_6 2 _tmp_7))
+  (= $_740 ((rel-arity $bir-sub203 7 db) EA Reg_def EA_third Reg3 _tmp_2 _tmp_5 _tmp_6))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub196 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2) <--
+  (= $_732 ((rel-arity $bir-sub195 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2))
+  (= $_720 ((rel-arity <= 2 comp) Steps2 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub200 10 db) Steps1 EA Reg_def Mult EA_third Reg3 Offset2 Steps2 _tmp_2 _tmp_3) <--
+  (= $_736 ((rel-arity $bir-sub199 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Offset2 Steps2 _tmp_2))
+  (= $_724 ((rel-arity + 3 comp) Offset Offset1 _tmp_3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub201 9 db) Steps1 EA Reg_def EA_third Reg3 Steps2 _tmp_2 _tmp_3 _tmp_4) <--
+  (= $_737 ((rel-arity $bir-sub200 10 db) Steps1 EA Reg_def Mult EA_third Reg3 Offset2 Steps2 _tmp_2 _tmp_3))
+  (= $_725 ((rel-arity * 3 comp) Offset2 Mult _tmp_4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub198 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2) <--
+  (= $_734 ((rel-arity $bir-sub197 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2))
+  (= $_722 ((rel-arity =/= 2 comp) Reg3 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub197 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2) <--
+  (= $_721 ((rel-arity =/= 2 comp) EA EA_third))
+  (= $_733 ((rel-arity $bir-sub196 11 db) Steps1 Offset1 EA Reg_def Mult Offset EA_third Reg3 Mult2 Offset2 Steps2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 87:
+[((rel-arity $bir-sub203 7 db) EA Reg_def EA_third Reg3 _tmp_2 _tmp_5 _tmp_6) <--
+  (= $_727 ((rel-arity max 3 comp) Steps1 Steps2 _tmp_6))
+  (= $_739 ((rel-arity $bir-sub202 8 db) Steps1 EA Reg_def EA_third Reg3 Steps2 _tmp_2 _tmp_5))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub232 8 db) Steps2 Offset2 EA Reg_def EA_def1 Reg1 Mult Offset) <--
+  (= $_1568 ((rel-arity $rule88-inter-body1 8 db) Offset2 Reg1 Reg_def Mult EA_def1 Offset Steps2 EA))
+  (= $_839 ((rel-arity <= 2 comp) Steps2 0))]
+[((rel-arity $rule88-inter-body 9 db) Offset2 Reg1 Reg_def Mult EA_def1 Offset Steps2 $const10 EA) <--
+  (= $_840 ((rel-arity value_reg 7 db) EA_def2 Reg2 $_851 $const10 $_852 Offset2 Steps2))
+  (= $_841 ((rel-arity reg_reg_arithmetic_operation_defs 8 db) EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset))]
+[((rel-arity $rule88-inter-body1 8 db) Offset2 Reg1 Reg_def Mult EA_def1 Offset Steps2 EA) <--
+  (= $_1397 ((rel-arity = 2 comp) $const10 NONE))
+  (= $_1565 ((rel-arity $rule88-inter-body 9 db) Offset2 Reg1 Reg_def Mult EA_def1 Offset Steps2 $const10 EA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub235 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1) <--
+  (= $_855 ((rel-arity $bir-sub234 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1))
+  (= $_844 ((rel-arity =/= 2 comp) Reg3 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub238 9 db) Steps2 EA Reg_def EA_third Reg3 Mult1 Steps1 _tmp_2 _tmp_3) <--
+  (= $_858 ((rel-arity $bir-sub237 10 db) Steps2 Offset2 EA Reg_def Mult EA_third Reg3 Mult1 Steps1 _tmp_2))
+  (= $_847 ((rel-arity * 3 comp) Offset2 Mult _tmp_3))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub233 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1) <--
+  (= $_842 ((rel-arity value_reg 7 db) EA_def1 Reg1 EA_third Reg3 Mult1 Offset1 Steps1))
+  (= $_853 ((rel-arity $bir-sub232 8 db) Steps2 Offset2 EA Reg_def EA_def1 Reg1 Mult Offset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub236 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1) <--
+  (= $_856 ((rel-arity $bir-sub235 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1))
+  (= $_845 ((rel-arity =/= 2 comp) EA EA_third))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub239 8 db) Steps2 EA Reg_def EA_third Reg3 Mult1 Steps1 _tmp_4) <--
+  (= $_859 ((rel-arity $bir-sub238 9 db) Steps2 EA Reg_def EA_third Reg3 Mult1 Steps1 _tmp_2 _tmp_3))
+  (= $_848 ((rel-arity + 3 comp) _tmp_2 _tmp_3 _tmp_4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity value_reg 7 db) EA Reg_def EA_third Reg3 Mult1 _tmp_4 _tmp_6) <--
+  (= $_850 ((rel-arity + 3 comp) _tmp_5 2 _tmp_6))
+  (= $_861 ((rel-arity $bir-sub240 7 db) EA Reg_def EA_third Reg3 Mult1 _tmp_4 _tmp_5))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub234 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1) <--
+  (= $_854 ((rel-arity $bir-sub233 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1))
+  (= $_843 ((rel-arity <= 2 comp) Steps1 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub237 10 db) Steps2 Offset2 EA Reg_def Mult EA_third Reg3 Mult1 Steps1 _tmp_2) <--
+  (= $_846 ((rel-arity + 3 comp) Offset Offset1 _tmp_2))
+  (= $_857 ((rel-arity $bir-sub236 11 db) Steps2 Offset2 EA Reg_def Mult Offset EA_third Reg3 Mult1 Offset1 Steps1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 88:
+[((rel-arity $bir-sub240 7 db) EA Reg_def EA_third Reg3 Mult1 _tmp_4 _tmp_5) <--
+  (= $_849 ((rel-arity max 3 comp) Steps1 Steps2 _tmp_5))
+  (= $_860 ((rel-arity $bir-sub239 8 db) Steps2 EA Reg_def EA_third Reg3 Mult1 Steps1 _tmp_4))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 89:
+[((rel-arity $bir-sub252 3 db) EALoad Immediate Reg2) <--
+  (= $_931 ((rel-arity $bir-sub251 4 db) EALoad Immediate Reg2 $const9))
+  (= $_1395 ((rel-arity = 2 comp) $const9 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 89:
+[((rel-arity $bir-sub250 4 db) EALoad RegBaseLoad StackPosLoad Immediate) <--
+  (= $_1613 ((rel-arity $rule89-inter-body3 5 db) $const1 StackPosLoad EALoad RegBaseLoad Immediate))
+  (= $_1386 ((rel-arity = 2 comp) $const1 NONE))]
+[((rel-arity $rule89-inter-body3 5 db) $const1 StackPosLoad EALoad RegBaseLoad Immediate) <--
+  (= $_918 ((rel-arity stack_def_use_def_used 7 db) EAStore RegBaseStore StackPosStore EALoad RegBaseLoad StackPosLoad $_926))
+  (= $_919 ((rel-arity arch_store_immediate 8 db) EAStore $_927 $_928 Immediate RegBaseStore $const1 $_929 StackPosStore))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 89:
+[((rel-arity $bir-sub251 4 db) EALoad Immediate Reg2 inlined_IndexReg_452) <--
+  (= $_1387 ((rel-arity = 2 comp) $const2 LOAD))
+  (= $_1632 ((rel-arity $rule89-inter-body4 5 db) $const2 inlined_IndexReg_452 Reg2 EALoad Immediate))]
+[((rel-arity $rule89-inter-body4 5 db) $const2 inlined_IndexReg_452 Reg2 EALoad Immediate) <--
+  (= $_930 ((rel-arity $bir-sub250 4 db) EALoad RegBaseLoad StackPosLoad Immediate))
+  (= $_920 ((rel-arity arch_memory_access 9 db) $const2 EALoad $_923 $_924 Reg2 RegBaseLoad inlined_IndexReg_452 $_925 StackPosLoad))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 89:
+[((rel-arity $rule89-inter-body1 4 db) Reg2 EALoad $const38 Immediate) <--
+  (= $_1469 ((rel-arity = 2 comp) $const38 NONE))
+  (= $_1552 ((rel-arity $rule89-inter-body 3 db) Reg2 EALoad Immediate))]
+[((rel-arity $rule89-inter-body2 5 db) Reg2 EALoad $const38 $=1 Immediate) <--
+  (= $_1471 ((rel-arity = 2 comp) $=1 1))
+  (= $_1553 ((rel-arity $rule89-inter-body1 4 db) Reg2 EALoad $const38 Immediate))]
+[((rel-arity $rule89-inter-body 3 db) Reg2 EALoad Immediate) <--
+  (= $_921 ((rel-arity def_used_for_address 3 db) EALoad Reg2 $_922))
+  (= $_932 ((rel-arity $bir-sub252 3 db) EALoad Immediate Reg2))]
+[((rel-arity value_reg 7 db) EALoad Reg2 EALoad $const38 $=0 Immediate $=1) <--
+  (= $_1470 ((rel-arity = 2 comp) $=0 0))
+  (= $_1556 ((rel-arity $rule89-inter-body2 5 db) Reg2 EALoad $const38 $=1 Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 90:
+[((rel-arity $bir-sub274 4 db) EA Reg MemAddr Size) <--
+  (= $_1043 ((rel-arity $bir-sub273 4 db) EA Reg MemAddr Size))
+  (= $_1022 ((rel-arity >= 2 comp) 4 Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 90:
+[((rel-arity $rule90-inter-body3 4 db) SrcOp $const40 EA Reg) <--
+  (= $_1019 ((rel-arity arch_memory_access 9 db) $const40 EA SrcOp $_1036 Reg $_1037 $_1038 $_1039 $_1040))
+  (= $_1020 ((rel-arity def_used_for_address 3 db) EA Reg $_1041))]
+[((rel-arity $bir-sub272 3 db) EA SrcOp Reg) <--
+  (= $_1534 ((rel-arity $rule90-inter-body3 4 db) SrcOp $const40 EA Reg))
+  (= $_1475 ((rel-arity = 2 comp) $const40 LOAD))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 90:
+[((rel-arity $rule90-inter-body 3 db) EA Reg TargetAddr) <--
+  (= $_1047 ((rel-arity $bir-sub277 3 db) EA Reg TargetAddr))
+  (= $_1026 ((rel-arity >= 2 comp) TargetAddr 0))]
+[((rel-arity $rule90-inter-body1 4 db) EA Reg TargetAddr $=1) <--
+  (= $_1484 ((rel-arity = 2 comp) $=1 1))
+  (= $_1521 ((rel-arity $rule90-inter-body 3 db) EA Reg TargetAddr))]
+[((rel-arity value_reg 7 db) EA Reg EA $const47 $=0 TargetAddr $=1) <--
+  (= $_1483 ((rel-arity = 2 comp) $=0 0))
+  (= $_1525 ((rel-arity $rule90-inter-body2 5 db) $const47 EA Reg TargetAddr $=1))]
+[((rel-arity $rule90-inter-body2 5 db) $const47 EA Reg TargetAddr $=1) <--
+  (= $_1482 ((rel-arity = 2 comp) $const47 NONE))
+  (= $_1522 ((rel-arity $rule90-inter-body1 4 db) EA Reg TargetAddr $=1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 90:
+[((rel-arity $bir-sub273 4 db) EA Reg MemAddr Size) <--
+  (= $_1042 ((rel-arity $bir-sub272 3 db) EA SrcOp Reg))
+  (= $_1021 ((rel-arity simple_data_access_pattern 4 db) MemAddr SrcOp Size EA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 90:
+[((rel-arity $bir-sub277 3 db) EA Reg TargetAddr) <--
+  (= $_1025 ((rel-arity defined_symbol 9 db) $_1027 $_1028 $_1029 $_1030 $_1031 $_1032 $_1033 $_1034 Symbol))
+  (= $_1046 ((rel-arity $bir-sub276 4 db) EA Reg Symbol TargetAddr))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 90:
+[((rel-arity $bir-sub275 4 db) EA Reg MemAddr Size) <--
+  (= $_1044 ((rel-arity $bir-sub274 4 db) EA Reg MemAddr Size))
+  (= $_1023 ((rel-arity <= 2 comp) Size 8))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 90:
+[((rel-arity $bir-sub276 4 db) EA Reg Symbol TargetAddr) <--
+  (= $_1024 ((rel-arity symbolic_expr_from_relocation 5 db) MemAddr Size Symbol $_1035 TargetAddr))
+  (= $_1045 ((rel-arity $bir-sub275 4 db) EA Reg MemAddr Size))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 91:
+[((rel-arity value_reg 7 db) ea reg ea_reg1 reg1 multiplier offset steps) <--
+  (= $_1102 ((rel-arity value_reg_functor 7 db) ea reg ea_reg1 reg1 multiplier offset steps))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 92:
+[((rel-arity $rule92-inter-body1 5 db) EA Reg Reg_origin EA_prev $=1) <--
+  (= $_1488 ((rel-arity = 2 comp) $=1 1))
+  (= $_1677 ((rel-arity $rule92-inter-body 4 db) EA Reg Reg_origin EA_prev))]
+[((rel-arity $rule92-inter-body 4 db) EA Reg Reg_origin EA_prev) <--
+  (= $_1161 ((rel-arity $bir-sub298 4 db) EA_prev Reg_origin EA Reg))
+  (= $_1156 ((rel-arity =/= 2 comp) EA EA_prev))]
+[((rel-arity value_reg_edge 6 db) EA Reg EA_prev Reg_origin $=1 $=0) <--
+  (= $_1489 ((rel-arity = 2 comp) $=0 0))
+  (= $_1680 ((rel-arity $rule92-inter-body1 5 db) EA Reg Reg_origin EA_prev $=1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 92:
+[((rel-arity $bir-sub297 4 db) EA_prev Reg_origin EA Reg) <--
+  (= $_1154 ((rel-arity arch_move_reg_reg 3 db) EA Reg Reg_origin))
+  (= $_1159 ((rel-arity $bir-sub296 3 db) EA_prev Reg_origin EA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 92:
+[((rel-arity $bir-sub298 4 db) EA_prev Reg_origin EA Reg) <--
+  (= $_1155 ((rel-arity track_register 1 db) Reg))
+  (= $_1160 ((rel-arity $bir-sub297 4 db) EA_prev Reg_origin EA Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 92:
+[((rel-arity $bir-sub296 3 db) EA_prev Reg_origin EA) <--
+  (= $_1152 ((rel-arity reg_def_use_def_used 4 db) EA_prev Reg_origin EA $_1157))
+  (= $_1153 ((rel-arity def_used_for_address 3 db) EA_prev Reg_origin $_1158))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 93:
+[((rel-arity value_reg_edge 6 db) EA Dst EA_prev Src Mult Immediate) <--
+  (= $_1234 ((rel-arity $bir-sub316 6 db) EA_prev Src EA Dst Mult Immediate))
+  (= $_1230 ((rel-arity track_register 1 db) Dst))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 93:
+[((rel-arity $bir-sub316 6 db) EA_prev Src EA Dst Mult Immediate) <--
+  (= $_1229 ((rel-arity arch_reg_arithmetic_operation 5 db) EA Dst Src Mult Immediate))
+  (= $_1233 ((rel-arity $bir-sub315 3 db) EA_prev Src EA))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 93:
+[((rel-arity $bir-sub315 3 db) EA_prev Src EA) <--
+  (= $_1228 ((rel-arity def_used_for_address 3 db) EA_prev Src $_1232))
+  (= $_1227 ((rel-arity reg_def_use_def_used 4 db) EA_prev Src EA $_1231))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 94:
+[((rel-arity $rule94-inter-body 7 db) inlined_IndexReg_472 $const31 EAStore StackPosLoad Reg1 EALoad RegBaseLoad) <--
+  (= $_1285 ((rel-arity arch_memory_access 9 db) $const31 EAStore $_1293 $_1294 Reg1 RegBaseStore inlined_IndexReg_472 $_1295 StackPosStore))
+  (= $_1286 ((rel-arity stack_def_use_def_used 7 db) EAStore RegBaseStore StackPosStore EALoad RegBaseLoad StackPosLoad $_1296))]
+[((rel-arity $bir-sub330 6 db) EAStore Reg1 inlined_IndexReg_472 EALoad RegBaseLoad StackPosLoad) <--
+  (= $_1541 ((rel-arity $rule94-inter-body 7 db) inlined_IndexReg_472 $const31 EAStore StackPosLoad Reg1 EALoad RegBaseLoad))
+  (= $_1457 ((rel-arity = 2 comp) $const31 STORE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 94:
+[((rel-arity $rule94-inter-body2 5 db) EALoad EAPrev Reg2 Reg1 $=1) <--
+  (= $_1429 ((rel-arity = 2 comp) $=1 1))
+  (= $_1601 ((rel-arity $rule94-inter-body1 4 db) EALoad EAPrev Reg2 Reg1))]
+[((rel-arity $rule94-inter-body1 4 db) EALoad EAPrev Reg2 Reg1) <--
+  (= $_1300 ((rel-arity $bir-sub333 4 db) EAStore Reg1 EALoad Reg2))
+  (= $_1288 ((rel-arity reg_def_use_def_used 4 db) EAPrev Reg1 EAStore $_1289))]
+[((rel-arity value_reg_edge 6 db) EALoad Reg2 EAPrev Reg1 $=1 $=0) <--
+  (= $_1604 ((rel-arity $rule94-inter-body2 5 db) EALoad EAPrev Reg2 Reg1 $=1))
+  (= $_1430 ((rel-arity = 2 comp) $=0 0))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 94:
+[((rel-arity $bir-sub332 5 db) EAStore Reg1 EALoad Reg2 inlined_IndexReg_886) <--
+  (= $_1645 ((rel-arity $rule94-inter-body3 6 db) inlined_IndexReg_886 Reg2 EAStore $const41 Reg1 EALoad))
+  (= $_1476 ((rel-arity = 2 comp) $const41 LOAD))]
+[((rel-arity $rule94-inter-body3 6 db) inlined_IndexReg_886 Reg2 EAStore $const41 Reg1 EALoad) <--
+  (= $_1298 ((rel-arity $bir-sub331 5 db) EAStore Reg1 EALoad RegBaseLoad StackPosLoad))
+  (= $_1287 ((rel-arity arch_memory_access 9 db) $const41 EALoad $_1290 $_1291 Reg2 RegBaseLoad inlined_IndexReg_886 $_1292 StackPosLoad))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 94:
+[((rel-arity $bir-sub333 4 db) EAStore Reg1 EALoad Reg2) <--
+  (= $_1299 ((rel-arity $bir-sub332 5 db) EAStore Reg1 EALoad Reg2 $const25))
+  (= $_1431 ((rel-arity = 2 comp) $const25 NONE))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 94:
+[((rel-arity $bir-sub331 5 db) EAStore Reg1 EALoad RegBaseLoad StackPosLoad) <--
+  (= $_1415 ((rel-arity = 2 comp) $const18 NONE))
+  (= $_1297 ((rel-arity $bir-sub330 6 db) EAStore Reg1 $const18 EALoad RegBaseLoad StackPosLoad))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 95:
+[((rel-arity $rule95-inter-body 4 db) BranchLT EA_branch EA_jmp Reg) <--
+  (= $_1374 ((rel-arity + 3 comp) Immediate BranchOffset _tmp_1))
+  (= $_1382 ((rel-arity $bir-sub357 6 db) Reg EA_jmp Immediate BranchLT BranchOffset EA_branch))]
+[((rel-arity value_reg_limit 5 db) EA_jmp EA_branch Reg $const24 BranchLT) <--
+  (= $_1428 ((rel-arity = 2 comp) $const24 NONE))
+  (= $_1648 ((rel-arity $rule95-inter-body 4 db) BranchLT EA_branch EA_jmp Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 95:
+[((rel-arity $bir-sub356 6 db) Reg EA_jmp Immediate BranchLT BranchOffset EA_branch) <--
+  (= $_1380 ((rel-arity $bir-sub355 5 db) Reg EA_jmp Immediate BranchLT BranchOffset))
+  (= $_1372 ((rel-arity direct_jump 2 db) EA_jmp EA_branch))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 95:
+[((rel-arity $bir-sub357 6 db) Reg EA_jmp Immediate BranchLT BranchOffset EA_branch) <--
+  (= $_1373 ((rel-arity may_fallthrough 2 db) EA_jmp $_1375))
+  (= $_1381 ((rel-arity $bir-sub356 6 db) Reg EA_jmp Immediate BranchLT BranchOffset EA_branch))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 95:
+[((rel-arity $bir-sub354 4 db) Reg EA_jmp CC Immediate) <--
+  (= $_1369 ((rel-arity track_register 1 db) Reg))
+  (= $_1370 ((rel-arity compare_and_jump_immediate 5 db) $_1378 EA_jmp CC Reg Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 95:
+[((rel-arity $bir-sub355 5 db) Reg EA_jmp Immediate BranchLT BranchOffset) <--
+  (= $_1371 ((rel-arity limit_type_map 5 db) CC BranchLT $_1376 BranchOffset $_1377))
+  (= $_1379 ((rel-arity $bir-sub354 4 db) Reg EA_jmp CC Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 96:
+[((rel-arity value_reg_limit 5 db) EA_jmp EA_fallthrough Reg _tmp_1 FallthroughLT) <--
+  (= $_49 ((rel-arity + 3 comp) Immediate FallthroughOffset _tmp_1))
+  (= $_57 ((rel-arity $bir-sub12 6 db) Reg EA_jmp Immediate FallthroughLT FallthroughOffset EA_fallthrough))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 96:
+[((rel-arity $bir-sub10 5 db) Reg EA_jmp Immediate FallthroughLT FallthroughOffset) <--
+  (= $_54 ((rel-arity $bir-sub9 4 db) Reg EA_jmp CC Immediate))
+  (= $_46 ((rel-arity limit_type_map 5 db) CC $_51 FallthroughLT $_52 FallthroughOffset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 96:
+[((rel-arity $bir-sub9 4 db) Reg EA_jmp CC Immediate) <--
+  (= $_45 ((rel-arity compare_and_jump_immediate 5 db) $_53 EA_jmp CC Reg Immediate))
+  (= $_44 ((rel-arity track_register 1 db) Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 96:
+[((rel-arity $bir-sub11 5 db) Reg EA_jmp Immediate FallthroughLT FallthroughOffset) <--
+  (= $_47 ((rel-arity direct_jump 2 db) EA_jmp $_50))
+  (= $_55 ((rel-arity $bir-sub10 5 db) Reg EA_jmp Immediate FallthroughLT FallthroughOffset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 96:
+[((rel-arity $bir-sub12 6 db) Reg EA_jmp Immediate FallthroughLT FallthroughOffset EA_fallthrough) <--
+  (= $_48 ((rel-arity may_fallthrough 2 db) EA_jmp EA_fallthrough))
+  (= $_56 ((rel-arity $bir-sub11 5 db) Reg EA_jmp Immediate FallthroughLT FallthroughOffset))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 97:
+[((rel-arity $bir-sub25 6 db) LT1 Offset1 EA_cmp EA_jmp Reg1 Reg2) <--
+  (= $_117 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp CC Reg1 Reg2))
+  (= $_116 ((rel-arity limit_type_map 5 db) CC LT1 $_126 Offset1 $_127))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 97:
+[((rel-arity $bir-sub26 6 db) LT1 Offset1 EA_jmp Reg1 Reg2 EA_regdef) <--
+  (= $_118 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp EA_regdef Reg1))
+  (= $_128 ((rel-arity $bir-sub25 6 db) LT1 Offset1 EA_cmp EA_jmp Reg1 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 97:
+[((rel-arity $bir-sub28 5 db) LT1 Offset1 EA_jmp Reg2 Immediate) <--
+  (= $_120 ((rel-arity track_register 1 db) Reg2))
+  (= $_130 ((rel-arity $bir-sub27 5 db) LT1 Offset1 EA_jmp Reg2 Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 97:
+[((rel-arity $bir-sub29 6 db) LT1 Offset1 EA_jmp Reg2 Immediate EA_branch) <--
+  (= $_131 ((rel-arity $bir-sub28 5 db) LT1 Offset1 EA_jmp Reg2 Immediate))
+  (= $_121 ((rel-arity direct_jump 2 db) EA_jmp EA_branch))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 97:
+[((rel-arity value_reg_limit 5 db) EA_jmp EA_branch Reg2 _tmp_1 LT1) <--
+  (= $_123 ((rel-arity + 3 comp) Immediate Offset1 _tmp_1))
+  (= $_133 ((rel-arity $bir-sub30 6 db) LT1 Offset1 EA_jmp Reg2 Immediate EA_branch))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 97:
+[((rel-arity $bir-sub27 5 db) LT1 Offset1 EA_jmp Reg2 Immediate) <--
+  (= $_129 ((rel-arity $bir-sub26 6 db) LT1 Offset1 EA_jmp Reg1 Reg2 EA_regdef))
+  (= $_119 ((rel-arity arch_move_reg_imm 4 db) EA_regdef Reg1 Immediate $_125))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 97:
+[((rel-arity $bir-sub30 6 db) LT1 Offset1 EA_jmp Reg2 Immediate EA_branch) <--
+  (= $_122 ((rel-arity may_fallthrough 2 db) EA_jmp $_124))
+  (= $_132 ((rel-arity $bir-sub29 6 db) LT1 Offset1 EA_jmp Reg2 Immediate EA_branch))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 98:
+[((rel-arity $bir-sub55 6 db) LT2 Offset2 EA_jmp Reg1 Reg2 EA_regdef) <--
+  (= $_233 ((rel-arity $bir-sub54 6 db) LT2 Offset2 EA_cmp EA_jmp Reg1 Reg2))
+  (= $_222 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp EA_regdef Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 98:
+[((rel-arity value_reg_limit 5 db) EA_jmp EA_branch Reg1 _tmp_1 LT2) <--
+  (= $_227 ((rel-arity + 3 comp) Immediate Offset2 _tmp_1))
+  (= $_238 ((rel-arity $bir-sub59 6 db) LT2 Offset2 EA_jmp Reg1 Immediate EA_branch))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 98:
+[((rel-arity $bir-sub56 5 db) LT2 Offset2 EA_jmp Reg1 Immediate) <--
+  (= $_223 ((rel-arity arch_move_reg_imm 4 db) EA_regdef Reg2 Immediate $_229))
+  (= $_234 ((rel-arity $bir-sub55 6 db) LT2 Offset2 EA_jmp Reg1 Reg2 EA_regdef))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 98:
+[((rel-arity $bir-sub57 5 db) LT2 Offset2 EA_jmp Reg1 Immediate) <--
+  (= $_235 ((rel-arity $bir-sub56 5 db) LT2 Offset2 EA_jmp Reg1 Immediate))
+  (= $_224 ((rel-arity track_register 1 db) Reg1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 98:
+[((rel-arity $bir-sub58 6 db) LT2 Offset2 EA_jmp Reg1 Immediate EA_branch) <--
+  (= $_236 ((rel-arity $bir-sub57 5 db) LT2 Offset2 EA_jmp Reg1 Immediate))
+  (= $_225 ((rel-arity direct_jump 2 db) EA_jmp EA_branch))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 98:
+[((rel-arity $bir-sub54 6 db) LT2 Offset2 EA_cmp EA_jmp Reg1 Reg2) <--
+  (= $_220 ((rel-arity limit_type_map 6 db) CC $_230 LT2 $_231 Offset2 $_232))
+  (= $_221 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp CC Reg1 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 98:
+[((rel-arity $bir-sub59 6 db) LT2 Offset2 EA_jmp Reg1 Immediate EA_branch) <--
+  (= $_237 ((rel-arity $bir-sub58 6 db) LT2 Offset2 EA_jmp Reg1 Immediate EA_branch))
+  (= $_226 ((rel-arity may_fallthrough 2 db) EA_jmp $_228))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 99:
+[((rel-arity $bir-sub81 5 db) LT2 Offset2 EA_jmp Reg2 Immediate) <--
+  (= $_310 ((rel-arity track_register 1 db) Reg2))
+  (= $_321 ((rel-arity $bir-sub80 5 db) LT2 Offset2 EA_jmp Reg2 Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 99:
+[((rel-arity $bir-sub83 6 db) LT2 Offset2 EA_jmp Reg2 Immediate EA_fallthrough) <--
+  (= $_323 ((rel-arity $bir-sub82 5 db) LT2 Offset2 EA_jmp Reg2 Immediate))
+  (= $_312 ((rel-arity may_fallthrough 2 db) EA_jmp EA_fallthrough))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 99:
+[((rel-arity $bir-sub79 6 db) LT2 Offset2 EA_jmp Reg1 Reg2 EA_regdef) <--
+  (= $_319 ((rel-arity $bir-sub78 6 db) LT2 Offset2 EA_cmp EA_jmp Reg1 Reg2))
+  (= $_308 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp EA_regdef Reg1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 99:
+[((rel-arity $bir-sub82 5 db) LT2 Offset2 EA_jmp Reg2 Immediate) <--
+  (= $_322 ((rel-arity $bir-sub81 5 db) LT2 Offset2 EA_jmp Reg2 Immediate))
+  (= $_311 ((rel-arity direct_jump 2 db) EA_jmp $_314))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 99:
+[((rel-arity $bir-sub78 6 db) LT2 Offset2 EA_cmp EA_jmp Reg1 Reg2) <--
+  (= $_307 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp CC Reg1 Reg2))
+  (= $_306 ((rel-arity limit_type_map 6 db) CC $_316 LT2 $_317 Offset2 $_318))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 99:
+[((rel-arity value_reg_limit 5 db) EA_jmp EA_fallthrough Reg2 _tmp_1 LT2) <--
+  (= $_324 ((rel-arity $bir-sub83 6 db) LT2 Offset2 EA_jmp Reg2 Immediate EA_fallthrough))
+  (= $_313 ((rel-arity + 3 comp) Immediate Offset2 _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 99:
+[((rel-arity $bir-sub80 5 db) LT2 Offset2 EA_jmp Reg2 Immediate) <--
+  (= $_320 ((rel-arity $bir-sub79 6 db) LT2 Offset2 EA_jmp Reg1 Reg2 EA_regdef))
+  (= $_309 ((rel-arity arch_move_reg_imm 4 db) EA_regdef Reg1 Immediate $_315))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 100:
+[((rel-arity $bir-sub97 6 db) LT1 Offset1 EA_cmp EA_jmp Reg1 Reg2) <--
+  (= $_389 ((rel-arity compare_and_jump_register 5 db) EA_cmp EA_jmp CC Reg1 Reg2))
+  (= $_388 ((rel-arity limit_type_map 5 db) CC LT1 $_398 Offset1 $_399))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 100:
+[((rel-arity value_reg_limit 5 db) EA_jmp EA_fallthrough Reg1 _tmp_1 LT1) <--
+  (= $_405 ((rel-arity $bir-sub102 6 db) LT1 Offset1 EA_jmp Reg1 Immediate EA_fallthrough))
+  (= $_395 ((rel-arity + 3 comp) Immediate Offset1 _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 100:
+[((rel-arity $bir-sub100 5 db) LT1 Offset1 EA_jmp Reg1 Immediate) <--
+  (= $_402 ((rel-arity $bir-sub99 5 db) LT1 Offset1 EA_jmp Reg1 Immediate))
+  (= $_392 ((rel-arity track_register 1 db) Reg1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 100:
+[((rel-arity $bir-sub102 6 db) LT1 Offset1 EA_jmp Reg1 Immediate EA_fallthrough) <--
+  (= $_394 ((rel-arity may_fallthrough 2 db) EA_jmp EA_fallthrough))
+  (= $_404 ((rel-arity $bir-sub101 5 db) LT1 Offset1 EA_jmp Reg1 Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 100:
+[((rel-arity $bir-sub99 5 db) LT1 Offset1 EA_jmp Reg1 Immediate) <--
+  (= $_401 ((rel-arity $bir-sub98 6 db) LT1 Offset1 EA_jmp Reg1 Reg2 EA_regdef))
+  (= $_391 ((rel-arity arch_move_reg_imm 4 db) EA_regdef Reg2 Immediate $_397))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 100:
+[((rel-arity $bir-sub98 6 db) LT1 Offset1 EA_jmp Reg1 Reg2 EA_regdef) <--
+  (= $_390 ((rel-arity reg_def_use_block_last_def 3 db) EA_cmp EA_regdef Reg2))
+  (= $_400 ((rel-arity $bir-sub97 6 db) LT1 Offset1 EA_cmp EA_jmp Reg1 Reg2))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 100:
+[((rel-arity $bir-sub101 5 db) LT1 Offset1 EA_jmp Reg1 Immediate) <--
+  (= $_393 ((rel-arity direct_jump 2 db) EA_jmp $_396))
+  (= $_403 ((rel-arity $bir-sub100 5 db) LT1 Offset1 EA_jmp Reg1 Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub135 6 db) BranchLT BranchOffset Immediate EA_target Reg EA_limited) <--
+  (= $_532 ((rel-arity $bir-sub134 7 db) BranchLT BranchOffset Immediate EA_target Reg inlined_Block_887 EA_limited))
+  (= $_514 ((rel-arity code_in_block 2 db) EA_limited inlined_Block_887))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity value_reg_limit 5 db) EA_target EA_limited Reg _tmp_1 BranchLT) <--
+  (= $_515 ((rel-arity + 3 comp) Immediate BranchOffset _tmp_1))
+  (= $_533 ((rel-arity $bir-sub135 6 db) BranchLT BranchOffset Immediate EA_target Reg EA_limited))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $rule101-inter-body 2 db) EA_target Reg) <--
+  (= $_1477 ((rel-arity = 2 comp) $const42 LOAD))
+  (= $_509 ((rel-arity arch_memory_access 9 db) $const42 EA_target $_517 $_518 Reg $_519 $_520 $_521 $_522))]
+[((rel-arity $bir-sub130 6 db) BranchLT BranchOffset IndirectOp Immediate EA_target Reg) <--
+  (= $_1655 ((rel-arity $rule101-inter-body 2 db) EA_target Reg))
+  (= $_527 ((rel-arity $bir-sub129 5 db) BranchLT BranchOffset IndirectOp Immediate EA_target))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub134 7 db) BranchLT BranchOffset Immediate EA_target Reg inlined_Block_887 EA_limited) <--
+  (= $_531 ((rel-arity $bir-sub133 6 db) BranchLT BranchOffset Immediate EA_target Reg inlined_Block_887))
+  (= $_513 ((rel-arity may_fallthrough 2 db) EA_target EA_limited))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub129 5 db) BranchLT BranchOffset IndirectOp Immediate EA_target) <--
+  (= $_508 ((rel-arity direct_jump 2 db) EA_jmp EA_target))
+  (= $_526 ((rel-arity $bir-sub128 5 db) BranchLT BranchOffset EA_jmp IndirectOp Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub132 5 db) BranchLT BranchOffset Immediate EA_target Reg) <--
+  (= $_511 ((rel-arity instruction_get_op 3 db) EA_target $_516 IndirectOp))
+  (= $_529 ((rel-arity $bir-sub131 6 db) BranchLT BranchOffset IndirectOp Immediate EA_target Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub133 6 db) BranchLT BranchOffset Immediate EA_target Reg inlined_Block_887) <--
+  (= $_512 ((rel-arity code_in_block 2 db) EA_target inlined_Block_887))
+  (= $_530 ((rel-arity $bir-sub132 5 db) BranchLT BranchOffset Immediate EA_target Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub128 5 db) BranchLT BranchOffset EA_jmp IndirectOp Immediate) <--
+  (= $_507 ((rel-arity next 2 db) EA_cmp EA_jmp))
+  (= $_525 ((rel-arity $bir-sub127 6 db) BranchLT BranchOffset EA_cmp EA_jmp IndirectOp Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub127 6 db) BranchLT BranchOffset EA_cmp EA_jmp IndirectOp Immediate) <--
+  (= $_506 ((rel-arity compare_and_jump_indirect 5 db) EA_cmp EA_jmp CC IndirectOp Immediate))
+  (= $_505 ((rel-arity limit_type_map 5 db) CC BranchLT $_523 BranchOffset $_524))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 101:
+[((rel-arity $bir-sub131 6 db) BranchLT BranchOffset IndirectOp Immediate EA_target Reg) <--
+  (= $_528 ((rel-arity $bir-sub130 6 db) BranchLT BranchOffset IndirectOp Immediate EA_target Reg))
+  (= $_510 ((rel-arity track_register 1 db) Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity value_reg_limit 5 db) EA_target EA_limited Reg _tmp_1 FallthroughLT) <--
+  (= $_639 ((rel-arity $bir-sub169 6 db) FallthroughLT FallthroughOffset Immediate EA_target Reg EA_limited))
+  (= $_620 ((rel-arity + 3 comp) Immediate FallthroughOffset _tmp_1))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub161 6 db) FallthroughLT FallthroughOffset EA_cmp EA_jmp IndirectOp Immediate) <--
+  (= $_611 ((rel-arity compare_and_jump_indirect 5 db) EA_cmp EA_jmp CC IndirectOp Immediate))
+  (= $_610 ((rel-arity limit_type_map 6 db) CC $_628 FallthroughLT $_629 FallthroughOffset $_630))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub168 7 db) FallthroughLT FallthroughOffset Immediate EA_target Reg inlined_Block_888 EA_limited) <--
+  (= $_618 ((rel-arity may_fallthrough 2 db) EA_target EA_limited))
+  (= $_637 ((rel-arity $bir-sub167 6 db) FallthroughLT FallthroughOffset Immediate EA_target Reg inlined_Block_888))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub164 6 db) FallthroughLT FallthroughOffset IndirectOp Immediate EA_target Reg) <--
+  (= $_633 ((rel-arity $bir-sub163 5 db) FallthroughLT FallthroughOffset IndirectOp Immediate EA_target))
+  (= $_1564 ((rel-arity $rule102-inter-body 2 db) EA_target Reg))]
+[((rel-arity $rule102-inter-body 2 db) EA_target Reg) <--
+  (= $_1390 ((rel-arity = 2 comp) $const5 LOAD))
+  (= $_614 ((rel-arity arch_memory_access 9 db) $const5 EA_target $_622 $_623 Reg $_624 $_625 $_626 $_627))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub165 6 db) FallthroughLT FallthroughOffset IndirectOp Immediate EA_target Reg) <--
+  (= $_615 ((rel-arity track_register 1 db) Reg))
+  (= $_634 ((rel-arity $bir-sub164 6 db) FallthroughLT FallthroughOffset IndirectOp Immediate EA_target Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub163 5 db) FallthroughLT FallthroughOffset IndirectOp Immediate EA_target) <--
+  (= $_613 ((rel-arity may_fallthrough 2 db) EA_jmp EA_target))
+  (= $_632 ((rel-arity $bir-sub162 5 db) FallthroughLT FallthroughOffset EA_jmp IndirectOp Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub162 5 db) FallthroughLT FallthroughOffset EA_jmp IndirectOp Immediate) <--
+  (= $_612 ((rel-arity next 2 db) EA_cmp EA_jmp))
+  (= $_631 ((rel-arity $bir-sub161 6 db) FallthroughLT FallthroughOffset EA_cmp EA_jmp IndirectOp Immediate))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub167 6 db) FallthroughLT FallthroughOffset Immediate EA_target Reg inlined_Block_888) <--
+  (= $_636 ((rel-arity $bir-sub166 5 db) FallthroughLT FallthroughOffset Immediate EA_target Reg))
+  (= $_617 ((rel-arity code_in_block 2 db) EA_target inlined_Block_888))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub169 6 db) FallthroughLT FallthroughOffset Immediate EA_target Reg EA_limited) <--
+  (= $_619 ((rel-arity code_in_block 2 db) EA_limited inlined_Block_888))
+  (= $_638 ((rel-arity $bir-sub168 7 db) FallthroughLT FallthroughOffset Immediate EA_target Reg inlined_Block_888 EA_limited))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 102:
+[((rel-arity $bir-sub166 5 db) FallthroughLT FallthroughOffset Immediate EA_target Reg) <--
+  (= $_616 ((rel-arity instruction_get_op 3 db) EA_target $_621 IndirectOp))
+  (= $_635 ((rel-arity $bir-sub165 6 db) FallthroughLT FallthroughOffset IndirectOp Immediate EA_target Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 103:
+[((rel-arity value_reg_unsupported 2 db) EA Reg) <--
+  (= $_745 ((rel-arity ~ 1 (agg (rel-arity track_register 1 db))) Src))
+  (= $_748 ((rel-arity $bir-sub205 3 db) EA Src Reg))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 103:
+[((rel-arity $bir-sub204 4 db) EA Dst Src Reg) <--
+  (= $_743 ((rel-arity def_used_for_address 3 db) EA Reg $_746))
+  (= $_742 ((rel-arity arch_move_reg_reg 3 db) EA Dst Src))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 103:
+[((rel-arity $bir-sub205 3 db) EA Src Reg) <--
+  (= $_747 ((rel-arity $bir-sub204 4 db) EA Dst Src Reg))
+  (= $_744 ((rel-arity track_register 1 db) Dst))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 104:
+[((rel-arity value_reg_unsupported 2 db) EA Reg) <--
+  (= $_863 ((rel-arity arch_call 2 db) EA $_865))
+  (= $_864 ((rel-arity def_used_for_address 3 db) EA Reg $_866))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 105:
+[((rel-arity $rule105-inter-body 4 db) $const37 EA Reg RegBase) <--
+  (= $_935 ((rel-arity def_used_for_address 3 db) EA Reg $_942))
+  (= $_934 ((rel-arity arch_memory_access 9 db) $const37 EA $_937 $_938 Reg RegBase $_939 $_940 $_941))]
+[((rel-arity $bir-sub253 3 db) EA Reg RegBase) <--
+  (= $_1468 ((rel-arity = 2 comp) $const37 LOAD))
+  (= $_1635 ((rel-arity $rule105-inter-body 4 db) $const37 EA Reg RegBase))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 105:
+[((rel-arity value_reg_unsupported 2 db) EA Reg) <--
+  (= $_936 ((rel-arity =/= 2 comp) RegBase NONE))
+  (= $_943 ((rel-arity $bir-sub253 3 db) EA Reg RegBase))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 106:
+[((rel-arity $bir-sub278 3 db) EA Reg RegIndex) <--
+  (= $_1594 ((rel-arity $rule106-inter-body 3 db) EA Reg RegIndex))
+  (= $_1050 ((rel-arity def_used_for_address 3 db) EA Reg $_1057))]
+[((rel-arity $rule106-inter-body 3 db) EA Reg RegIndex) <--
+  (= $_1480 ((rel-arity = 2 comp) $const45 LOAD))
+  (= $_1049 ((rel-arity arch_memory_access 9 db) $const45 EA $_1052 $_1053 Reg $_1054 RegIndex $_1055 $_1056))]
+------------------------------------------------------
+/slog/out/value_analysis.slog 106:
+[((rel-arity value_reg_unsupported 2 db) EA Reg) <--
+  (= $_1058 ((rel-arity $bir-sub278 3 db) EA Reg RegIndex))
+  (= $_1051 ((rel-arity =/= 2 comp) RegIndex NONE))]
+
+
+All rules: 1201, arules: 567, copy rules: 14, join rules: 620, facts: 0
+rels: 563, sccs: 480
+[wrote C++ driver and data to "/slog/out/value_analysis.cpp"]

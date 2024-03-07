@@ -31,7 +31,7 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     dereference_fact_ss << dataset_path << "/dereference.facts";
     thrust::host_vector<column_type> raw_assign_vec;
     std::map<column_type, std::string> string_map;
-    file_to_buffer(dataset_path, raw_assign_vec, string_map);
+    file_to_buffer(assign_fact_ss.str(), raw_assign_vec, string_map);
     tuple_size_t assign_counts = raw_assign_vec.size() / 2;
     column_type *raw_assign_data = raw_assign_vec.data();
     
@@ -47,7 +47,7 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     // column_type *raw_dereference_data = get_relation_from_file(
     //     dereference_fact_ss.str().c_str(), dereference_counts, 2, '\t', U32);
     thrust::host_vector<column_type> raw_dereference_vec;
-    file_to_buffer(dataset_path, raw_dereference_vec, string_map);
+    file_to_buffer(dereference_fact_ss.str(), raw_dereference_vec, string_map);
     tuple_size_t dereference_counts = raw_dereference_vec.size() / 2;
     column_type *raw_dereference_data = raw_dereference_vec.data();
     column_type *raw_reverse_dereference_data =
@@ -135,14 +135,6 @@ void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     }
 
     // scc analysis
-    Relation *value_flow_forward_2__1_2 = new Relation();
-    load_relation(value_flow_forward_2__1_2, "value_flow_forward_2__1_2", 2,
-                  nullptr, 0, 1, 0, grid_size, block_size);
-
-    Relation *value_flow_forward_2__2_1 = new Relation();
-    load_relation(value_flow_forward_2__2_1, "value_flow_forward_2__2_1", 2,
-                  nullptr, 0, 1, 0, grid_size, block_size);
-
     Relation *value_alias_2__1_2 = new Relation();
     value_alias_2__1_2->index_flag = false;
     load_relation(value_alias_2__1_2, "value_alias_2__1_2", 2, nullptr, 0, 1, 0,

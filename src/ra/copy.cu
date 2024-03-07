@@ -10,7 +10,7 @@
 #include "../../include/timer.cuh"
 
 void RelationalCopy::operator()() {
-    checkCuda(cudaDeviceSynchronize());
+    // checkCuda(cudaDeviceSynchronize());
     GHashRelContainer *src;
     if (src_ver == DELTA) {
         src = src_rel->delta;
@@ -25,6 +25,10 @@ void RelationalCopy::operator()() {
 
     if (src->tuple_counts == 0) {
         dest_rel->newt->tuple_counts = 0;
+        if (debug_flag == 1) {
+            std::cout << "Copy: " << src_rel->name << " -> " << dest_rel->name
+                      << " (0)" << std::endl;
+        }
         return;
     }
 
@@ -32,8 +36,16 @@ void RelationalCopy::operator()() {
     column_type *copied_raw_data;
     u64 copied_raw_data_size =
         src->tuple_counts * output_arity * sizeof(column_type);
+    // std::cout << "copied_raw_data_size: " << copied_raw_data_size << std::endl;
     checkCuda(cudaMalloc((void **)&copied_raw_data, copied_raw_data_size));
     checkCuda(cudaMemset(copied_raw_data, 0, copied_raw_data_size));
+
+    auto proj_array = tuple_generator.get_project();
+    // std::cout << "proj array : ";
+    // for (int i = 0; i < src_rel->arity; i++) {
+    //     std::cout << proj_array[i] << " ";
+    // }
+    // std::cout << std::endl;
     get_copy_result<<<grid_size, block_size>>>(src->tuples, copied_raw_data,
                                                output_arity, src->tuple_counts,
                                                tuple_generator);
@@ -61,4 +73,5 @@ void RelationalCopy::operator()() {
         temp->free();
         delete temp;
     }
+    // std::cout << "copied>>>>>>>>>>>> " << dest->tuple_counts << std::endl;
 }

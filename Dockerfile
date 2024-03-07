@@ -41,15 +41,16 @@ RUN apt-get update && apt-get install -y kitware-archive-keyring
 RUN apt-get update && apt-get install -y cmake
 
 # use gcc-13 and g++-13 on ubuntu 22.04
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-ARG USER=gdlog
-ARG PASS="gdlog"
-RUN useradd -m -s /bin/bash $USER && echo "$USER:$PASS" | chpasswd
-USER gdlog
+# SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# ARG USER=gdlog
+# ARG PASS="gdlog"
+# RUN useradd -m -s /bin/bash $USER && echo "$USER:$PASS" | chpasswd
+# USER gdlog
 
-RUN apt-get install -y openmpi-bin libopenmpi-dev
+RUN apt-get install -y openmpi-bin libopenmpi-dev valgrind
 
-COPY --chown=gdlog:gdlog . /opt/gdlog
+# COPY --chown=gdlog:gdlog . /opt/gdlog
+COPY . /opt/gdlog
 WORKDIR /opt/gdlog
 
 RUN rm -r build

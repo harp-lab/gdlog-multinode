@@ -1,0 +1,427 @@
+
+.type input_reg <: symbol
+.type reg_nullable <: symbol
+.type register <: reg_nullable
+.type address <: unsigned
+.type operand_code <: unsigned
+.type operand_index <: unsigned
+
+.type limit_type <: symbol
+.type block_type <: symbol
+
+.type access_mode <: symbol
+.type symbol_position <: symbol
+
+.type stack_var = [BaseReg:register,StackPos:number]
+.type condition_code <: symbol
+
+.decl block_last_instruction(Block:address,EA:address)
+.input block_last_instruction
+
+.decl jump_table_target(EA:address,Dest:address)
+// .input jump_table_target
+.output jump_table_target
+.printsize jump_table_target
+
+.decl block_next(Block:address,BlockEnd:address,NextBlock:address)
+.output block_next
+.printsize block_next
+
+.decl compare_and_jump_immediate(EA_cmp:address,EA_jmp:address,CC:condition_code,Reg:register,Immediate:number)
+// .input compare_and_jump_immediate
+.printsize compare_and_jump_immediate
+.output compare_and_jump_immediate
+
+.decl direct_jump(src:address, dest:address)
+.input direct_jump
+
+.decl cmp_defines(EA_jmp:address,EA_dst:address,Reg:register)
+.printsize cmp_defines
+
+.decl may_fallthrough(o:address,d:address)
+.input may_fallthrough
+
+.decl flags_and_jump_pair(EA_flags:address,EA_jmp:address,CC:condition_code)
+// .input flags_and_jump_pair
+.printsize flags_and_jump_pair
+.output flags_and_jump_pair
+
+.decl arch_cmp_operation(Operation:symbol)
+.input arch_cmp_operation
+
+.decl cmp_immediate_to_reg(EA:address,Reg:register,Imm_index:operand_index,Immediate:number)
+.input cmp_immediate_to_reg
+
+.decl instruction(ea:address,size:unsigned,prefix:symbol,opcode:symbol,
+          op1:operand_code,op2:operand_code,op3:operand_code,op4:operand_code,
+          immOffset:unsigned,displacementOffset:unsigned)
+.input instruction
+
+.decl instruction_get_op(ea:address, index:operand_index, operator:operand_code)
+.input instruction_get_op
+
+.decl op_indirect(Code:operand_code,Reg1:input_reg,Reg2:input_reg,Reg3:input_reg,
+        Multiplier:number,Offset:number,SizeBytes:unsigned)
+.input op_indirect
+
+.decl op_immediate(Code:operand_code,Offset:number,SizeBytes:unsigned)
+.input op_immediate
+
+.decl compare_and_jump_indirect(EA_cmp:address,EA_jmp:address,CC:condition_code,IndirectOp:operand_code,Immediate:number)
+.output compare_and_jump_indirect
+.printsize compare_and_jump_indirect
+
+.decl cmp_reg_to_reg(EA:address,Reg1:register,Reg2:register)
+.input cmp_reg_to_reg
+
+.decl compare_and_jump_register(EA_cmp:address,EA_jmp:address,CC:condition_code,Reg1:register,Reg2:register)
+.output compare_and_jump_register
+.printsize compare_and_jump_register
+
+.decl value_reg(EA:address,Reg:register,
+                EA_reg1:address,Reg1:reg_nullable,Multiplier:number,Offset:number,Steps:unsigned)
+.input value_reg
+.output value_reg
+.printsize value_reg
+
+.decl reg_def_use_def_used(EA_def:address,Var:register,EA_used:address,Index_used:operand_index)
+.input reg_def_use_def_used
+
+.decl const_value_reg_used(UsedEA:address,EADef:address,EARegDef:address,Reg:register,Value:number)
+.output const_value_reg_used
+.printsize const_value_reg_used
+
+.decl reg_used_for(EA:address,Reg:register,Type:symbol)
+.input reg_used_for
+
+.decl def_used_for_address(EA_def:address,Reg:register,Type:symbol)
+.output def_used_for_address
+.printsize def_used_for_address
+
+.decl arch_memory_access(AccessType:symbol,EA:address,SrcOp:operand_index,DstOp:operand_index,
+    DirectReg:register,BaseReg:reg_nullable,IndexReg:reg_nullable,Mult:number,Offset:number)
+.input arch_memory_access
+
+.decl stack_def_use_def_used(EA_def:address,VarDef:stack_var,EA_used:address,VarUsed:stack_var,Index_used:operand_index)
+.decl stack_def_use_def_used_(EA_def:address,VarDef1:register, VarDef2:number ,EA_used:address,VarUsed1: register, VarUsed2: number,Index_used:operand_index)
+.input stack_def_use_def_used
+.output stack_def_use_def_used_
+
+.decl arch_condition_flags_reg(Reg:register)
+.input arch_condition_flags_reg
+
+.decl arch_jump(EA:address)
+.input arch_jump
+
+.decl arch_conditional(EA:address,CC:condition_code)
+.input arch_conditional
+
+.decl jump_table_element_access(EA:address,Size:unsigned,TableStart:address,RegIndex:register)
+.output jump_table_element_access
+.printsize jump_table_element_access
+
+.decl pc_relative_operand(src:address,index:operand_index, dest:address)
+.input pc_relative_operand
+
+.decl data_access(EA:address,Op_index:operand_index,RegSegment:reg_nullable,RegBase:reg_nullable,RegIndex:reg_nullable,Mult:number,Offset:number,Size:unsigned)
+.input data_access
+
+.decl take_address(Src:address,Address_taken:address)
+.input take_address
+
+.decl arch_reg_reg_arithmetic_operation(EA:address,Dst:register,Src1:register,Src2:register,Mult:number,Offset:number)
+.input arch_reg_reg_arithmetic_operation
+
+.decl data_segment(Begin:address,End:address)
+.input data_segment
+
+.decl arch_extend_load(EA:address,Signed:unsigned,SrcBits:unsigned)
+.input arch_extend_load
+
+.decl jump_table_signed(TableStart:address,Signed:unsigned)
+.output jump_table_signed
+.printsize jump_table_signed
+
+.decl arch_extend_reg(EA:address,Reg:register,Signed:unsigned,SrcBits:unsigned)
+.input arch_extend_reg
+
+.decl instruction_get_dest_op(EA:address,Index:operand_index,Op:operand_code)
+.input instruction_get_dest_op
+
+.decl op_regdirect(Code:operand_code,RegisterName:input_reg)
+.input op_regdirect
+
+.decl reg_map(RegIn:input_reg,Reg:register)
+.input reg_map
+
+.decl instruction_get_src_op(EA:address,Index:operand_index,Op:operand_code)
+.input instruction_get_src_op
+
+.decl arch_register_size_bytes(Reg:input_reg,Size:unsigned)
+.input arch_register_size_bytes
+
+.decl jump_table_start(EA_jump:address,Size:unsigned,TableStart:address,TableRef:address,Scale:number)
+.output jump_table_start
+.printsize jump_table_start
+
+.decl reg_call(Src:address,Reg:register)
+.input reg_call
+
+.decl code_in_block(EA:address,Block:address)
+.input code_in_block
+
+.decl reg_jump(Src:address,Reg:register)
+.input reg_jump
+
+.decl relative_jump_table_entry_candidate(EA:address,TableStart:address,Size:unsigned,Reference:address,Dest:address,Scale:number,Offset:number)
+.input relative_jump_table_entry_candidate
+
+.decl last_value_reg_limit(From:address,To:address,Reg:register,Value:number,LimitType:limit_type,Steps:unsigned)
+.output last_value_reg_limit
+.printsize last_value_reg_limit
+
+.decl value_reg_limit(From:address,To:address,Reg:register,Value:number,LimitType:limit_type)
+// .output value_reg_limit
+.input value_reg_limit
+
+block_next(Block,EA,Dest) :- 
+   block_last_instruction(Block,EA),
+   jump_table_target(EA,Dest).
+
+cmp_defines(EA_jmp,EA_dst,Reg) :- 
+   compare_and_jump_immediate(_,EA_jmp,"E",Reg,_),
+   direct_jump(EA_jmp,EA_dst).
+
+cmp_defines(EA_jmp,EA_dst,Reg) :- 
+   compare_and_jump_immediate(_,EA_jmp,"NE",Reg,_),
+   may_fallthrough(EA_jmp,EA_dst).
+
+compare_and_jump_immediate(EA_cmp,EA_jmp,CC,Reg,Immediate) :- 
+   flags_and_jump_pair(EA_cmp,EA_jmp,CC),
+   instruction(EA_cmp,_,_,Operation,_,_,_,_,_,_),
+   arch_cmp_operation(Operation),
+   cmp_immediate_to_reg(EA_cmp,Reg,_,Immediate).
+
+compare_and_jump_indirect(EA_cmp,EA_jmp,CC,IndirectOp,Immediate) :- 
+   flags_and_jump_pair(EA_cmp,EA_jmp,CC),
+   instruction(EA_cmp,_,_,CmpOperation,_,_,_,_,_,_),
+   arch_cmp_operation(CmpOperation),
+   instruction_get_op(EA_cmp,_,IndirectOp),
+   op_indirect(IndirectOp,_,_,_,_,_,_),
+   instruction_get_op(EA_cmp,_,ImmOp),
+   op_immediate(ImmOp,Immediate,_).
+
+compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2) :- 
+   flags_and_jump_pair(EA_cmp,EA_jmp,CC),
+   cmp_reg_to_reg(EA_cmp,Reg1,Reg2).
+
+.decl value_reg_debug(EA:address,Reg:register,
+                EA_reg1:address,Offset:number)
+.printsize value_reg_debug
+.output value_reg_debug
+
+value_reg_debug(EARegDef,Reg,EADef, Value) :- 
+   value_reg(EARegDef,Reg,EADef,"NONE",0,Value, _).
+
+const_value_reg_used(UsedEA,EADef,EARegDef,Reg,Value) :- 
+   value_reg(EARegDef,Reg,EADef,"NONE",0,Value,_),
+   reg_def_use_def_used(EARegDef,Reg,UsedEA,_).
+
+def_used_for_address(EA_def,Reg,Type) :- 
+   reg_def_use_def_used(EA_def,Reg,EA,_),
+   reg_used_for(EA,Reg,Type).
+
+def_used_for_address(EA_def,Reg,Type) :- 
+   def_used_for_address(EA_used,_,Type),
+   reg_def_use_def_used(EA_def,Reg,EA_used,_).
+
+stack_def_use_def_used_(EAStore,RegBaseStore,StackPosStore,EALoad,RegBaseLoad,StackPosLoad,x):-
+   stack_def_use_def_used(EAStore,[RegBaseStore,StackPosStore],EALoad,[RegBaseLoad,StackPosLoad],x).
+
+def_used_for_address(EA_def,Reg1,Type) :- 
+   def_used_for_address(EALoad,Reg2,Type),
+   arch_memory_access("LOAD",EALoad,_,_,Reg2,RegBaseLoad,inlined_IndexReg_113,_,StackPosLoad),
+   inlined_IndexReg_113 = "NONE",
+   stack_def_use_def_used(EAStore,[RegBaseStore,StackPosStore],EALoad,[RegBaseLoad,StackPosLoad],_),
+   arch_memory_access("STORE",EAStore,_,_,Reg1,RegBaseStore,inlined_IndexReg_548,_,StackPosStore),
+   inlined_IndexReg_548 = "NONE",
+   reg_def_use_def_used(EA_def,Reg1,EAStore,_).
+
+
+flags_and_jump_pair(EA_flags,EA_jmp,CC) :- 
+   arch_condition_flags_reg(Reg),
+   reg_def_use_def_used(EA_flags,Reg,EA_jmp,_),
+   arch_jump(EA_jmp),
+   arch_conditional(EA_jmp,CC).
+
+// jump_table_element_access(EA,Size,TableStartAddr,"NONE") :- 
+//    pc_relative_operand(EA,1,TableStartAddr),
+//    data_access(EA,_,_,_,_,_,_,Size),
+//    def_used_for_address(EA,_,Type),
+//    Type = "Jump",
+//    reg_def_use_def_used(EA,Reg1,EA_add,_),
+//    reg_def_use_def_used(EA2,Reg2,EA_add,_),
+//    take_address(EA2,TableStartAddr),
+//    arch_reg_reg_arithmetic_operation(EA_add,_,Reg2,Reg1,1,0),
+//    data_segment(Beg,End),
+//    TableStartAddr >= Beg,
+//    TableStartAddr <= End.
+
+// jump_table_element_access(EA,Size,TableStartAddr,"NONE") :- 
+//    pc_relative_operand(EA,1,TableStartAddr),
+//    data_access(EA,_,_,_,_,_,_,Size),
+//    def_used_for_address(EA,_,Type),
+//    Type = "Call",
+//    reg_def_use_def_used(EA,Reg1,EA_add,_),
+//    reg_def_use_def_used(EA2,Reg2,EA_add,_),
+//    take_address(EA2,TableStartAddr),
+//    arch_reg_reg_arithmetic_operation(EA_add,_,Reg2,Reg1,1,0),
+//    data_segment(Beg,End),
+//    TableStartAddr >= Beg,
+//    TableStartAddr <= End.
+
+jump_table_element_access(EA,Size,as(TableStart, address),as(RegBase, register)) :- 
+   data_access(EA,_,"NONE",RegBase,RegIndex,1,0,Size),
+   RegBase != "NONE",
+   RegIndex != "NONE",
+   RegIndex_nn = as(RegIndex, register),
+   const_value_reg_used(EA,_,_,RegIndex_nn,TableStart),
+   data_segment(Beg,End),
+   as(TableStart, address) >= Beg,
+   as(TableStart, address) <= End.
+
+jump_table_element_access(EA,Size,as(Tmp1, address),as(RegIndex, register)) :-
+   data_access(EA,_,"NONE",RegBase,RegIndex, _tmp_70,Offset,Size),
+   RegBase != "NONE",
+   RegBase_nn = as(RegBase, register),
+   RegIndex != "NONE",
+   const_value_reg_used(EA,_,_,RegBase_nn,Base),
+   Tmp1 = (Base+Offset),
+   data_segment(Beg,End),
+   as(Tmp1, address) >= Beg,
+   as(Tmp1, address) <= End,
+   _tmp_70 = as(Size, number).
+
+jump_table_signed(TableStart,Signed) :- 
+   jump_table_element_access(EA,Size,TableStart,_),
+   arch_extend_load(EA,Signed, _tmp_71),
+    _tmp_71 = (8*Size).
+
+jump_table_signed(TableStart,Signed) :- 
+   jump_table_element_access(EA,Size,TableStart,_),
+   value_reg(EA_used,_,EA,Reg,_,_,_),
+   arch_extend_reg(EA_used,Reg,Signed, _tmp_72),
+    _tmp_72 = (8*Size).
+
+jump_table_signed(TableStart,0) :- 
+   jump_table_element_access(EA,_,TableStart,_),
+   instruction_get_dest_op(EA,_,DstOp),
+   op_regdirect(DstOp,DefReg),
+   reg_map(DefReg,DefRegMapped),
+   value_reg(EA_used,_,EA,DefRegMapped,_,_,_),
+   instruction_get_src_op(EA_used,_,Op),
+   op_regdirect(Op,UsedReg),
+   reg_map(UsedReg,DefRegMapped),
+   arch_register_size_bytes(DefReg,DefSize),
+   arch_register_size_bytes(UsedReg,UsedSize),
+   UsedSize > DefSize.
+
+jump_table_signed(TableStart,1) :- 
+   jump_table_element_access(_,PtrSize,TableStart,_),
+   PtrSize = 8.
+
+jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
+   jump_table_element_access(EA,Size,TableStart,_),
+   value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+   Reg != "NONE",
+   reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+   reg_call(EA_jump,_),
+   code_in_block(EA_jump,_).
+
+// .decl jump_table_start_tmp1(EA_reg1:address, Multiplier:number, Offset:number)
+// .printsize jump_table_start_tmp1
+// jump_table_start_tmp1(EA, Scale,Base) :-
+//    value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+//    reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+//    Reg != "NONE".
+
+// .decl jump_table_start_tmp1(
+//    EA:address,Reg:register, Reg1:reg_nullable, Multiplier:number,
+//    Offset:number, Size:unsigned,TableStart:address)
+// .printsize jump_table_start_tmp1
+// jump_table_start_tmp1(EA_add,RegJump,Reg,Scale,Base,Size,TableStart) :-
+//    jump_table_element_access(EA,Size,TableStart,_),
+//    value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+//    Reg != "NONE".
+
+// .decl jump_table_start_tmp2(EA_def:address,Var:register,EA_used:address)
+// .printsize jump_table_start_tmp2
+// jump_table_start_tmp2(EA_add,RegJump,EA_jump) :-
+//    reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+//    reg_call(EA_jump,_),
+//    code_in_block(EA_jump,_).
+
+jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
+   jump_table_element_access(EA,Size,TableStart,_),
+   value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+   Reg != "NONE",
+   reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+   reg_call(EA_jump,_),
+   code_in_block(EA_jump,_).
+
+jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
+   jump_table_element_access(EA,Size,TableStart,_),
+   value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+   Reg != "NONE",
+   reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+   reg_jump(EA_jump,_),
+   code_in_block(EA_jump,_).
+
+jump_table_start(EA_jump,Size,as(TableReference, address),as(TableReference, address),1) :- 
+   reg_jump(EA_jump,_),
+   code_in_block(EA_jump,_),
+   reg_def_use_def_used(EA_base,Reg,EA_jump,_),
+   instruction(EA_base,_,_,inlined_Operation_591,_,_,_,_,_,_),
+   inlined_Operation_591 = "ADD",
+   jump_table_element_access(EA_base,Size, _tmp_73,_),
+   const_value_reg_used(EA_base,_,_,Reg,TableReference),
+    _tmp_73 = as(TableReference, address).
+
+jump_table_start(EA_jump,Size,as(TableReference, address),as(TableReference, address),-1) :- 
+   reg_jump(EA_jump,_),
+   code_in_block(EA_jump,_),
+   reg_def_use_def_used(EA_base,Reg,EA_jump,_),
+   instruction(EA_base,_,_,inlined_Operation_593,_,_,_,_,_,_),
+   inlined_Operation_593 = "SUB",
+   jump_table_element_access(EA_base,Size, _tmp_74,_),
+   const_value_reg_used(EA_base,_,_,Reg,TableReference),
+    _tmp_74 = as(TableReference, address).
+
+jump_table_start(EA_jump,Size,TableStart,as(TableReference, address),1) :- 
+   reg_jump(EA_jump,_),
+   code_in_block(EA_jump,_),
+   reg_def_use_def_used(EA_base,Reg,EA_jump,_),
+   instruction(EA_base,_,_,inlined_Operation_590,_,_,_,_,_,_),
+   inlined_Operation_590 = "ADD",
+   jump_table_element_access(EA_base,Size,TableStart,_),
+   const_value_reg_used(EA_base,_,_,Reg,TableReference),
+   code_in_block( _tmp_153,_),
+    _tmp_153 = as(TableReference, address).
+
+jump_table_start(EA_jump,Size,TableStart,as(TableReference, address),-1) :- 
+   reg_jump(EA_jump,_),
+   code_in_block(EA_jump,_),
+   reg_def_use_def_used(EA_base,Reg,EA_jump,_),
+   instruction(EA_base,_,_,inlined_Operation_592,_,_,_,_,_,_),
+   inlined_Operation_592 = "SUB",
+   jump_table_element_access(EA_base,Size,TableStart,_),
+   const_value_reg_used(EA_base,_,_,Reg,TableReference),
+   code_in_block( _tmp_154,_),
+    _tmp_154 = as(TableReference, address).
+
+jump_table_target(EA,Dest) :- 
+   jump_table_start(EA,Size,TableStart,_,_),
+   relative_jump_table_entry_candidate(_,TableStart,Size,_,Dest,_,_).
+
+last_value_reg_limit(From,To,Reg,Value,LimitType,0) :- 
+   value_reg_limit(From,To,Reg,Value,LimitType).

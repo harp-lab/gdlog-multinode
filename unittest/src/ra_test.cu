@@ -317,6 +317,50 @@ void union_test(Communicator *communicator, int block_size, int grid_size) {
     }
 }
 
+void join_test(Communicator *communicator, int block_size, int grid_size) {
+    Relation *join_2__2_1 = new Relation();
+    Relation *join_2__2_2 = new Relation();
+    Relation *join_2__2_3 = new Relation();
+    Relation *result_2__2_3 = new Relation();
+
+    column_type join_data_1[6] = {1974557, 263382140, 1974550, 3, 4, 7};
+    column_type join_data_2[6] = {1974557, 263382140, 1713486260, 3, 6, 9};
+
+    load_relation(join_2__2_1, "join_2__2_1", 3, join_data_1, 2, 2, 0,
+                  grid_size, block_size);
+    load_relation(join_2__2_2, "join_2__2_2", 3, join_data_2, 2, 2, 0,
+                  grid_size, block_size);
+    load_relation(join_2__2_3, "join_2__2_3", 2, nullptr, 0, 2, 0, grid_size,
+                  block_size);
+    load_relation(result_2__2_3, "result_2__2_3", 3, nullptr, 0, 2, 0,
+                  grid_size, block_size);
+
+    LIE cp_scc(grid_size, block_size);
+    cp_scc.add_relations(join_2__2_1, true);
+    cp_scc.add_relations(join_2__2_2, true);
+    cp_scc.add_relations(result_2__2_3, false);
+
+    cp_scc.set_communicator(communicator);
+
+    float detail[10];
+
+    cp_scc.add_ra(RelationalCopy(join_2__2_2, FULL, join_2__2_3,
+                                 TupleProjector({0, 1}), grid_size,
+                                 block_size, true), false);
+    cp_scc.add_ra(RelationalJoin(join_2__2_1, FULL, join_2__2_3, NEWT,
+                                 result_2__2_3, TupleGenerator(2, {0, 1, 3}),
+                                 grid_size, block_size, detail),
+                  false);
+
+    cp_scc.fixpoint_loop();
+    print_tuple_rows(result_2__2_3->full, "result_2__2_3");
+    if (communicator->getRank() == 0) {
+        assert(result_2__2_3->full->tuple_counts == 1);
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Join test passed"
+                  << std::endl;
+    }
+}
+
 int main(int argc, char *argv[]) {
     int device_id;
     int number_of_sm;
@@ -342,5 +386,6 @@ int main(int argc, char *argv[]) {
     negation_test(&communicator, block_size, grid_size);
     cartesian_test(&communicator, block_size, grid_size);
     union_test(&communicator, block_size, grid_size);
+    join_test(&communicator, block_size, grid_size);
     return 0;
 }

@@ -77,7 +77,7 @@ void overlap(int argc, char *argv[], int block_size, int grid_size) {
                                          {0, 1, 2, 3, 4}, {0, 1, 2, 3, 2})),
         false);
     overlap_lie.add_ra(
-        RelationalIndex(candidate_bound_tmp1, NEWT, grid_size, block_size));
+        RelationalIndex(candidate_bound_tmp1, NEWT));
 
     //    block_overlap(Block1,Type1,Size1,Block2,Type2,Size2)
     //     :-

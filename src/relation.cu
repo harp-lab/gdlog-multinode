@@ -9,10 +9,10 @@
 #include <functional>
 #include <iostream>
 #include <mpi.h>
+#include <rmm/exec_policy.hpp>
 #include <sstream>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
-#include <rmm/exec_policy.hpp>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/merge.h>
 #include <thrust/sort.h>
@@ -270,7 +270,8 @@ void repartition_relation_index(GHashRelContainer *target, int arity,
     target->reload(data, data_row_size);
 
     timer.start_timer();
-    thrust::sort(rmm::exec_policy(), target->tuples, target->tuples + data_row_size,
+    thrust::sort(rmm::exec_policy(), target->tuples,
+                 target->tuples + data_row_size,
                  tuple_indexed_less(index_column_size, arity));
     // print_tuple_rows(target, "after sort");
     timer.stop_timer();
@@ -348,6 +349,28 @@ void load_relation(Relation *target, std::string name, int arity,
                             grid_size, block_size, detail_time);
 }
 
+Relation::Relation(std::string name, int arity, column_type *data,
+                   tuple_size_t data_row_size, tuple_size_t index_column_size,
+                   int dependent_column_size, int grid_size, int block_size,
+                   bool tmp_flag) {
+    load_relation(this, name, arity, data, data_row_size, index_column_size,
+                  dependent_column_size, grid_size, block_size, tmp_flag);
+}
+
+Relation::Relation(std::string name, int arity, column_type *data,
+                   tuple_size_t data_row_size, tuple_size_t index_column_size,
+                   int dependent_column_size, bool tmp_flag) {
+    int device_id;
+    int number_of_sm;
+    cudaGetDevice(&device_id);
+    cudaDeviceGetAttribute(&number_of_sm, cudaDevAttrMultiProcessorCount,
+                           device_id);
+    auto block_size = 512;
+    auto grid_size = 32 * number_of_sm;
+    load_relation(this, name, arity, data, data_row_size, index_column_size,
+                  dependent_column_size, grid_size, block_size, tmp_flag);
+}
+
 void GHashRelContainer::sort() {
     thrust::sort(rmm::exec_policy(), this->tuples,
                  this->tuples + this->tuple_counts,
@@ -358,7 +381,10 @@ void GHashRelContainer::dedup() {
     tuple_type *new_end =
         thrust::unique(rmm::exec_policy(), this->tuples,
                        this->tuples + this->tuple_counts, t_equal(this->arity));
+    // auto old_counts = this->tuple_counts;
     this->tuple_counts = new_end - this->tuples;
+    // std::cout << "deduplication : " << old_counts << " " <<
+    // this->tuple_counts << std::endl;
 }
 
 void GHashRelContainer::reload(column_type *data, tuple_size_t data_row_size) {
@@ -476,6 +502,9 @@ void Relation::defragement(RelationVersion ver, int grid_size, int block_size) {
 }
 
 bool is_number(const std::string &s) {
+    if (s.empty()) {
+        return false;
+    }
     for (char const &c : s) {
         if (std::isdigit(c) == 0) {
             return false;
@@ -490,12 +519,115 @@ std::string trim(const std::string &str) {
         return str;
     }
     size_t last = str.find_last_not_of(" \t\f\v\n\r");
-    return str.substr(first, (last - first + 1));
+    auto trimmed = str.substr(first, (last - first + 1));
+    // if first char is [ remove it
+    if (trimmed[0] == '[') {
+        trimmed = trimmed.substr(1, trimmed.size() - 1);
+    }
+    // if last char is ] remove it
+    if (trimmed[trimmed.size() - 1] == ']') {
+        trimmed = trimmed.substr(0, trimmed.size() - 1);
+    }
+    // if last char is , remove it
+    if (trimmed[trimmed.size() - 1] == ',') {
+        trimmed = trimmed.substr(0, trimmed.size() - 1);
+    }
+    return trimmed;
+}
+
+void parse_column(int line, std::string file_path, std::string &token,
+                  std::map<column_type, std::string> &string_map,
+                  thrust::host_vector<column_type> &buffer) {
+    auto trimed_token = trim(token);
+    if (is_number(trimed_token)) {
+        try {
+            auto v = std::stoull(trimed_token);
+            if (v < std::numeric_limits<column_type>::max()) {
+                buffer.push_back(v);
+                return;
+            }
+        } catch (std::exception &e) {
+            std::cout << "error in file_to_buffer : " << e.what() << std::endl;
+            std::cout << "token : " << trimed_token << std::endl;
+            std::cout << "file path : " << file_path << std::endl;
+            std::cout << "line : " << line << std::endl;
+        }
+    } else if (token.find("0x") == 0 &&
+               (std::stoull(trimed_token, 0, 16) <
+                std::numeric_limits<column_type>::max())) {
+        buffer.push_back(std::stoull(trimed_token, 0, 16));
+        return;
+    }
+    // check if empty string
+    if (token.empty()) {
+        buffer.push_back(0);
+        return;
+    }
+
+    // check if is list
+    if (trimed_token[0] == '[' &&
+        trimed_token[trimed_token.size() - 1] == ']') {
+        std::string list_str = trimed_token.substr(1, trimed_token.size() - 2);
+        std::istringstream iss(list_str);
+        std::string token;
+        while (std::getline(iss, token, ',')) {
+            parse_column(line, file_path, token, string_map, buffer);
+        }
+        return;
+    }
+
+    // if token is a string in value of the map, use the key
+    // else use the hash value of the string as the key inserted
+    // into the map
+    column_type token_hash = s2d(trimed_token);
+    auto it = string_map.find(token_hash);
+    if (it == string_map.end()) {
+        string_map[token_hash] = trimed_token;
+        buffer.push_back(token_hash);
+    } else {
+        buffer.push_back(it->first);
+    }
 }
 
 void file_to_buffer(std::string file_path,
                     thrust::host_vector<column_type> &buffer,
                     std::map<column_type, std::string> &string_map) {
+    // std::cout << "processing file path : " << file_path << std::endl;
+    // check if file exists
+    std::ifstream file(file_path);
+    if (!file.is_open()) {
+        // std::cout << "error in file_to_buffer : file not found" << std::endl;
+        // std::cout << "file path : " << file_path << std::endl;
+        // change ext of file from facts to csv
+        std::string csv_file_path = file_path;
+        csv_file_path.replace(csv_file_path.end() - 5, csv_file_path.end(),
+                              ".csv");
+        // retry open file
+        file.open(csv_file_path);
+    }
+    std::string line;
+    int line_count = 0;
+    while (std::getline(file, line)) {
+        line_count++;
+        std::istringstream iss(line);
+        std::string token;
+        // if empty line, skip
+        if (line.empty()) {
+            continue;
+        }
+        while (std::getline(iss, token, '\t')) {
+            parse_column(line_count, file_path, token, string_map, buffer);
+        }
+    }
+    // std::cout << "finish loading file path : " << file_path
+    //           << " line : " << line_count
+    //           << " read : " << buffer.size() <<  std::endl;
+}
+
+void file_to_buffer(std::string file_path,
+                    thrust::host_vector<column_type> &buffer,
+                    std::map<column_type, std::string> &string_map,
+                    std::vector<int> column_order) {
     std::ifstream file(file_path);
     std::string line;
     while (std::getline(file, line)) {
@@ -505,28 +637,47 @@ void file_to_buffer(std::string file_path,
         if (line.empty()) {
             continue;
         }
+        int column_index = 0;
+        int arity = column_order.size();
+        std::vector<column_type> tmp_t(arity);
         while (std::getline(iss, token, '\t')) {
             // if token is number (including hex start with 0x)
             auto trimed_token = trim(token);
             if (is_number(trimed_token)) {
-                buffer.push_back(std::stoull(token));
+                tmp_t[column_order[column_index]] = std::stoull(token);
             } else if (token.find("0x") == 0) {
-                buffer.push_back(std::stoull(token, 0, 16));
+                tmp_t[column_order[column_index]] = std::stoull(token, 0, 16);
             } else {
                 // check if empty string
                 if (token.empty()) {
-                    buffer.push_back(0);
-                }
-                // if token is a string in value of the map, use the key
-                // else use the hash value of the string as the key inserted
-                // into the map
-                column_type token_hash = std::hash<std::string>{}(token);
-                auto it = string_map.find(token_hash);
-                if (it == string_map.end()) {
-                    string_map[token_hash] = token;
-                    buffer.push_back(token_hash);
+                    tmp_t[column_order[column_index]] = 0;
                 } else {
-                    buffer.push_back(it->first);
+                    if (trimed_token[0] == '[' &&
+                        trimed_token[trimed_token.size() - 1] == ']') {
+                        // error
+                        std::throw_with_nested(
+                            std::runtime_error("list is not supported"));
+                    }
+                    // if token is a string in value of the map, use the key
+                    // else use the hash value of the string as the key
+                    // into the map
+                    column_type token_hash = s2d(token);
+                    auto it = string_map.find(token_hash);
+                    if (it == string_map.end()) {
+                        string_map[token_hash] = token;
+                        buffer.push_back(token_hash);
+                        tmp_t[column_order[column_index]] = token_hash;
+                    } else {
+                        buffer.push_back(it->first);
+                        tmp_t[column_order[column_index]] = it->first;
+                    }
+                }
+            }
+            column_index++;
+            if (column_index == arity) {
+                column_index = 0;
+                for (int i = 0; i < arity; i++) {
+                    buffer.push_back(tmp_t[i]);
                 }
             }
         }

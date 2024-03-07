@@ -4,10 +4,10 @@
 #include "../include/print.cuh"
 #include "../include/timer.cuh"
 #include <iostream>
+#include <rmm/exec_policy.hpp>
 #include <thrust/execution_policy.h>
 #include <thrust/merge.h>
 #include <thrust/set_operations.h>
-#include <rmm/exec_policy.hpp>
 
 #include <variant>
 
@@ -26,19 +26,86 @@ void LIE::add_relations(Relation *rel, bool static_flag) {
         update_relations.push_back(rel);
         // add delta and newt for it
     }
+    // std::cout << "Add relation " << rel->name << " to LIE" << std::endl;
+    relation_name_map[rel->name] = rel;
 }
 
-void LIE::add_tmp_relation(Relation *rel) { tmp_relations.push_back(rel); }
+bool LIE::is_output_relation(std::string name) {
+    auto it = relation_name_map.find(name);
+    if (it == relation_name_map.end()) {
+        std::cerr << "relation name not found : " << name << std::endl;
+        return false;
+    }
+    auto rel_found = it->second;
+    bool output_flag = false;
+    for (auto &rel : update_relations) {
+        if (rel == rel_found) {
+            output_flag = true;
+            break;
+        }
+    }
+    return output_flag;
+}
+
+bool LIE::is_tmp_relation(std::string name) {
+    auto it = relation_name_map.find(name);
+    if (it == relation_name_map.end()) {
+        std::cerr << "relation name not found : " << name << std::endl;
+        return false;
+    }
+    auto rel_found = it->second;
+    bool tmp_flag = false;
+    for (auto &rel : tmp_relations) {
+        if (rel == rel_found) {
+            tmp_flag = true;
+            break;
+        }
+    }
+    return tmp_flag;
+}
+
+void LIE::add_tmp_relation(Relation *rel) {
+    tmp_relations.push_back(rel);
+    relation_name_map[rel->name] = rel;
+}
+
+void LIE::remove_relation(Relation *rel) {
+    for (auto it = update_relations.begin(); it != update_relations.end();
+         it++) {
+        if (*it == rel) {
+            update_relations.erase(it);
+            break;
+        }
+    }
+    for (auto it = static_relations.begin(); it != static_relations.end();
+         it++) {
+        if (*it == rel) {
+            static_relations.erase(it);
+            break;
+        }
+    }
+    for (auto it = tmp_relations.begin(); it != tmp_relations.end(); it++) {
+        if (*it == rel) {
+            tmp_relations.erase(it);
+            break;
+        }
+    }
+    relation_name_map.erase(rel->name);
+}
 
 void LIE::redistribute_full_relations() {
     if (mcomm->isInitialized()) {
         for (Relation *rel : update_relations) {
             mcomm->distribute(rel->full);
-            rel->full->build_index(grid_size, block_size);
+            if (mcomm->getTotalRank() > 1) {
+                rel->full->build_index(grid_size, block_size);
+            }
         }
         for (Relation *rel : static_relations) {
             mcomm->distribute(rel->full);
-            rel->full->build_index(grid_size, block_size);
+            if (mcomm->getTotalRank() > 1) {
+                rel->full->build_index(grid_size, block_size);
+            }
         }
     }
 }
@@ -47,11 +114,15 @@ void LIE::execute_ra(ra_op &ra) {
     std::visit(
         dynamic_dispatch{
             [&](RelationalJoin &op) {
-                // timer.start_timer();
+                op.print_debug_info();
                 op();
             },
-            [&](RelationalACopy &op) { op(); },
+            [&](RelationalACopy &op) {
+                op.print_debug_info();
+                op();
+            },
             [&](RelationalCopy &op) {
+                op.print_debug_info();
                 // std::cout << "copied" << std::endl;
                 if (op.src_ver == FULL) {
                     if (!op.copied) {
@@ -62,9 +133,26 @@ void LIE::execute_ra(ra_op &ra) {
                     op();
                 }
             },
-            [&](RelationalFilter &op) { op(); },
-            [&](RelationalArithm &op) { op(); },
-            [&](RelationalNegation &op) { op(); },
+            [&](RelationalFilterProject &op) {
+                op.print_debug_info();
+                op();
+            },
+            [&](RelationalFilter &op) {
+                op.print_debug_info();
+                op();
+            },
+            [&](RelationalArithm &op) {
+                op.print_debug_info();
+                op();
+            },
+            [&](RelationalArithmProject &op) {
+                op.print_debug_info();
+                op();
+            },
+            [&](RelationalNegation &op) {
+                op.print_debug_info();
+                op();
+            },
             [&](RelationalSync &op) {
                 if (op.src_ver == FULL) {
                     mcomm->distribute(op.src_rel->full);
@@ -93,10 +181,15 @@ void LIE::execute_ra(ra_op &ra) {
                 op();
             },
             [&](RelationalUnion &op) { op(); },
-            [&](RelationalClear &op) { op(); },
+            [&](RelationalClear &op) {
+                op.print_debug_info();
+                op();
+            },
             [&](RelationalBroadcast &op) { mcomm->broadcast(op.src); }},
         ra);
 }
+
+void LIE::add_tail_ra(ra_op op) { tail_ra_ops.push_back(op); }
 
 void LIE::fixpoint_loop() {
 
@@ -134,6 +227,7 @@ void LIE::fixpoint_loop() {
     }
     // init full tuple buffer for all relation involved
     for (Relation *rel : update_relations) {
+        // std::cout << "load full from delta " << rel->name << std::endl;
         rel->delta->free();
         checkCuda(cudaMalloc((void **)&rel->delta->data_raw,
                              rel->full->arity * rel->full->tuple_counts *
@@ -166,11 +260,37 @@ void LIE::fixpoint_loop() {
             timer.stop_timer();
             join_time += timer.get_spent_time();
         }
+        for (auto &ra_op : tail_ra_ops) {
+            timer.start_timer();
+            execute_ra(ra_op);
+            timer.stop_timer();
+            join_time += timer.get_spent_time();
+        }
 
         // clean tmp relation
         for (Relation *rel : tmp_relations) {
+            if (rel->newt->tuple_counts != 0) {
+                std::cout << "Clear Tmp : " << rel->name << " >> "
+                          << rel->newt->tuple_counts << std::endl;
+            }
             rel->newt->free();
         }
+        // print some debug relation here
+        // if (iteration_counter == 1) {
+        //     // check if name exists
+        //     std::string rel_name = "dollarbir_rule4_join_2";
+        //     if (relation_name_map.find(rel_name) == relation_name_map.end())
+        //     {
+        //         std::cerr << "relation name not found : " << rel_name
+        //                   << std::endl;
+        //     } else {
+        //         std::cout << "Debug relation " << rel_name << std::endl;
+        //         auto debug_rel = relation_name_map[rel_name];
+        //         print_tuple_rows(debug_rel->newt, rel_name.c_str());
+        //     }
+        // }
+
+        ///////////
 
         // merge delta into full
         bool fixpoint_flag = true;
@@ -218,12 +338,12 @@ void LIE::fixpoint_loop() {
                 tuple_type *deuplicated_end = thrust::set_difference(
                     rmm::exec_policy(), rel->newt->tuples,
                     rel->newt->tuples + rel->newt->tuple_counts,
-                    rel->full->tuples, rel->full->tuples + rel->full->tuple_counts,
+                    rel->full->tuples,
+                    rel->full->tuples + rel->full->tuple_counts,
                     deduplicated_newt_tuples,
                     tuple_indexed_less(rel->full->index_column_size,
                                        rel->full->arity -
                                            rel->dependent_column_size));
-                // checkCuda(cudaDeviceSynchronize());
                 deduplicate_size = deuplicated_end - deduplicated_newt_tuples;
             }
 
@@ -257,7 +377,8 @@ void LIE::fixpoint_loop() {
             // checkCuda(
             //     cudaMemset(deduplicated_raw, 0, dedeuplicated_raw_mem_size));
             thrust::for_each(
-                rmm::exec_policy(), thrust::make_counting_iterator<tuple_size_t>(0),
+                rmm::exec_policy(),
+                thrust::make_counting_iterator<tuple_size_t>(0),
                 thrust::make_counting_iterator<tuple_size_t>(deduplicate_size),
                 [gh_tps = deduplicated_newt_tuples, arity = rel->newt->arity,
                  new_data = deduplicated_raw] __device__(tuple_size_t i) {
@@ -337,6 +458,15 @@ void LIE::fixpoint_loop() {
             break;
         }
     }
+
+    if (mcomm->getRank() == 0) {
+        // std::cout << "Finish fixpoint loop" << std::endl;
+        // for (Relation *rel : update_relations) {
+        //     std::cout << "Finished! " << rel->name << " has "
+        //               << rel->full->tuple_counts << std::endl;
+        // }
+    }
+
     // merge full after reach fixpoint
     timer.start_timer();
     if (reload_full_flag) {
@@ -362,12 +492,12 @@ void LIE::fixpoint_loop() {
             rel->newt->free();
         }
     } else {
-        if (!mcomm->isInitialized() || mcomm->getRank() == 0) {
-            for (Relation *rel : update_relations) {
-                std::cout << "Finished! " << rel->name << " has "
-                          << rel->full->tuple_counts << std::endl;
-            }
-        }
+        // if (!mcomm->isInitialized() || mcomm->getRank() == 0) {
+        //     for (Relation *rel : update_relations) {
+        //         std::cout << "Finished! " << rel->name << " has "
+        //                   << rel->full->tuple_counts << std::endl;
+        //     }
+        // }
     }
     timer.stop_timer();
     float merge_full_time = timer.get_spent_time();

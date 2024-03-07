@@ -1,0 +1,1491 @@
+
+[(block_next Block EA Dest) <--
+   (block_last_instruction Block EA)
+   (jump_table_target EA Dest)]
+
+[(cmp_defines EA_jmp EA_dst Reg) <--
+   (compare_and_jump_immediate _ EA_jmp "E" Reg _)
+   (direct_jump EA_jmp EA_dst)]
+
+[(cmp_defines EA_jmp EA_dst Reg) <--
+   (compare_and_jump_immediate _ EA_jmp "NE" Reg _)
+   (may_fallthrough EA_jmp EA_dst)]
+
+[(flags_and_jump_pair EA_cmp EA_jmp CC)
+ (instruction EA_cmp _ _ Operation _ _ _ _ _ _) --
+ (arch_cmp_operation Operation) --
+ (cmp_immediate_to_reg EA_cmp Reg _ Immediate)
+ -->
+ (compare_and_jump_immediate EA_cmp EA_jmp CC Reg Immediate)]
+
+[(flags_and_jump_pair EA_cmp EA_jmp CC)
+ (instruction EA_cmp _ _ CmpOperation _ _ _ _ _ _) --
+ (arch_cmp_operation CmpOperation) --
+ (instruction_get_op EA_cmp _ IndirectOp) --
+ (op_indirect IndirectOp _ _ _ _ _ _) --
+ (instruction_get_op EA_cmp _ ImmOp) --
+ (op_immediate ImmOp Immediate _) 
+ -->
+ (compare_and_jump_indirect EA_cmp EA_jmp CC IndirectOp Immediate)]
+
+[(compare_and_jump_register EA_cmp EA_jmp CC Reg1 Reg2) <--
+   (flags_and_jump_pair EA_cmp EA_jmp CC)
+   (cmp_reg_to_reg EA_cmp Reg1 Reg2)]
+
+
+[(const_value_reg_used UsedEA EADef EARegDef Reg Value) <--
+   (value_reg EARegDef Reg EADef "NONE" 0 Value _)
+   (reg_def_use_def_used EARegDef Reg UsedEA _)]
+
+; def_used_for_address(EA_def,Reg,Type) :- 
+;    reg_def_use_def_used(EA_def,Reg,EA,_),
+;    reg_used_for(EA,Reg,Type).
+[(def_used_for_address EA_def Reg Type) <--
+   (reg_def_use_def_used EA_def Reg EA _)
+   (reg_used_for EA Reg Type)]
+
+; def_used_for_address(EA_def,Reg,Type) :- 
+;    def_used_for_address(EA_used,_,Type),
+;    reg_def_use_def_used(EA_def,Reg,EA_used,_).
+[(def_used_for_address EA_def Reg Type) <--
+   (def_used_for_address EA_used _ Type)
+   (reg_def_use_def_used EA_def Reg EA_used _)]
+
+; def_used_for_address(EA_def,Reg1,Type) :- 
+;    def_used_for_address(EALoad,Reg2,Type),
+;    arch_memory_access("LOAD",EALoad,_,_,Reg2,RegBaseLoad,inlined_IndexReg_113,_,StackPosLoad),
+;    inlined_IndexReg_113 = "NONE",
+;    stack_def_use_def_used(EAStore,RegBaseStore,StackPosStore,EALoad,RegBaseLoad,StackPosLoad,_),
+;    arch_memory_access("STORE",EAStore,_,_,Reg1,RegBaseStore,inlined_IndexReg_548,_,StackPosStore),
+;    inlined_IndexReg_548 = "NONE",
+;    reg_def_use_def_used(EA_def,Reg1,EAStore,_).
+[(def_used_for_address EALoad Reg2 Type)
+ (arch_memory_access "LOAD" EALoad _ _ Reg2 RegBaseLoad "NONE" _ StackPosLoad) --
+ (stack_def_use_def_used EAStore RegBaseStore StackPosStore EALoad RegBaseLoad StackPosLoad _) --
+ (arch_memory_access "STORE" EAStore _ _ Reg1 RegBaseStore "NONE" _ StackPosStore) --
+ (reg_def_use_def_used EA_def Reg1 EAStore _)
+ -->
+ (def_used_for_address EA_def Reg1 Type)]
+
+; flags_and_jump_pair(EA_flags,EA_jmp,CC) :- 
+;    arch_condition_flags_reg(Reg),
+;    reg_def_use_def_used(EA_flags,Reg,EA_jmp,_),
+;    arch_jump(EA_jmp),
+;    arch_conditional(EA_jmp,CC).
+[(arch_condition_flags_reg Reg)
+ (reg_def_use_def_used EA_flags Reg EA_jmp _) --
+ (arch_jump EA_jmp) --
+ (arch_conditional EA_jmp CC)
+ -->
+ (flags_and_jump_pair EA_flags EA_jmp CC)]
+
+; jump_table_element_access(EA,Size,TableStartAddr,"NONE") :- 
+;    pc_relative_operand(EA,1,TableStartAddr),
+;    data_access(EA,_,_,_,_,_,_,Size),
+;    def_used_for_address(EA,_,Type),
+;    Type = "Jump",
+;    reg_def_use_def_used(EA,Reg1,EA_add,_),
+;    reg_def_use_def_used(EA2,Reg2,EA_add,_),
+;    take_address(EA2,TableStartAddr),
+;    arch_reg_reg_arithmetic_operation(EA_add,_,Reg2,Reg1,1,0),
+;    data_segment(Beg,End),
+;    TableStartAddr >= Beg,
+;    TableStartAddr <= End.
+[(pc_relative_operand EA 1 TableStartAddr)
+ (data_access EA _ _ _ _ _ _ Size) --
+ (def_used_for_address EA _ "Jump") --
+ (reg_def_use_def_used EA Reg1 EA_add _) --
+ (reg_def_use_def_used EA2 Reg2 EA_add _) --
+ (take_address EA2 TableStartAddr) --
+ (arch_reg_reg_arithmetic_operation EA_add _ Reg2 Reg1 1 0) --
+ (data_segment Beg End) --
+ (>= TableStartAddr Beg) --
+ (<= TableStartAddr End)
+ -->
+ (jump_table_element_access EA Size TableStartAddr "NONE")]
+
+; jump_table_element_access(EA,Size,TableStartAddr,"NONE") :- 
+;    pc_relative_operand(EA,1,TableStartAddr),
+;    data_access(EA,_,_,_,_,_,_,Size),
+;    def_used_for_address(EA,_,Type),
+;    Type = "Call",
+;    reg_def_use_def_used(EA,Reg1,EA_add,_),
+;    reg_def_use_def_used(EA2,Reg2,EA_add,_),
+;    take_address(EA2,TableStartAddr),
+;    arch_reg_reg_arithmetic_operation(EA_add,_,Reg2,Reg1,1,0),
+;    data_segment(Beg,End),
+;    TableStartAddr >= Beg,
+;    TableStartAddr <= End.
+[(pc_relative_operand EA 1 TableStartAddr)
+ (data_access EA _ _ _ _ _ _ Size) --
+ (def_used_for_address EA _ "Call") --
+ (reg_def_use_def_used EA Reg1 EA_add _) --
+ (reg_def_use_def_used EA2 Reg2 EA_add _) --
+ (take_address EA2 TableStartAddr) --
+ (arch_reg_reg_arithmetic_operation EA_add _ Reg2 Reg1 1 0) --
+ (data_segment Beg End) --
+ (>= TableStartAddr Beg) --
+ (<= TableStartAddr End)
+ -->
+ (jump_table_element_access EA Size TableStartAddr "NONE")]
+
+; jump_table_element_access(EA,Size,as(TableStart, address),as(RegBase, register)) :- 
+;    data_access(EA,_,"NONE",RegBase,RegIndex,1,0,Size),
+;    RegBase != "NONE",
+;    RegIndex != "NONE",
+;    RegIndex_nn = as(RegIndex, register),
+;    const_value_reg_used(EA,_,_,RegIndex_nn,TableStart),
+;    data_segment(Beg,End),
+;    as(TableStart, address) >= Beg,
+;    as(TableStart, address) <= End.
+[(data_access EA _ "NONE" RegBase RegIndex 1 0 Size)
+ (=/= RegBase "NONE") --
+ (=/= RegIndex "NONE") --
+ (const_value_reg_used EA _ _ RegIndex TableStart) --
+ (data_segment Beg End) --
+ (>= TableStart Beg) --
+ (<= TableStart End)
+ -->
+ (jump_table_element_access EA Size TableStart RegBase)]
+
+; jump_table_element_access(EA,Size,as(_tmp_1, address),as(RegIndex, register)) :-
+;    data_access(EA,_,"NONE",RegBase,RegIndex, _tmp_70,Offset,Size),
+;    RegBase != "NONE",
+;    RegBase_nn = as(RegBase, register),
+;    RegIndex != "NONE",
+;    const_value_reg_used(EA,_,_,RegBase_nn,Base),
+;    data_segment(Beg,End),
+;    _tmp_1 = (Base+Offset),
+;    as(_tmp_1, address) >= Beg,
+;    as(_tmp_1, address) <= End,
+;    _tmp_70 = as(Size, number).
+[(data_access EA _ "NONE" RegBase RegIndex Size Offset Size)
+ (=/= RegBase "NONE") --
+ (= RegBase_nn (as RegBase register)) --
+ (=/= RegIndex "NONE") --
+ (const_value_reg_used EA _ _ RegBase_nn Base) --
+ (data_segment Beg End) --
+ (+ Base Offset _tmp_1) --
+ (>= _tmp_1 Beg) --
+ (<= _tmp_1 End)
+ -->
+ (jump_table_element_access EA Size _tmp_1 RegIndex)]
+
+; jump_table_signed(TableStart,Signed) :- 
+;    jump_table_element_access(EA,Size,TableStart,_),
+;    arch_extend_load(EA,Signed, _tmp_71),
+;     _tmp_71 = (8*Size).
+[(jump_table_signed TableStart Signed) <--
+   (jump_table_element_access EA Size TableStart _)
+   (arch_extend_load EA Signed _tmp_71)
+   (* 8 Size _tmp_71)]
+
+; jump_table_signed(TableStart,Signed) :- 
+;    jump_table_element_access(EA,Size,TableStart,_),
+;    value_reg(EA_used,_,EA,Reg,_,_,_),
+;    arch_extend_reg(EA_used,Reg,Signed, _tmp_72),
+;     _tmp_72 = (8*Size).
+[(jump_table_element_access EA Size TableStart _)
+ (value_reg EA_used _ EA Reg _ _ _) --
+ (arch_extend_reg EA_used Reg Signed _tmp_72)
+ (* 8 Size _tmp_72)
+ -->
+ (jump_table_signed TableStart Signed)]
+
+; jump_table_signed(TableStart,0) :- 
+;    jump_table_element_access(EA,_,TableStart,_),
+;    instruction_get_dest_op(EA,_,DstOp),
+;    op_regdirect(DstOp,DefReg),
+;    reg_map(DefReg,DefRegMapped),
+;    value_reg(EA_used,_,EA,DefRegMapped,_,_,_),
+;    instruction_get_src_op(EA_used,_,Op),
+;    op_regdirect(Op,UsedReg),
+;    reg_map(UsedReg,DefRegMapped),
+;    arch_register_size_bytes(DefReg,DefSize),
+;    arch_register_size_bytes(UsedReg,UsedSize),
+;    UsedSize > DefSize.
+[(jump_table_element_access EA _ TableStart _)
+ (instruction_get_dest_op EA _ DstOp) --
+ (op_regdirect DstOp DefReg) --
+ (reg_map DefReg DefRegMapped) --
+ (value_reg EA_used _ EA DefRegMapped _ _ _) --
+ (instruction_get_src_op EA_used _ Op) --
+ (op_regdirect Op UsedReg) --
+ (reg_map UsedReg DefRegMapped) --
+ (arch_register_size_bytes DefReg DefSize) --
+ (arch_register_size_bytes UsedReg UsedSize) --
+ (> UsedSize DefSize)
+ -->
+ (jump_table_signed TableStart 0)]
+
+; jump_table_signed(TableStart,1) :- 
+;    jump_table_element_access(_,PtrSize,TableStart,_),
+;    PtrSize = 8.
+[(jump_table_element_access _ 8 TableStart _)
+ -->
+ (jump_table_signed TableStart 1)]
+
+; jump_table_start(EA_jump,4,_tmp_1,ImageBase,1) :- 
+;    base_relative_jump(EA_base,EA_jump),
+;    base_relative_operand(EA_base,_,Value),
+;    base_address(ImageBase),
+;    _tmp_1 = (ImageBase+Value).
+[(base_relative_jump EA_base EA_jump)
+ (base_relative_operand EA_base _ Value) --
+ (base_address ImageBase) --
+ (+ ImageBase Value _tmp_1)
+ -->
+ (jump_table_start EA_jump 4 _tmp_1 ImageBase 1)]
+
+; jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
+;    jump_table_element_access(EA,Size,TableStart,_),
+;    value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+;    Reg != "NONE",
+;    reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+;    reg_call(EA_jump,_),
+;    code_in_block(EA_jump,_).
+[(jump_table_element_access EA Size TableStart _)
+ (value_reg EA_add RegJump EA Reg Scale Base _) --
+ (=/= Reg "NONE") --
+ (reg_def_use_def_used EA_add RegJump EA_jump _) -- 
+ (reg_call EA_jump _) --
+ (code_in_block EA_jump _)
+ -->
+ (jump_table_start EA_jump Size TableStart Base Scale)]
+
+; jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
+;    jump_table_element_access(EA,Size,TableStart,_),
+;    value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+;    Reg != "NONE",
+;    reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+;    reg_call(EA_jump,_),
+;    code_in_block(EA_jump,_).
+[(jump_table_element_access EA Size TableStart _)
+ (value_reg EA_add RegJump EA Reg Scale Base _) --
+ (=/= Reg "NONE") --
+ (reg_def_use_def_used EA_add RegJump EA_jump _) -- 
+ (reg_call EA_jump _) --
+ (code_in_block EA_jump _)
+ -->
+ (jump_table_start EA_jump Size TableStart Base Scale)]
+
+; jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
+;    jump_table_element_access(EA,Size,TableStart,_),
+;    value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+;    Reg != "NONE",
+;    reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+;    reg_jump(EA_jump,_),
+;    code_in_block(EA_jump,_).
+[(jump_table_element_access EA Size TableStart _)
+ (value_reg EA_add RegJump EA Reg Scale Base _) --
+ (=/= Reg "NONE") --
+ (reg_def_use_def_used EA_add RegJump EA_jump _) --
+ (reg_jump EA_jump _) --
+ (code_in_block EA_jump _)
+ -->
+ (jump_table_start EA_jump Size TableStart Base Scale)]
+
+; jump_table_start(EA_jump,Size,as(TableReference, address),as(TableReference, address),1) :- 
+;    reg_jump(EA_jump,_),
+;    code_in_block(EA_jump,_),
+;    reg_def_use_def_used(EA_base,Reg,EA_jump,_),
+;    instruction(EA_base,_,_,inlined_Operation_591,_,_,_,_,_,_),
+;    inlined_Operation_591 = "ADD",
+;    jump_table_element_access(EA_base,Size, _tmp_73,_),
+;    const_value_reg_used(EA_base,_,_,Reg,TableReference),
+;     _tmp_73 = as(TableReference, address).
+[(reg_jump EA_jump _)
+ (code_in_block EA_jump _) --
+ (reg_def_use_def_used EA_base Reg EA_jump _) --
+ (instruction EA_base _ _ inlined_Operation_591 _ _ _ _ _ _) --
+ (= inlined_Operation_591 "ADD") --
+ (jump_table_element_access EA_base Size TableReference _) --
+ (const_value_reg_used EA_base _ _ Reg TableReference)
+ -->
+ (jump_table_start EA_jump Size TableReference TableReference 1)]
+
+; jump_table_start(EA_jump,Size,as(TableReference, address),as(TableReference, address),-1) :- 
+;    reg_jump(EA_jump,_),
+;    code_in_block(EA_jump,_),
+;    reg_def_use_def_used(EA_base,Reg,EA_jump,_),
+;    instruction(EA_base,_,_,inlined_Operation_593,_,_,_,_,_,_),
+;    inlined_Operation_593 = "SUB",
+;    jump_table_element_access(EA_base,Size, _tmp_74,_),
+;    const_value_reg_used(EA_base,_,_,Reg,TableReference),
+;     _tmp_74 = as(TableReference, address).
+[(reg_jump EA_jump _)
+ (code_in_block EA_jump _) --
+ (reg_def_use_def_used EA_base Reg EA_jump _) --
+ (instruction EA_base _ _ inlined_Operation_593 _ _ _ _ _ _) --
+ (= inlined_Operation_593 "SUB") --
+ (jump_table_element_access EA_base Size TableReference _) --
+ (const_value_reg_used EA_base _ _ Reg TableReference)
+ -->
+ (jump_table_start EA_jump Size TableReference TableReference -1)]
+
+; jump_table_start(EA_jump,Size,TableStart,as(TableReference, address),1) :- 
+;    reg_jump(EA_jump,_),
+;    code_in_block(EA_jump,_),
+;    reg_def_use_def_used(EA_base,Reg,EA_jump,_),
+;    instruction(EA_base,_,_,inlined_Operation_590,_,_,_,_,_,_),
+;    inlined_Operation_590 = "ADD",
+;    jump_table_element_access(EA_base,Size,TableStart,_),
+;    const_value_reg_used(EA_base,_,_,Reg,TableReference),
+;    code_in_block( _tmp_153,_),
+;     _tmp_153 = as(TableReference, address).
+[(reg_jump EA_jump _)
+ (code_in_block EA_jump _) --
+ (reg_def_use_def_used EA_base Reg EA_jump _) --
+ (instruction EA_base _ _ "ADD" _ _ _ _ _ _) --
+ (jump_table_element_access EA_base Size TableStart _) --
+ (const_value_reg_used EA_base _ _ Reg TableReference) --
+ (code_in_block TableReference _) --
+ -->
+ (jump_table_start EA_jump Size TableStart TableReference 1)]
+
+
+; jump_table_target(EA,Dest) :- 
+;    jump_table_start(EA,Size,TableStart,_,_),
+;    relative_jump_table_entry_candidate(_,TableStart,Size,_,Dest,_,_).
+[(jump_table_target EA Dest) <--
+   (jump_table_start EA Size TableStart _ _)
+   (relative_jump_table_entry_candidate _ TableStart Size _ Dest _ _)]
+
+; last_value_reg_limit(From,To,Reg,Value,LimitType,0) :- 
+;    value_reg_limit(From,To,Reg,Value,LimitType).
+[(last_value_reg_limit From To Reg Value LimitType 0) <--
+   (value_reg_limit From To Reg Value LimitType)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    !conditional_jump(BlockEnd),
+;    _tmp_1 = (Steps+1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (~ conditional_jump BlockEnd) --
+ (+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    no_value_reg_limit(BlockEnd),
+;    _tmp_1 = (Steps + 1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (no_value_reg_limit BlockEnd) --
+ (+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType, _tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    cmp_defines(BlockEnd,BlockNext,Reg),
+;    Reg != PropagatedReg,
+;    _tmp_1 = (Steps+1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (cmp_defines BlockEnd BlockNext Reg) --
+ (=/= Reg PropagatedReg) --
+(+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    cmp_defines(BlockEnd,BlockNext,Reg),
+;    Reg != PropagatedReg,
+;    _tmp_1 = (Steps + 1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (cmp_defines BlockEnd BlockNext Reg) --
+ (=/= Reg PropagatedReg) --
+ (+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    cmp_defines(BlockEnd,DefinedNext,PropagatedReg),
+;    BlockNext != DefinedNext,
+;    _tmp_1 = (Steps + 1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (cmp_defines BlockEnd DefinedNext PropagatedReg) --
+ (=/= BlockNext DefinedNext) --
+ (+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    value_reg_limit(BlockEnd,BlockNext,Reg,_,_),
+;    Reg != PropagatedReg,
+;    _tmp_1 = (Steps+1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (value_reg_limit BlockEnd BlockNext Reg _ _) --
+ (=/= Reg PropagatedReg) --
+ (+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal PropagatedType _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    value_reg_limit(BlockEnd,BlockNext,PropagatedReg,Val,Type),
+;    PropagatedType = "MAX",
+;    Type = "MAX",
+;    PropagatedVal < Val,
+;    _tmp_1 = (Steps+1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal "MAX" Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (value_reg_limit BlockEnd BlockNext PropagatedReg Val "MAX") --
+ (< PropagatedVal Val) --
+ (+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal "MAX" _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_next(Block,BlockEnd,BlockNext),
+;    !reg_def_use_defined_in_block(Block,PropagatedReg),
+;    value_reg_limit(BlockEnd,BlockNext,PropagatedReg,Val,Type),
+;    PropagatedType = "MIN",
+;    Type = "MIN",
+;    PropagatedVal > Val,
+;    _tmp_1 = (Steps+1).
+[(last_value_reg_limit _ EA PropagatedReg PropagatedVal "MIN" Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_next Block BlockEnd BlockNext) --
+ (~ reg_def_use_defined_in_block Block PropagatedReg) --
+ (value_reg_limit BlockEnd BlockNext PropagatedReg Val "MIN") --
+ (> PropagatedVal Val) --
+ (+ Steps 1 _tmp_1)
+ -->
+ (last_value_reg_limit BlockEnd BlockNext PropagatedReg PropagatedVal "MIN" _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,EA_next,DstReg,_tmp_2,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_last_instruction(Block,BlockEnd),
+;    limit_reg_op(BlockEnd,DstReg,SrcReg,Offset),
+;    EA <= BlockEnd,
+;    BlockEnd <= BlockEnd,
+;    code_in_block(BlockEnd,Block),
+;    block_next(Block,BlockEnd,EA_next),
+;    !reg_def_use_block_last_def(BlockEnd,_,SrcReg),
+;    _tmp_1 = (Steps+1),
+;    _tmp_2 = (PropagatedVal+Offset).
+[(last_value_reg_limit _ EA SrcReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_last_instruction Block BlockEnd) --
+ (limit_reg_op BlockEnd DstReg SrcReg Offset) --
+ (<= EA BlockEnd) --
+ (<= BlockEnd BlockEnd) --
+ (code_in_block BlockEnd Block) --
+ (block_next Block BlockEnd EA_next) --
+ (~ reg_def_use_block_last_def BlockEnd _ SrcReg) --
+ (+ Steps 1 _tmp_1) --
+ (+ PropagatedVal Offset _tmp_2)
+ -->
+ (last_value_reg_limit BlockEnd EA_next DstReg _tmp_2 PropagatedType _tmp_1)]
+
+; last_value_reg_limit(BlockEnd,EA_next,DstReg,_tmp_2,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(From,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_last_instruction(Block,BlockEnd),
+;    limit_reg_op(BlockEnd,DstReg,SrcReg,Offset),
+;    EA <= BlockEnd,
+;    BlockEnd <= BlockEnd,
+;    code_in_block(BlockEnd,Block),
+;    block_next(Block,BlockEnd,EA_next),
+;    reg_def_use_block_last_def(BlockEnd,From,SrcReg),
+;    _tmp_1 = (Steps+1),
+;    _tmp_2 = (PropagatedVal+Offset).
+[(last_value_reg_limit From EA SrcReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_last_instruction Block BlockEnd) --
+ (limit_reg_op BlockEnd DstReg SrcReg Offset) --
+ (<= EA BlockEnd) --
+ (<= BlockEnd BlockEnd) --
+ (code_in_block BlockEnd Block) --
+ (block_next Block BlockEnd EA_next) --
+ (reg_def_use_block_last_def BlockEnd From SrcReg) --
+ (+ Steps 1 _tmp_1) --
+ (+ PropagatedVal Offset _tmp_2)
+ -->
+ (last_value_reg_limit BlockEnd EA_next DstReg _tmp_2 PropagatedType _tmp_1)]
+
+; last_value_reg_limit(EA_mov,EA_next,DstReg,_tmp_2,PropagatedType, _tmp_1) :- 
+;    last_value_reg_limit(From,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_last_instruction(Block,BlockEnd),
+;    limit_reg_op(EA_mov,DstReg,SrcReg,Offset),
+;    EA <= EA_mov,
+;    EA_mov <= BlockEnd,
+;    code_in_block(EA_mov,Block),
+;    EA_mov != BlockEnd,
+;    code_in_block(EA_mov,inlined_Block_193),
+;    may_fallthrough(EA_mov,EA_next),
+;    code_in_block(EA_next,inlined_Block_193),
+;    reg_def_use_block_last_def(EA_mov,From,SrcReg),
+;    _tmp_1 = (Steps+1),
+;    _tmp_2 = (PropagatedVal+Offset).
+[(last_value_reg_limit From EA SrcReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_last_instruction Block BlockEnd) --
+ (limit_reg_op EA_mov DstReg SrcReg Offset) --
+ (<= EA EA_mov) --
+ (<= EA_mov BlockEnd) --
+ (code_in_block EA_mov Block) --
+ (=/= EA_mov BlockEnd) --
+ (code_in_block EA_mov inlined_Block_193) --
+ (may_fallthrough EA_mov EA_next) --
+ (code_in_block EA_next inlined_Block_193) --
+ (reg_def_use_block_last_def EA_mov From SrcReg) --
+ (+ Steps 1 _tmp_1) --
+ (+ PropagatedVal Offset _tmp_2)
+ -->
+ (last_value_reg_limit EA_mov EA_next DstReg _tmp_2 PropagatedType _tmp_1)]
+
+; last_value_reg_limit(EA_mov,EA_next,DstReg,_tmp_2,PropagatedType,_tmp_1) :- 
+;    last_value_reg_limit(_,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+;    Steps <= 3,
+;    code_in_block(EA,Block),
+;    block_last_instruction(Block,BlockEnd),
+;    limit_reg_op(EA_mov,DstReg,SrcReg,Offset),
+;    EA <= EA_mov,
+;    EA_mov <= BlockEnd,
+;    code_in_block(EA_mov,Block),
+;    EA_mov != BlockEnd,
+;    code_in_block(EA_mov,inlined_Block_194),
+;    may_fallthrough(EA_mov,EA_next),
+;    code_in_block(EA_next,inlined_Block_194),
+;    !reg_def_use_block_last_def(EA_mov,_,SrcReg),
+;    _tmp_1 = (Steps+1),
+;    _tmp_2 = (PropagatedVal+Offset).
+[(last_value_reg_limit _ EA SrcReg PropagatedVal PropagatedType Steps)
+ (<= Steps 3) --
+ (code_in_block EA Block) --
+ (block_last_instruction Block BlockEnd) --
+ (limit_reg_op EA_mov DstReg SrcReg Offset) --
+ (<= EA EA_mov) --
+ (<= EA_mov BlockEnd) --
+ (code_in_block EA_mov Block) --
+ (=/= EA_mov BlockEnd) --
+ (code_in_block EA_mov inlined_Block_194) --
+ (may_fallthrough EA_mov EA_next) --
+ (code_in_block EA_next inlined_Block_194) --
+ (~ reg_def_use_block_last_def EA_mov _ SrcReg) --
+ (+ Steps 1 _tmp_1) --
+ (+ PropagatedVal Offset _tmp_2)
+ -->
+ (last_value_reg_limit EA_mov EA_next DstReg _tmp_2 PropagatedType _tmp_1)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+;    CC = "O".
+[(no_value_reg_limit EA_jmp) <-- (compare_and_jump_immediate _ EA_jmp "O" _ _)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+;    CC = "NO".
+[(no_value_reg_limit EA_jmp) <-- (compare_and_jump_immediate _ EA_jmp "NO" _ _)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+;    CC = "P".
+[(no_value_reg_limit EA_jmp) <-- (compare_and_jump_immediate _ EA_jmp "P" _ _)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+;    CC = "PE".
+[(no_value_reg_limit EA_jmp) <-- (compare_and_jump_immediate _ EA_jmp "PE" _ _)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+;    CC = "S".
+[(no_value_reg_limit EA_jmp) <--
+   (compare_and_jump_immediate _ EA_jmp CC _ _)
+   (= CC "S")]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+;    CC = "NS".
+[(no_value_reg_limit EA_jmp) <-- (compare_and_jump_immediate _ EA_jmp "NS" _ _)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,_,Reg1,Reg2),
+;    !reg_def_use_block_last_def(EA_cmp,_,Reg1),
+;    !reg_def_use_block_last_def(EA_cmp,_,Reg2).
+[(compare_and_jump_register EA_cmp EA_jmp _ Reg1 Reg2)
+ (~ reg_def_use_block_last_def EA_cmp _ Reg1) --
+ (~ reg_def_use_block_last_def EA_cmp _ Reg2)
+ -->
+ (no_value_reg_limit EA_jmp)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,_,Reg1,Reg2),
+;    reg_def_use_block_last_def(EA_cmp,EA,Reg1),
+;    !arch_move_reg_imm(EA,Reg1,_,_),
+;    !reg_def_use_block_last_def(EA_cmp,_,Reg2).
+[(compare_and_jump_register EA_cmp EA_jmp _ Reg1 Reg2)
+ (reg_def_use_block_last_def EA_cmp EA Reg1) --
+ (~ arch_move_reg_imm EA Reg1 _ _) --
+ (~ reg_def_use_block_last_def EA_cmp _ Reg2)
+ -->
+ (no_value_reg_limit EA_jmp)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,_,Reg1,Reg2),
+;    reg_def_use_block_last_def(EA_cmp,EA,Reg2),
+;    !arch_move_reg_imm(EA,Reg2,_,_),
+;    !reg_def_use_block_last_def(EA_cmp,_,Reg1).
+[(compare_and_jump_register EA_cmp EA_jmp _ Reg1 Reg2)
+ (reg_def_use_block_last_def EA_cmp EA Reg2) --
+ (~ arch_move_reg_imm EA Reg2 _ _) --
+ (~ reg_def_use_block_last_def EA_cmp _ Reg1)
+ -->
+ (no_value_reg_limit EA_jmp)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,_,Reg1,Reg2),
+;    reg_def_use_block_last_def(EA_cmp,EA,Reg1),
+;    !arch_move_reg_imm(EA,Reg1,_,_),
+;    reg_def_use_block_last_def(EA_cmp,_,Reg2),
+;    !arch_move_reg_imm(EA,Reg2,_,_).
+[(compare_and_jump_register EA_cmp EA_jmp _ Reg1 Reg2)
+ (reg_def_use_block_last_def EA_cmp EA Reg1) --
+ (~ arch_move_reg_imm EA Reg1 _ _) --
+ (reg_def_use_block_last_def EA_cmp _ Reg2) --
+ (~ arch_move_reg_imm EA Reg2 _ _)
+ -->
+ (no_value_reg_limit EA_jmp)]
+
+; no_value_reg_limit(EA_jmp) :- 
+;    flags_and_jump_pair(EA_cmp,EA_jmp,_),
+;    instruction(EA_cmp,_,_,Operation,_,_,_,_,_,_),
+;    !arch_cmp_operation(Operation).
+[(flags_and_jump_pair EA_cmp EA_jmp _)
+ (instruction EA_cmp _ _ Operation _ _ _ _ _ _) --
+ (~ arch_cmp_operation Operation)
+ -->
+ (no_value_reg_limit EA_jmp)]
+
+; reg_def_use_def_used(EA_def,Var,EA_used,Index) :-
+;    reg_def_use_used(EA_used,Var,Index),
+;    reg_def_use_block_last_def(EA_used,EA_def,Var).
+[(reg_def_use_def_used EA_def Var EA_used Index) <--
+   (reg_def_use_used EA_used Var Index)
+   (reg_def_use_block_last_def EA_used EA_def Var)]
+
+; reg_def_use_def_used(EA_def,VarIdentity,EA_used,Index) :- 
+;    reg_def_use_live_var_at_block_end(Block,BlockUsed,Var),
+;    reg_def_use_live_var_def(Block,VarIdentity,Var,EA_def),
+;    reg_def_use_live_var_used(BlockUsed,Var,Var,EA_used,Index,_).
+[(reg_def_use_def_used EA_def VarIdentity EA_used Index) <--
+   (reg_def_use_live_var_def Block VarIdentity Var EA_def)
+   --
+   (reg_def_use_live_var_at_block_end Block BlockUsed Var)
+   (reg_def_use_live_var_used BlockUsed Var Var EA_used Index _)]
+
+; reg_def_use_def_used(EA_def,Var,Next_EA_used,NextIndex) :- 
+;    reg_def_use_live_var_at_prior_used(EA_used,NextUsedBlock,Var),
+;    reg_def_use_def_used(EA_def,Var,EA_used,_),
+;    reg_def_use_live_var_used(NextUsedBlock,Var,Var,Next_EA_used,NextIndex,_).
+[(reg_def_use_live_var_at_prior_used EA_used NextUsedBlock Var)
+ (reg_def_use_def_used EA_def Var EA_used _) --
+ (reg_def_use_live_var_used NextUsedBlock Var Var Next_EA_used NextIndex _)
+ -->
+ (reg_def_use_def_used EA_def Var Next_EA_used NextIndex)]
+
+; reg_def_use_def_used(EA_def,Reg,EA_used,Index) :- 
+;    reg_def_use_return_val_used(_,Callee,Reg,EA_used,Index),
+;    reg_def_use_return_block_end(Callee,_,_,BlockEnd),
+;    reg_def_use_block_last_def(BlockEnd,EA_def,Reg).
+[(reg_def_use_return_block_end Callee _ _ BlockEnd)
+ (reg_def_use_return_val_used _ Callee Reg EA_used Index) --
+ (reg_def_use_block_last_def BlockEnd EA_def Reg)
+ -->
+ (reg_def_use_def_used EA_def Reg EA_used Index)]
+
+; reg_def_use_live_var_at_block_end(PrevBlock,Block,Var) :- 
+;    block_next(PrevBlock,PrevBlockEnd,Block),
+;    reg_def_use_live_var_used(Block,Var,_,_,_,_),
+;    !reg_def_use_flow_def(PrevBlockEnd,Var,Block,_).
+[(block_next PrevBlock PrevBlockEnd Block)
+ (reg_def_use_live_var_used Block Var _ _ _ _) --
+ (~ reg_def_use_flow_def PrevBlockEnd Var Block)
+ -->
+ (reg_def_use_live_var_at_block_end PrevBlock Block Var)]
+
+; reg_def_use_live_var_at_block_end(PrevBlock,BlockUsed,Var) :- 
+;    reg_def_use_live_var_at_block_end(Block,BlockUsed,Var),
+;    !reg_def_use_ref_in_block(Block,Var),
+;    block_next(PrevBlock,_,Block). 
+[(reg_def_use_live_var_at_block_end Block BlockUsed Var)
+ (~ reg_def_use_ref_in_block Block Var) --
+ (block_next PrevBlock _ Block)
+ -->
+ (reg_def_use_live_var_at_block_end PrevBlock BlockUsed Var)]
+
+; reg_def_use_live_var_at_prior_used(EA_used,BlockUsed,Var) :- 
+;    reg_def_use_live_var_at_block_end(Block,BlockUsed,Var),
+;    reg_def_use_used_in_block(Block,EA_used,Var,_),
+;    !reg_def_use_defined_in_block(Block,Var).
+[(reg_def_use_live_var_at_block_end Block BlockUsed Var)
+ (reg_def_use_used_in_block Block EA_used Var _) --
+ (~ reg_def_use_defined_in_block Block Var)
+ -->
+ (reg_def_use_live_var_at_prior_used EA_used BlockUsed Var)]
+
+;  reg_def_use_live_var_used(RetBlock,Reg,Reg,EA_used,Index,1) :- 
+;    reg_def_use_return_block_end(Callee,_,RetBlock,RetBlockEnd),
+;    !reg_def_use_block_last_def(RetBlockEnd,_,Reg),
+;    reg_def_use_return_val_used(_,Callee,Reg,EA_used,Index).
+[(reg_def_use_return_block_end Callee _ RetBlock RetBlockEnd)
+ (~ reg_def_use_block_last_def RetBlockEnd _ Reg)
+ (reg_def_use_return_val_used _ Callee Reg EA_used Index)
+ -->
+ (reg_def_use_live_var_used RetBlock Reg Reg EA_used Index 1)]
+
+; reg_def_use_return_val_used(EA_call,Callee,Reg,EA_used,Index_used) :- 
+;    arch_return_reg(Reg),
+;    reg_def_use_def_used(EA_call,Reg,EA_used,Index_used),
+;    direct_call(EA_call,Callee).
+[(arch_return_reg Reg)
+ (reg_def_use_def_used EA_call Reg EA_used Index_used) --
+ (direct_call EA_call Callee)
+ -->
+ (reg_def_use_return_val_used EA_call Callee Reg EA_used Index_used)]
+
+; reg_has_base_image(EA,Reg) :- 
+;    reg_has_base_image(EA2,Reg2),
+;    reg_def_use_def_used(EA2,Reg2,EA,_),
+;    arch_move_reg_reg(EA,Reg,Reg2).
+[(reg_has_base_image EA2 Reg2)
+ (reg_def_use_def_used EA2 Reg2 EA _) --
+ (arch_move_reg_reg EA Reg Reg2)
+ -->
+ (reg_has_base_image EA Reg)]
+
+; reg_has_base_image(EA,Reg) :- 
+;    reg_has_base_image(EA2,Reg2),
+;    reg_def_use_def_used(EA2,Reg2,EA,_),
+;    arch_reg_reg_arithmetic_operation(EA,Reg,Reg2,_,Mult,0),
+;    Mult > 1.
+[(reg_has_base_image EA2 Reg2)
+ (reg_def_use_def_used EA2 Reg2 EA _) --
+ (arch_reg_reg_arithmetic_operation EA Reg Reg2 _ Mult 0) --
+ (> Mult 1)
+ -->
+ (reg_has_base_image EA Reg)]
+
+; reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset) :- 
+;    def_used_for_address(EA,Reg_def,_),
+;    arch_reg_reg_arithmetic_operation(EA,Reg_def,Reg1,Reg2,Mult,Offset),
+;    Reg1 != Reg2,
+;    reg_def_use_def_used(EA_def1,Reg1,EA,_),
+;    EA != EA_def1,
+;    reg_def_use_def_used(EA_def2,Reg2,EA,_),
+;    EA != EA_def2.
+[(def_used_for_address EA Reg_def _)
+ (arch_reg_reg_arithmetic_operation EA Reg_def Reg1 Reg2 Mult Offset) --
+ (=/= Reg1 Reg2) --
+ (reg_def_use_def_used EA_def1 Reg1 EA _) --
+ (=/= EA EA_def1) --
+ (reg_def_use_def_used EA_def2 Reg2 EA _) --
+ (=/= EA EA_def2)
+ -->
+ (reg_reg_arithmetic_operation_defs EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset)]
+
+; stack_def_use_def_used(EA_def,VarDefBase, VarDefPos,EA_used,VarUsedBase, VarUsedPos,Index) :- 
+;    stack_def_use_live_var_at_block_end(Block,BlockUsed,VarBase, VarPos),
+;    stack_def_use_live_var_def(Block,VarDefBase, VarDefPos,VarBase, VarPos,EA_def),
+;    stack_def_use_live_var_used(BlockUsed,VarBase, VarPos,VarUsedBase, VarUsedPos,EA_used,Index,_).
+[(stack_def_use_live_var_at_block_end Block BlockUsed VarBase VarPos)
+ (stack_def_use_live_var_def Block VarDefBase VarDefPos VarBase VarPos EA_def) --
+ (stack_def_use_live_var_used BlockUsed VarBase VarPos VarUsedBase VarUsedPos EA_used Index _)
+ -->
+ (stack_def_use_def_used EA_def VarDefBase VarDefPos EA_used VarUsedBase VarUsedPos Index)]
+
+; stack_def_use_def_used(EA_def,DefVarBase, DefVarPos,EA_used,UsedVarBase, UsedVarPos,Index) :- 
+;    stack_def_use_live_var_used_in_block(_,EA,DefVarBase, DefVarPos,UsedVarBase, UsedVarPos,EA_used,Index,_),
+;    may_fallthrough(EA_def,EA),
+;    code_in_block(EA_def,Block),
+;    code_in_block(EA,Block),
+;    stack_def_use_def(EA_def,DefVarBase, DefVarPos).
+[(stack_def_use_live_var_used_in_block _ EA DefVarBase DefVarPos UsedVarBase UsedVarPos EA_used Index _)
+ (may_fallthrough EA_def EA) --
+ (code_in_block EA_def Block) --
+ (code_in_block EA Block) --
+ (stack_def_use_def EA_def DefVarBase DefVarPos)
+ -->
+ (stack_def_use_def_used EA_def DefVarBase DefVarPos EA_used UsedVarBase UsedVarPos Index)]
+
+; stack_def_use_def_used(EA_def,VarDefBase, VarDefPos,Next_EA_used,VarUsedBase, VarUsedPos,NextIndex) :- 
+;    stack_def_use_live_var_at_prior_used(EA_used,NextUsedBlock,VarBase, VarPos),
+;    stack_def_use_def_used(EA_def,VarDefBase, VarDefPos,EA_used,VarBase, VarPos,_),
+;    stack_def_use_live_var_used(NextUsedBlock,VarBase, VarPos,VarUsedBase, VarUsedPos,Next_EA_used,NextIndex,_).
+[(stack_def_use_live_var_at_prior_used EA_used NextUsedBlock VarBase VarPos)
+ (stack_def_use_def_used EA_def VarDefBase VarDefPos EA_used VarBase VarPos _) --
+ (stack_def_use_live_var_used NextUsedBlock VarBase VarPos VarUsedBase VarUsedPos Next_EA_used NextIndex _)
+ -->
+ (stack_def_use_def_used EA_def VarDefBase VarDefPos Next_EA_used VarUsedBase VarUsedPos NextIndex)]
+
+; stack_def_use_live_var_at_block_end(PrevBlock,BlockUsed,inlined_BaseReg_374,inlined_StackPos_374) :- 
+;    stack_def_use_live_var_at_block_end(Block,BlockUsed,inlined_BaseReg_374,inlined_StackPos_374),
+;    !stack_def_use_ref_in_block(Block,inlined_BaseReg_374,inlined_StackPos_374),
+;    !reg_def_use_defined_in_block(Block,inlined_BaseReg_374),
+;    block_next(PrevBlock,_,Block).
+[(stack_def_use_live_var_at_block_end Block BlockUsed inlined_BaseReg_374 inlined_StackPos_374)
+ (~ stack_def_use_ref_in_block Block inlined_BaseReg_374 inlined_StackPos_374) --
+ (~ reg_def_use_defined_in_block Block inlined_BaseReg_374) --
+ (block_next PrevBlock _ Block)
+ -->
+ (stack_def_use_live_var_at_block_end PrevBlock BlockUsed inlined_BaseReg_374 inlined_StackPos_374)]
+
+; stack_def_use_live_var_at_block_end(PrevBlock,Block,Var) :- 
+;    block_next(PrevBlock,_,Block),
+;    stack_def_use_live_var_used(Block,Var,_,_,_,_).
+[(block_next PrevBlock _ Block)
+ (stack_def_use_live_var_used Block Var _ _ _ _) -->
+ (stack_def_use_live_var_at_block_end PrevBlock Block Var)]
+
+; stack_def_use_live_var_at_prior_used(EA_used,BlockUsed,inlined_BaseReg_375,inlined_StackPos_375) :- 
+;    stack_def_use_live_var_at_block_end(Block,BlockUsed,inlined_BaseReg_375,inlined_StackPos_375),
+;    stack_def_use_used_in_block(Block,EA_used,inlined_BaseReg_375,inlined_StackPos_375,_),
+;    !reg_def_use_defined_in_block(Block,inlined_BaseReg_375),
+;    !stack_def_use_defined_in_block(Block,inlined_BaseReg_375,inlined_StackPos_375).
+[(stack_def_use_live_var_at_block_end Block BlockUsed inlined_BaseReg_375 inlined_StackPos_375)
+ (stack_def_use_used_in_block Block EA_used inlined_BaseReg_375 inlined_StackPos_375 _) --
+ (~ reg_def_use_defined_in_block Block inlined_BaseReg_375) --
+ (~ stack_def_use_defined_in_block Block inlined_BaseReg_375 inlined_StackPos_375)
+ -->
+ (stack_def_use_live_var_at_prior_used EA_used BlockUsed inlined_BaseReg_375 inlined_StackPos_375)]
+
+; stack_def_use_live_var_used(Block,LiveVarBase, LiveVarPos,UsedVarBase, UsedVarPos,EA_used,Index,Moves) :- 
+; stack_def_use_live_var_used_in_block(Block,Block,LiveVarBase, LiveVarPos,UsedVarBase, UsedVarPos,EA_used,Index,Moves).
+[(stack_def_use_live_var_used Block LiveVarBase LiveVarPos UsedVarBase UsedVarPos EA_used Index Moves) <--
+   (stack_def_use_live_var_used_in_block Block Block LiveVarBase LiveVarPos UsedVarBase UsedVarPos EA_used Index Moves)]
+
+
+; stack_def_use_live_var_used_in_block(Block,NextEA,BaseReg,StackPos,VarUsedBase, VarUsedPos,EA_used,Index,_tmp_1) :- 
+;    adjusts_stack_in_block(Block,_,BaseReg,_),
+;    stack_def_use_live_var_at_block_end(Block,BlockUsed,BaseReg,StackPos),
+;    stack_def_use_live_var_used(BlockUsed,BaseReg,StackPos,VarUsedBase, VarUsedPos,EA_used,Index,Moves),
+;    Moves <= 2,
+;    block_last_instruction(Block,LastEA),
+;    next(LastEA,NextEA),
+;    _tmp_1 = (Moves+1).
+
+[(stack_def_use_live_var_used_in_block Block NextEA BaseReg StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1)
+ (adjusts_stack_in_block Block _ BaseReg _) --
+ (stack_def_use_live_var_at_block_end Block BlockUsed BaseReg StackPos) --
+ (stack_def_use_live_var_used BlockUsed BaseReg StackPos VarUsedBase VarUsedPos EA_used Index Moves) --
+ (<= Moves 2) --
+ (block_last_instruction Block LastEA) --
+ (next LastEA NextEA) --
+ (+ Moves 1 _tmp_1)
+ -->
+ (stack_def_use_live_var_used_in_block Block NextEA BaseReg StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1)]
+
+; stack_def_use_live_var_used_in_block(Block,NextEA,BaseReg,StackPos,VarUsedBase, VarUsedPos,EA_used,Index,_tmp_1) :- 
+;    stack_base_reg_move(Block,_,_,BaseReg),
+;    stack_def_use_live_var_at_block_end(Block,BlockUsed,BaseReg,StackPos),
+;    stack_def_use_live_var_used(BlockUsed,BaseReg,StackPos,VarUsedBase, VarUsedPos,EA_used,Index,Moves),
+;    Moves <= 2,
+;    block_last_instruction(Block,LastEA),
+;    next(LastEA,NextEA),
+;    _tmp_1 = (Moves+1).
+[(stack_def_use_live_var_used_in_block Block NextEA BaseReg StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1)
+ (stack_base_reg_move Block _ _ BaseReg) --
+ (stack_def_use_live_var_at_block_end Block BlockUsed BaseReg StackPos) --
+ (stack_def_use_live_var_used BlockUsed BaseReg StackPos VarUsedBase VarUsedPos EA_used Index Moves) --
+ (<= Moves 2) --
+ (block_last_instruction Block LastEA) --
+ (next LastEA NextEA) --
+ (+ Moves 1 _tmp_1)
+ -->
+ (stack_def_use_live_var_used_in_block Block NextEA BaseReg StackPos VarUsedBase VarUsedPos EA_used Index _tmp_1)]
+
+; stack_def_use_live_var_used_in_block(Block,EA,BaseReg,StackPos,FinalBaseReg,FinalStackPos,EA_used,Index,Moves) :- 
+;    stack_def_use_live_var_used_in_block(Block,Next,BaseReg,StackPos,FinalBaseReg,FinalStackPos,EA_used,Index,Moves),
+;    block_instruction_next(Block,EA,Next),
+;    !reg_def_use_def(EA,BaseReg),
+;    !stack_def_use_def(EA,BaseReg,StackPos).
+[(stack_def_use_live_var_used_in_block Block EA BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves)
+ (block_instruction_next Block EA Next) --
+ (~ reg_def_use_def EA BaseReg) --
+ (~ stack_def_use_def EA BaseReg StackPos) -->
+ (stack_def_use_live_var_used_in_block Block Next BaseReg StackPos FinalBaseReg FinalStackPos EA_used Index Moves)]
+
+; stack_def_use_live_var_used_in_block(Block,EA,BaseReg,_tmp_1,UsedVarBase,UsedVarPos,EA_used,Index,Moves) :- 
+;    stack_def_use_live_var_used_in_block(Block,Next,BaseReg,StackPos,UsedVarBase,UsedVarPos,EA_used,Index,Moves),
+;    block_instruction_next(Block,EA,Next),
+;    adjusts_stack_in_block(_,EA,BaseReg,Offset),
+;    !stack_def_use_def(EA,BaseReg,StackPos),
+;    arch_stack_pointer(BaseReg),
+;    _tmp_1 = (StackPos+Offset)
+;    _tmp_1 >= 0.
+[(stack_def_use_live_var_used_in_block Block EA BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves)
+ (block_instruction_next Block EA Next) --
+ (adjusts_stack_in_block _ EA BaseReg Offset) --
+ (~ stack_def_use_def EA BaseReg _tmp_1) --
+ (arch_stack_pointer BaseReg) --
+ (+ StackPos Offset _tmp_1) --
+ (>= _tmp_1 0)
+ -->
+ (stack_def_use_live_var_used_in_block Block Next BaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves)]
+
+; stack_def_use_live_var_used_in_block(Block,EA,BaseReg,_tmp_1,UsedVarBase, UsedVarPos,EA_used,Index,Moves) :- 
+;    stack_def_use_live_var_used_in_block(Block,Next,BaseReg,StackPos,UsedVarBase, UsedVarPos,EA_used,Index,Moves),
+;    block_instruction_next(Block,EA,Next),
+;    adjusts_stack_in_block(_,EA,BaseReg,Offset),
+;    !stack_def_use_def(EA,BaseReg,StackPos),
+;    !arch_stack_pointer(BaseReg),
+;    _tmp_1 = (StackPos+Offset).
+[(stack_def_use_live_var_used_in_block Block EA BaseReg _tmp_1 UsedVarBase UsedVarPos EA_used Index Moves)
+ (block_instruction_next Block EA Next) --
+ (adjusts_stack_in_block _ EA BaseReg Offset) --
+ (~ stack_def_use_def EA BaseReg _tmp_1) --
+ (~ arch_stack_pointer BaseReg) --
+ (+ StackPos Offset _tmp_1)
+ -->
+ (stack_def_use_live_var_used_in_block Block Next BaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves)]
+
+; stack_def_use_live_var_used_in_block(Block,EA,SrcBaseReg,StackPos,UsedVarBase, UsedVarPos,EA_used,Index,Moves) :- 
+;    stack_def_use_live_var_used_in_block(Block,Next,DstBaseReg,StackPos,UsedVarBase, UsedVarPos,EA_used,Index,Moves),
+;    block_instruction_next(Block,EA,Next),
+;    stack_base_reg_move(_,EA,SrcBaseReg,DstBaseReg).
+[(stack_def_use_live_var_used_in_block Block EA SrcBaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves)
+ (block_instruction_next Block EA Next) --
+ (stack_base_reg_move _ EA SrcBaseReg DstBaseReg)
+ -->
+ (stack_def_use_live_var_used_in_block Block Next DstBaseReg StackPos UsedVarBase UsedVarPos EA_used Index Moves)]
+
+; value_reg(EA,Reg,EA,"NONE",0,Immediate,1) :- 
+;    def_used_for_address(EA,Reg,_),
+;    arch_move_reg_imm(EA,Reg,Immediate,_),
+;    !instruction_has_relocation(EA,_).
+[(def_used_for_address EA Reg _)
+ (arch_move_reg_imm EA Reg Immediate _) --
+ (~ instruction_has_relocation EA _)
+ -->
+ (value_reg EA Reg EA "NONE" 0 Immediate 1)]
+
+; value_reg(EA,Reg,EA,"NONE",0,0,1) :- 
+;    def_used_for_address(EA,Reg,_),
+;    is_xor_reset(EA).
+[(def_used_for_address EA Reg _)
+ (is_xor_reset EA) -->
+ (value_reg EA Reg EA "NONE" 0 0 1)]
+
+; value_reg(EA,Reg,EA,"NONE",0,Immediate,1) :- 
+;    def_used_for_address(EA,Reg,_),
+;    reg_def_use_flow_def(EA,Reg,_,Immediate).
+[(def_used_for_address EA Reg _)
+ (reg_def_use_flow_def EA Reg _ Immediate) -->
+ (value_reg EA Reg EA "NONE" 0 Immediate 1)]
+
+; value_reg(EA,Reg,EA,Reg,1,0,1) :- 
+;    def_used_for_address(EA,Reg,_),
+;    value_reg_unsupported(EA,Reg).
+[(def_used_for_address EA Reg _)
+ (value_reg_unsupported EA Reg) -->
+ (value_reg EA Reg EA Reg 1 0 1)]
+
+; value_reg(EA,Reg,EA,Reg,1,0,1) :- 
+;    def_used_for_address(EA,Reg,_),
+;    value_reg_unsupported(EA,Reg).
+[(def_used_for_address EA Reg _)
+ (value_reg_unsupported EA Reg) -->
+ (value_reg EA Reg EA Reg 1 0 1)]
+
+; value_reg(EA,Reg,EA_from,"Unknown",Immediate,Base,_tmp_2) :- 
+;    value_reg(EA,Reg,EA_from,"NONE",0,Base,Steps),
+;    Steps <= 1,
+;    value_reg_edge(EA,Reg,EA,Reg,1,Immediate),
+;    Immediate != 0,
+;    _tmp_2 = (Steps+1).
+[(value_reg EA Reg EA_from "Unknown" Immediate Base _tmp_2)
+ (value_reg EA Reg EA_from "NONE" 0 Base Steps) --
+ (<= Steps 1) --
+ (value_reg_edge EA Reg EA Reg 1 Immediate) --
+ (=/= Immediate 0) --
+ (+ Steps 1 _tmp_2)
+ -->
+ (value_reg EA Reg EA_from "Unknown" Immediate Base _tmp_2)]
+
+; value_reg(EA1,Reg1,EA3,Reg3,_tmp_2,_tmp_4,_tmp_5) :- 
+;    value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
+;    Steps <= 1,
+;    value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
+;    EA1 > EA2,
+;    _tmp_2 = (Multiplier*Multiplier2),
+;    _tmp_3 = (Offset2*Multiplier),
+;    _tmp_4 = (_tmp_3+Offset),
+;    _tmp_5 = (Steps+1).
+[(value_reg EA1 Reg1 EA3 Reg3 _tmp_2 _tmp_4 _tmp_5)
+ (value_reg EA2 Reg2 EA3 Reg3 Multiplier2 Offset2 Steps) --
+ (<= Steps 1) --
+ (value_reg_edge EA1 Reg1 EA2 Reg2 Multiplier Offset) --
+ (> EA1 EA2) --
+ (* Multiplier Multiplier2 _tmp_2) --
+ (* Offset2 Multiplier _tmp_3) --
+ (+ _tmp_3 Offset _tmp_4) --
+ (+ Steps 1 _tmp_5)
+ -->
+ (value_reg EA1 Reg1 EA3 Reg3 _tmp_2 _tmp_4 _tmp_5)]
+
+; value_reg(EA,Reg,EA,"NONE",0,as(Address, number),1) :- 
+;    def_used_for_address(EA,Reg,_),
+;    instruction_has_relocation(EA,EA_rel),
+;    symbolic_expr_from_relocation(EA_rel,_,_,_,Address).
+[(def_used_for_address EA Reg _)
+ (instruction_has_relocation EA EA_rel) --
+ (symbolic_expr_from_relocation EA_rel _ _ _ Address)
+ -->
+ (value_reg EA Reg EA "NONE" 0 Address 1)]
+
+; value_reg(EA,Reg,EA,"NONE",0,as(Offset, number),1) :- 
+;    got_relative_operand(EA,1,Offset),
+;    instruction(EA,_,_,"LEA",_,Op2,0,0,_,_),
+;    op_regdirect_contains_reg(Op2,Reg),
+;    track_register(Reg).
+[(got_relative_operand EA 1 Offset)
+ (instruction EA _ _ "LEA" _ Op2 0 0 _ _) --
+ (op_regdirect_contains_reg Op2 Reg) --
+ (track_register Reg)
+ -->
+ (value_reg EA Reg EA "NONE" 0 Offset 1)]
+
+; value_reg(EA,Reg_def,EA_third,Reg3,_tmp_3,_tmp_6,_tmp_8) :- 
+;    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
+;    value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
+;    Steps1 <= 0,
+;    EA != EA_third,
+;    value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
+;    Steps2 <= _tmp_1,
+;    _tmp_2 = (Mult*Mult2),
+;    _tmp_3 = (Mult1+_tmp_2),
+;    _tmp_4 = (Offset+Offset1),
+;    _tmp_5 = (Offset2*Mult),
+;    _tmp_6 = (_tmp_4+_tmp_5),
+;    _tmp_7 = (Steps1 % Steps2),
+;    _tmp_8 = (_tmp_7+2).
+[(reg_reg_arithmetic_operation_defs EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset)
+ (value_reg EA_def1 Reg1 EA_third Reg3 Mult1 Offset1 Steps1)
+ (<= Steps1 0) --
+ (=/= EA EA_third) --
+ (value_reg EA_def2 Reg2 EA_third Reg3 Mult2 Offset2 Steps2) --
+ (<= Steps2 0) --
+ (* Mult Mult2 _tmp_2) --
+ (+ Mult1 _tmp_2 _tmp_3) --
+ (+ Offset Offset1 _tmp_4) --
+ (* Offset2 Mult _tmp_5) --
+ (+ _tmp_4 _tmp_5 _tmp_6) --
+ (max Steps1 Steps2 _tmp_7) --
+ (+ _tmp_7 2 _tmp_8)
+ -->
+ (value_reg EA Reg_def EA_third Reg3 _tmp_3 _tmp_6 _tmp_8)]
+
+; value_reg(EA,Reg_def,EA_third,Reg3,_tmp_2,_tmp_5,_tmp_7) :- 
+;    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
+;    value_reg(EA_def1,Reg1,_,"NONE",_,Offset1,Steps1),
+;    Steps1 <= 0,
+;    value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
+;    Steps2 <= _tmp_1,
+;    EA != EA_third,
+;    Reg3 != "NONE",
+;    _tmp_2 = (Mult*Mult2),
+;    _tmp_3 =(Offset+Offset1),
+;    _tmp_4 = (Offset2*Mult),
+;    _tmp_5 = (_tmp_3+_tmp_4),
+;    _tmp_6 = (Steps1 % Steps2),
+;    _tmp_7 = (_tmp_6+2).
+[(reg_reg_arithmetic_operation_defs EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset)
+ (value_reg EA_def1 Reg1 _ "NONE" _ Offset1 Steps1)
+ (<= Steps1 0) --
+ (value_reg EA_def2 Reg2 EA_third Reg3 Mult2 Offset2 Steps2) --
+ (<= Steps2 0) --
+ (=/= EA EA_third) --
+ (=/= Reg3 "NONE") --
+ (* Mult Mult2 _tmp_2) --
+ (+ Offset Offset1 _tmp_3) --
+ (* Offset2 Mult _tmp_4) --
+ (+ _tmp_3 _tmp_4 _tmp_5) --
+ (max Steps1 Steps2 _tmp_6) --
+ (+ _tmp_6 2 _tmp_7)
+ -->
+ (value_reg EA Reg_def EA_third Reg3 _tmp_2 _tmp_5 _tmp_7)]
+
+; value_reg(EA,Reg_def,EA_third,Reg3,Mult1,_tmp_4,_tmp_6) :- 
+;    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
+;    value_reg(EA_def2,Reg2,_,"NONE",_,Offset2,Steps2),
+;    Steps2 <= 0,
+;    value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
+;    Steps1 <= _tmp_1,
+;    Reg3 != "NONE",
+;    EA != EA_third,
+;    _tmp_2 = (Offset+Offset1),
+;    _tmp_3 = (Offset2*Mult),
+;    _tmp_4 = (_tmp_2+_tmp_3),
+;    _tmp_5 = (Steps1 % Steps2),
+;    _tmp_6 = (_tmp_5+2).
+[(reg_reg_arithmetic_operation_defs EA Reg_def EA_def1 Reg1 EA_def2 Reg2 Mult Offset)
+ (value_reg EA_def2 Reg2 _ "NONE" _ Offset2 Steps2)
+ (<= Steps2 0) --
+ (value_reg EA_def1 Reg1 EA_third Reg3 Mult1 Offset1 Steps1) --
+ (<= Steps1 0) --
+ (=/= Reg3 "NONE") --
+ (=/= EA EA_third) --
+ (+ Offset Offset1 _tmp_2) --
+ (* Offset2 Mult _tmp_3) --
+ (+ _tmp_2 _tmp_3 _tmp_4) --
+ (max Steps1 Steps2 _tmp_5) --
+ (+ _tmp_5 2 _tmp_6)
+ -->
+ (value_reg EA Reg_def EA_third Reg3 Mult1 _tmp_4 _tmp_6)]
+
+; value_reg(EALoad,Reg2,EALoad,"NONE",0,Immediate,1) :- 
+;    arch_store_immediate(EAStore,_,_,Immediate,RegBaseStore,"NONE",_,StackPosStore),
+;    stack_def_use_def_used(EAStore,RegBaseStore,StackPosStore,EALoad,RegBaseLoad,StackPosLoad,_),
+;    arch_memory_access("LOAD",EALoad,_,_,Reg2,RegBaseLoad,inlined_IndexReg_452,_,StackPosLoad),
+;    inlined_IndexReg_452 = "NONE",
+;    def_used_for_address(EALoad,Reg2,_).
+[(arch_store_immediate EAStore _ _ Immediate RegBaseStore "NONE" _ StackPosStore)
+ (stack_def_use_def_used EAStore RegBaseStore StackPosStore EALoad RegBaseLoad StackPosLoad _) --
+ (arch_memory_access "LOAD" EALoad _ _ Reg2 RegBaseLoad inlined_IndexReg_452 _ StackPosLoad) --
+ (= inlined_IndexReg_452 "NONE") --
+ (def_used_for_address EALoad Reg2 _)
+ -->
+ (value_reg EALoad Reg2 EALoad "NONE" 0 Immediate 1)]
+
+; value_reg(EA,Reg,EA,"NONE",0,as(TargetAddr, number),1) :- 
+;    def_used_for_address(EA,Reg,_),
+;    arch_memory_access("LOAD",EA,SrcOp,_,Reg,_,_,_,_),
+;    simple_data_access_pattern(MemAddr,SrcOp,Size,EA),
+;    4 <= Size,
+;    Size <= 8,
+;    symbolic_expr_from_relocation(MemAddr,Size,Symbol,_,TargetAddr),
+;    defined_symbol(_,_,_,_,_,_,_,_,Symbol),
+;    as(TargetAddr, number) >= 0.
+[(def_used_for_address EA Reg _)
+ (arch_memory_access "LOAD" EA SrcOp _ Reg _ _ _ _) --
+ (simple_data_access_pattern MemAddr SrcOp Size EA) --
+ (>= 4 Size) --
+ (<= Size 8) --
+ (symbolic_expr_from_relocation MemAddr Size Symbol _ TargetAddr) --
+ (defined_symbol _ _ _ _ _ _ _ _ Symbol) --
+ (>= TargetAddr 0)
+ -->
+ (value_reg EA Reg EA "NONE" 0 TargetAddr 1)]
+
+; value_reg(ea, reg, ea_reg1, reg1, multiplier, offset, steps) :- value_reg_functor(ea, reg, ea_reg1, reg1, multiplier, offset, steps).
+[(value_reg ea reg ea_reg1 reg1 multiplier offset steps) <--
+   (value_reg_functor ea reg ea_reg1 reg1 multiplier offset steps)]
+
+; value_reg_edge(EA,Reg,EA_prev,Reg_origin,1,0) :- 
+;    def_used_for_address(EA_prev,Reg_origin,_),
+;    reg_def_use_def_used(EA_prev,Reg_origin,EA,_),
+;    arch_move_reg_reg(EA,Reg,Reg_origin),
+;    track_register(Reg),
+;    EA != EA_prev.
+[(def_used_for_address EA_prev Reg_origin _)
+ (reg_def_use_def_used EA_prev Reg_origin EA _) --
+ (arch_move_reg_reg EA Reg Reg_origin) --
+ (track_register Reg) --
+ (=/= EA EA_prev)
+ -->
+ (value_reg_edge EA Reg EA_prev Reg_origin 1 0)]
+
+; value_reg_edge(EA,Dst,EA_prev,Src,Mult,Immediate) :- 
+;    def_used_for_address(EA_prev,Src,_),
+;    reg_def_use_def_used(EA_prev,Src,EA,_),
+;    arch_reg_arithmetic_operation(EA,Dst,Src,Mult,Immediate),
+;    track_register(Dst).
+[(def_used_for_address EA_prev Src _)
+ (reg_def_use_def_used EA_prev Src EA _) --
+ (arch_reg_arithmetic_operation EA Dst Src Mult Immediate) --
+ (track_register Dst)
+ -->
+ (value_reg_edge EA Dst EA_prev Src Mult Immediate)]
+
+; value_reg_edge(EALoad,Reg2,EAPrev,Reg1,1,0) :- 
+;    stack_def_use_def_used(EAStore,RegBaseStore,StackPosStore,EALoad,RegBaseLoad,StackPosLoad,_),
+;    arch_memory_access("STORE",EAStore,_,_,Reg1,RegBaseStore,inlined_IndexReg_472,_,StackPosStore),
+;    inlined_IndexReg_472 = "NONE",
+;    arch_memory_access("LOAD",EALoad,_,_,Reg2,RegBaseLoad,inlined_IndexReg_886,_,StackPosLoad),
+;    inlined_IndexReg_886 = "NONE",
+;    reg_def_use_def_used(EAPrev,Reg1,EAStore,_).
+[(stack_def_use_def_used EAStore RegBaseStore StackPosStore EALoad RegBaseLoad StackPosLoad _)
+ (arch_memory_access "STORE" EAStore _ _ Reg1 RegBaseStore "NONE" _ StackPosStore) --
+ (arch_memory_access "LOAD" EALoad _ _ Reg2 RegBaseLoad "NONE" _ StackPosLoad) --
+ (reg_def_use_def_used EAPrev Reg1 EAStore _)
+ -->
+ (value_reg_edge EALoad Reg2 EAPrev Reg1 1 0)]
+
+; value_reg_limit(EA_jmp,EA_branch,Reg,,BranchLT) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,Reg,Immediate),
+;    track_register(Reg),
+;    limit_type_map(CC,BranchLT,_,BranchOffset,_),
+;    direct_jump(EA_jmp,EA_branch),
+;    may_fallthrough(EA_jmp,_),
+;    _tmp_1 = (Immediate+BranchOffset).
+[(compare_and_jump_immediate _ EA_jmp CC Reg Immediate)
+ (track_register Reg) --
+ (limit_type_map CC BranchLT _ BranchOffset _) --
+ (direct_jump EA_jmp EA_branch) --
+ (may_fallthrough EA_jmp _) --
+ (+ Immediate BranchOffset _tmp_1)
+ -->
+ (value_reg_limit EA_jmp EA_branch Reg "NONE" BranchLT)]
+
+; value_reg_limit(EA_jmp,EA_fallthrough,Reg,_tmp_1,FallthroughLT) :- 
+;    compare_and_jump_immediate(_,EA_jmp,CC,Reg,Immediate),
+;    track_register(Reg),
+;    limit_type_map(CC,_,FallthroughLT,_,FallthroughOffset),
+;    direct_jump(EA_jmp,_),
+;    may_fallthrough(EA_jmp,EA_fallthrough),
+;    _tmp_1 = (Immediate+FallthroughOffset).
+[(compare_and_jump_immediate _ EA_jmp CC Reg Immediate)
+ (track_register Reg) --
+ (limit_type_map CC _ FallthroughLT _ FallthroughOffset) --
+ (direct_jump EA_jmp _) --
+ (may_fallthrough EA_jmp EA_fallthrough) --
+ (+ Immediate FallthroughOffset _tmp_1)
+ -->
+ (value_reg_limit EA_jmp EA_fallthrough Reg _tmp_1 FallthroughLT)]
+
+; value_reg_limit(EA_jmp,EA_branch,Reg2,_tmp_1,LT1) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+;    limit_type_map(CC,LT1,_,Offset1,_),
+;    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg1),
+;    arch_move_reg_imm(EA_regdef,Reg1,Immediate,_),
+;    track_register(Reg2),
+;    direct_jump(EA_jmp,EA_branch),
+;    may_fallthrough(EA_jmp,_),
+;    _tmp_1 = (Immediate+Offset1).
+[(compare_and_jump_register EA_cmp EA_jmp CC Reg1 Reg2)
+ (limit_type_map CC LT1 _ Offset1 _) --
+ (reg_def_use_block_last_def EA_cmp EA_regdef Reg1) --
+ (arch_move_reg_imm EA_regdef Reg1 Immediate _) --
+ (track_register Reg2) --
+ (direct_jump EA_jmp EA_branch) --
+ (may_fallthrough EA_jmp _) --
+ (+ Immediate Offset1 _tmp_1)
+ -->
+ (value_reg_limit EA_jmp EA_branch Reg2 _tmp_1 LT1)]
+
+; value_reg_limit(EA_jmp,EA_branch,Reg1,_tmp_1,LT2) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+;    limit_type_map(CC,_,LT2,_,Offset2),
+;    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg2),
+;    arch_move_reg_imm(EA_regdef,Reg2,Immediate,_),
+;    track_register(Reg1),
+;    direct_jump(EA_jmp,EA_branch),
+;    may_fallthrough(EA_jmp,_),
+;    _tmp_1 = (Immediate+Offset2).
+[(compare_and_jump_register EA_cmp EA_jmp CC Reg1 Reg2)
+ (limit_type_map CC _ LT2 _ Offset2 _) --
+ (reg_def_use_block_last_def EA_cmp EA_regdef Reg2) --
+ (arch_move_reg_imm EA_regdef Reg2 Immediate _) --
+ (track_register Reg1) --
+ (direct_jump EA_jmp EA_branch) --
+ (may_fallthrough EA_jmp _) --
+ (+ Immediate Offset2 _tmp_1)
+ -->
+ (value_reg_limit EA_jmp EA_branch Reg1 _tmp_1 LT2)]
+
+
+; value_reg_limit(EA_jmp,EA_fallthrough,Reg2,_tmp_1,LT2) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+;    limit_type_map(CC,_,LT2,_,Offset2),
+;    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg1),
+;    arch_move_reg_imm(EA_regdef,Reg1,Immediate,_),
+;    track_register(Reg2),
+;    direct_jump(EA_jmp,_),
+;    may_fallthrough(EA_jmp,EA_fallthrough),
+;    _tmp_1 = (Immediate+Offset2).
+[(compare_and_jump_register EA_cmp EA_jmp CC Reg1 Reg2)
+ (limit_type_map CC _ LT2 _ Offset2 _) --
+ (reg_def_use_block_last_def EA_cmp EA_regdef Reg1) --
+ (arch_move_reg_imm EA_regdef Reg1 Immediate _) --
+ (track_register Reg2) --
+ (direct_jump EA_jmp _) --
+ (may_fallthrough EA_jmp EA_fallthrough) --
+ (+ Immediate Offset2 _tmp_1)
+ -->
+ (value_reg_limit EA_jmp EA_fallthrough Reg2 _tmp_1 LT2)]
+
+; value_reg_limit(EA_jmp,EA_fallthrough,Reg1,_tmp_1,LT1) :- 
+;    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+;    limit_type_map(CC,LT1,_,Offset1,_),
+;    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg2),
+;    arch_move_reg_imm(EA_regdef,Reg2,Immediate,_),
+;    track_register(Reg1),
+;    direct_jump(EA_jmp,_),
+;    may_fallthrough(EA_jmp,EA_fallthrough),
+;    _tmp_1 = (Immediate+Offset1).
+[(compare_and_jump_register EA_cmp EA_jmp CC Reg1 Reg2)
+ (limit_type_map CC LT1 _ Offset1 _) --
+ (reg_def_use_block_last_def EA_cmp EA_regdef Reg2) --
+ (arch_move_reg_imm EA_regdef Reg2 Immediate _) --
+ (track_register Reg1) --
+ (direct_jump EA_jmp _) --
+ (may_fallthrough EA_jmp EA_fallthrough) --
+ (+ Immediate Offset1 _tmp_1)
+ -->
+ (value_reg_limit EA_jmp EA_fallthrough Reg1 _tmp_1 LT1)]
+
+; value_reg_limit(EA_target,EA_limited,Reg,_tmp_1,BranchLT) :- 
+;    compare_and_jump_indirect(EA_cmp,EA_jmp,CC,IndirectOp,Immediate),
+;    limit_type_map(CC,BranchLT,_,BranchOffset,_),
+;    next(EA_cmp,EA_jmp),
+;    direct_jump(EA_jmp,EA_target),
+;    arch_memory_access("LOAD",EA_target,_,_,Reg,_,_,_,_),
+;    track_register(Reg),
+;    instruction_get_op(EA_target,_,IndirectOp),
+;    code_in_block(EA_target,inlined_Block_887),
+;    may_fallthrough(EA_target,EA_limited),
+;    code_in_block(EA_limited,inlined_Block_887),
+;    _tmp_1 = (Immediate+BranchOffset).
+[(compare_and_jump_indirect EA_cmp EA_jmp CC IndirectOp Immediate)
+ (limit_type_map CC BranchLT _ BranchOffset _) --
+ (next EA_cmp EA_jmp) --
+ (direct_jump EA_jmp EA_target) --
+ (arch_memory_access "LOAD" EA_target _ _ Reg _ _ _ _) --
+ (track_register Reg) --
+ (instruction_get_op EA_target _ IndirectOp) --
+ (code_in_block EA_target inlined_Block_887) --
+ (may_fallthrough EA_target EA_limited) --
+ (code_in_block EA_limited inlined_Block_887) --
+ (+ Immediate BranchOffset _tmp_1)
+ -->
+ (value_reg_limit EA_target EA_limited Reg _tmp_1 BranchLT)]
+
+; value_reg_limit(EA_target,EA_limited,Reg,_tmp_1,FallthroughLT) :- 
+;    compare_and_jump_indirect(EA_cmp,EA_jmp,CC,IndirectOp,Immediate),
+;    limit_type_map(CC,_,FallthroughLT,_,FallthroughOffset),
+;    next(EA_cmp,EA_jmp),
+;    may_fallthrough(EA_jmp,EA_target),
+;    arch_memory_access("LOAD",EA_target,_,_,Reg,_,_,_,_),
+;    track_register(Reg),
+;    instruction_get_op(EA_target,_,IndirectOp),
+;    code_in_block(EA_target,inlined_Block_888),
+;    may_fallthrough(EA_target,EA_limited),
+;    code_in_block(EA_limited,inlined_Block_888),
+;    _tmp_1 = (Immediate+FallthroughOffset).
+[(compare_and_jump_indirect EA_cmp EA_jmp CC IndirectOp Immediate)
+ (limit_type_map CC _ FallthroughLT _ FallthroughOffset _) --
+ (next EA_cmp EA_jmp) --
+ (may_fallthrough EA_jmp EA_target) --
+ (arch_memory_access "LOAD" EA_target _ _ Reg _ _ _ _) --
+ (track_register Reg) --
+ (instruction_get_op EA_target _ IndirectOp) --
+ (code_in_block EA_target inlined_Block_888) --
+ (may_fallthrough EA_target EA_limited) --
+ (code_in_block EA_limited inlined_Block_888) --
+ (+ Immediate FallthroughOffset _tmp_1)
+ -->
+ (value_reg_limit EA_target EA_limited Reg _tmp_1 FallthroughLT)]
+
+; value_reg_unsupported(EA,Reg) :- 
+;    def_used_for_address(EA,Reg,_),
+;    arch_move_reg_reg(EA,Dst,Src),
+;    track_register(Dst),
+;    !track_register(Src).
+[(def_used_for_address EA Reg _)
+ (arch_move_reg_reg EA Dst Src) --
+ (track_register Dst) --
+ (~ track_register Src)
+ -->
+ (value_reg_unsupported EA Reg)]
+
+; value_reg_unsupported(EA,Reg) :- 
+;    def_used_for_address(EA,Reg,_),
+;    arch_call(EA,_).
+[(def_used_for_address EA Reg _)
+ (arch_call EA _) -->
+ (value_reg_unsupported EA Reg)]
+
+; value_reg_unsupported(EA,Reg) :- 
+;    def_used_for_address(EA,Reg,_),
+;    arch_memory_access("LOAD",EA,_,_,Reg,RegBase,_,_,_),
+;    RegBase != "NONE".
+[(def_used_for_address EA Reg _)
+ (arch_memory_access "LOAD" EA _ _ Reg RegBase _ _ _) --
+ (=/= RegBase "NONE")
+ -->
+ (value_reg_unsupported EA Reg)]
+
+; value_reg_unsupported(EA,Reg) :- 
+;    def_used_for_address(EA,Reg,_),
+;    arch_memory_access("LOAD",EA,_,_,Reg,_,RegIndex,_,_),
+;    RegIndex != "NONE".
+[(def_used_for_address EA Reg _)
+ (arch_memory_access "LOAD" EA _ _ Reg _ RegIndex _ _) --
+ (=/= RegIndex "NONE")
+ -->
+ (value_reg_unsupported EA Reg)]
+
+

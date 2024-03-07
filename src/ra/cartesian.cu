@@ -30,7 +30,7 @@ __global__ void cartesian_product_size(column_type *d_a, column_type *d_b,
         }
         for (int j = 0; j < b_rows; j++) {
             tuple_type cur_b_tp = d_b + j * b_cols;
-            if (tp_filter(a_local, cur_b_tp)) {
+            if (tp_filter(cur_b_tp, a_local)) {
                 count++;
             }
         }
@@ -61,8 +61,8 @@ cartesian_product(column_type *d_a, column_type *d_b, column_type *d_result,
         for (int j = 0; j < b_rows; j++) {
             tuple_type cur_b_tp = d_b + j * b_cols;
             tuple_type out_tuple = d_result + (offset + count) * out_arity;
-            if (tp_filter(a_local, cur_b_tp)) {
-                tp_gen(a_local, cur_b_tp, out_tuple);
+            if (tp_filter(cur_b_tp, a_local)) {
+                tp_gen(cur_b_tp, a_local, out_tuple);
                 count++;
             }
         }
@@ -97,7 +97,12 @@ void RelationalCartesian::operator()() {
         output_rel->newt->tuple_counts = 0;
         return;
     }
-
+    if (debug_flag == 0) {
+        std::cout << "Outer size : " << outer->tuple_counts
+                  << " Inner size : " << inner->tuple_counts << std::endl;
+        // print_tuple_rows(outer, "outer");
+        // print_tuple_rows(inner, "inner");
+    }
     // std::cout << "outer: " << outer->tuple_counts << " inner: " << inner->tuple_counts << std::endl;
     // inner_rel->defragement(inner_ver);
     // print_tuple_rows(outer, "outer");
@@ -156,5 +161,10 @@ void RelationalCartesian::operator()() {
         output_rel->newt->fit();
         temp->free();
         delete temp;
+    }
+    if (debug_flag == 0) {
+        std::cout << "Cartesian product result size : " << result_size
+                  << std::endl;
+        // print_tuple_rows(output_rel->newt, "newt");
     }
 }

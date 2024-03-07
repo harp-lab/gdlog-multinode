@@ -15,6 +15,7 @@ struct LIE {
     // all relation operator used in this LIE
     std::vector<ra_op> ra_ops;
     std::vector<ra_op> non_iterative_ra_ops;
+    std::vector<ra_op> tail_ra_ops;
 
     // all relations may have new data in this SCC
     std::vector<Relation *> update_relations;
@@ -24,6 +25,8 @@ struct LIE {
     // temporary relations, these relations's FULL version won't be stored,
     // delta version of these relation will be cleared after used in join
     std::vector<Relation *> tmp_relations;
+
+    std::map<std::string, Relation *> relation_name_map;
 
     // GPU grid size
     int grid_size;
@@ -73,10 +76,18 @@ struct LIE {
     void add_ra(ra_op op, bool is_iterative = true);
     // void ra(ra_op op);
 
+    void add_tail_ra(ra_op op);
+
     void init_communicator(int argc, char **argv) { mcomm->init(argc, argv); }
 
     void set_communicator(Communicator *comm) { mcomm = comm; }
 
     // distribute full relations to all node
     void redistribute_full_relations();
+
+    void remove_relation(Relation *rel);
+
+    bool is_output_relation(std::string name);
+
+    bool is_tmp_relation(std::string name);
 };

@@ -1,7 +1,7 @@
 // ddisasm --asm=./capstone.asm -j 16 --debug-dir /workspace/facts/capstone/ /usr/lib/libcapstone.so.5
 // cp /usr/local/src/ddisasm/build/lib/libfunctors.so ./
-// souffle -L /usr/local/src/ddisasm/build/lib/ -j 16 -o /workspace/dataset/value_analysis.bin  /workspace/gdlog-multinode/test/souffle/ddisasm/value_analysis.dl
 // export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}`pwd`
+// souffle -L /usr/local/src/ddisasm/build/lib/ -j 16 -o /workspace/ddisasm/extracted.bin /workspace/ddisasm/test.dl
 // DDISASM_DEBUG_DIR=/workspace/facts/capstone/ DDISASM_GTIRB_MODULE_NAME=libcapstone.so.5 /usr/bin/time -v /workspace/ddisasm/extracted.bin -j 16  -F /workspace/facts/capstone/disassembly/ -D /workspace/facts/debug/
 
 .type input_reg <: symbol
@@ -49,6 +49,8 @@
 .output got_relative_operand
 .decl jump_table_element_access(EA:address,Size:unsigned,TableStart:address,RegIndex:register)
 .output jump_table_element_access
+.decl jump_table_max(TableStart:address,TableEnd:address)
+.output jump_table_max
 .decl jump_table_signed(TableStart:address,Signed:unsigned)
 .output jump_table_signed
 .decl jump_table_start(EA_jump:address,Size:unsigned,TableStart:address,TableRef:address,Scale:number)
@@ -76,7 +78,7 @@
 // .decl reg_arithmetic_operation(EA:address,Dst:register,Src:register,Mult:number,Offset:number)
 // .output reg_arithmetic_operation
 .decl relative_jump_table_entry_candidate(EA:address,TableStart:address,Size:unsigned,Reference:address,Dest:address,Scale:number,Offset:number)
-.input relative_jump_table_entry_candidate
+.output relative_jump_table_entry_candidate
 .decl stack_def_use_def_used(EA_def:address,VarDef:stack_var,EA_used:address,VarUsed:stack_var,Index_used:operand_index)
 .output stack_def_use_def_used
 .decl stack_def_use_live_var_at_block_end(Block:address,BlockUsed:address,Var:stack_var)
@@ -100,8 +102,8 @@
 .output value_reg_unsupported
 
 .printsize value_reg
-.input base_relative_jump
-.input base_relative_operand
+.printsize base_relative_jump
+.printsize base_relative_operand
 .printsize block_next
 .printsize cmp_defines
 .printsize compare_and_jump_immediate
@@ -112,6 +114,7 @@
 .printsize flags_and_jump_pair
 .printsize got_relative_operand
 .printsize jump_table_element_access
+.printsize jump_table_max
 .printsize jump_table_signed
 .printsize jump_table_start
 .printsize jump_table_target
@@ -122,7 +125,7 @@
 .printsize reg_def_use_live_var_used
 .printsize reg_def_use_return_val_used
 .printsize reg_has_base_image
-.input reg_has_got
+.printsize reg_has_got
 .printsize reg_reg_arithmetic_operation_defs
 // .printsize reg_arithmetic_operation
 .printsize relative_jump_table_entry_candidate
@@ -131,26 +134,11 @@
 .printsize stack_def_use_live_var_at_prior_used
 .printsize stack_def_use_live_var_used
 .printsize stack_def_use_live_var_used_in_block
-.input tls_desc_call
-.input tls_get_addr
+.printsize tls_desc_call
+.printsize tls_get_addr
 .printsize value_reg_edge
 .printsize value_reg_limit
 .printsize value_reg_unsupported
-
-// input from non recursive part
-.input block_next
-.input compare_and_jump_immediate
-.input compare_and_jump_register
-.input def_used_for_address
-.input got_relative_operand
-.input jump_table_element_access
-.input reg_def_use_def_used
-.input reg_def_use_live_var_used
-.input reg_has_base_image
-.input relative_jump_table_entry_candidate
-.input stack_def_use_def_used
-.input stack_def_use_live_var_used_in_block
-.input value_reg
 
 // input relations
 .decl adjusts_stack_in_block(Block:address,EA:address,BaseReg:register,Offset:number)
@@ -158,46 +146,46 @@
 .decl after_end(EA:address,End:address)
 .input after_end
 .decl arch_call(EA:address,DestOperandIndex:operand_index)
-.input arch_call
+.input arch_call(filename="arch.call.facts")
 .decl arch_cmp_operation(Operation:symbol)
-.input arch_cmp_operation
+.input arch_cmp_operation(filename="arch.cmp_operation.facts")
 .decl arch_cmp_zero_operation(Operation:symbol)
-.input arch_cmp_zero_operation
+.input arch_cmp_zero_operation(filename="arch.cmp_zero_operation.facts")
 arch_cmp_zero_operation(""):-
     false.
 .decl arch_condition_flags_reg(Reg:register)
-.input arch_condition_flags_reg
+.input arch_condition_flags_reg(filename="arch.condition_flags_reg.facts")
 .decl arch_conditional(EA:address,CC:condition_code)
-.input arch_conditional
+.input arch_conditional(filename="arch.conditional.facts")
 .decl arch_extend_load(EA:address,Signed:unsigned,SrcBits:unsigned)
-.input arch_extend_load
+.input arch_extend_load(filename="arch.extend_load.facts")
 .decl arch_extend_reg(EA:address,Reg:register,Signed:unsigned,SrcBits:unsigned)
-.input arch_extend_reg
+.input arch_extend_reg(filename="arch.extend_reg.facts")
 .decl arch_jump(EA:address)
-.input arch_jump
+.input arch_jump(filename="arch.jump.facts")
 .decl arch_memory_access(AccessType:symbol,EA:address,SrcOp:operand_index,DstOp:operand_index,
     DirectReg:register,BaseReg:reg_nullable,IndexReg:reg_nullable,Mult:number,Offset:number)
-.input arch_memory_access
+.input arch_memory_access(filename="arch.memory_access.facts")
 .decl arch_move_reg_imm(EA:address,Dst:register,Imm:number,ImmIndex:operand_index)
-.input arch_move_reg_imm
+.input arch_move_reg_imm(filename="arch.move_reg_imm.facts")
 .decl arch_move_reg_reg(EA:address,Dst:register,Src:register)
-.input arch_move_reg_reg
+.input arch_move_reg_reg(filename="arch.move_reg_reg.facts")
 .decl arch_pc_relative_addr(EA:address,Reg:register,Target:address)
-.input arch_pc_relative_addr
+.input arch_pc_relative_addr(filename="arch.pc_relative_addr.facts")
 arch_pc_relative_addr(0,"",0):- false.
 .decl arch_reg_arithmetic_operation(EA:address,Dst:register,Src:register,Mult:number,Offset:number)
-.input arch_reg_arithmetic_operation
+.input arch_reg_arithmetic_operation(filename="arch.reg_arithmetic_operation.facts")
 .decl arch_reg_reg_arithmetic_operation(EA:address,Dst:register,Src1:register,Src2:register,Mult:number,Offset:number)
-.input arch_reg_reg_arithmetic_operation
+.input arch_reg_reg_arithmetic_operation(filename="arch.reg_reg_arithmetic_operation.facts")
 .decl arch_register_size_bytes(Reg:input_reg,Size:unsigned)
-.input arch_register_size_bytes
+.input arch_register_size_bytes(filename="arch.register_size_bytes.facts")
 .decl arch_return_reg(Reg:register)
-.input arch_return_reg
+.input arch_return_reg(filename="arch.return_reg.facts")
 .decl arch_stack_pointer(Reg:register)
-.input arch_stack_pointer
+.input arch_stack_pointer(filename="arch.stack_pointer.facts")
 .decl arch_store_immediate(EA:address,SrcOp:operand_index,DstOp:operand_index,
     Immediate:number,BaseReg:reg_nullable,IndexReg:reg_nullable,Mult:number,Offset:number)
-.input arch_store_immediate
+.input arch_store_immediate(filename="arch.store_immediate.facts")
 arch_store_immediate(0,0,0,0,"NONE","NONE",0,0):- false.
 .decl base_address(ea:address)
 .input base_address
@@ -291,23 +279,25 @@ arch_store_immediate(0,0,0,0,"NONE","NONE",0,0):- false.
 .decl reg_call(Src:address,Reg:register)
 .input reg_call
 .decl reg_def_use_block_last_def(EA:address,EA_def:address,Var:register)
-.input reg_def_use_block_last_def
+.input reg_def_use_block_last_def(filename="reg_def_use.block_last_def.facts")
 .decl reg_def_use_def(EA:address,Var:register)
-.input reg_def_use_def
+.input reg_def_use_def(filename="reg_def_use.def.facts")
+// .decl reg_def_use_def_used(EA_def:address,Var:register,EA_used:address,Index_used:operand_index)
+// .input reg_def_use_def_used(filename="reg_def_use.def_used.facts")
 .decl reg_def_use_defined_in_block(Block:address,Var:register)
-.input reg_def_use_defined_in_block
+.input reg_def_use_defined_in_block(filename="reg_def_use.defined_in_block.facts")
 .decl reg_def_use_flow_def(EA:address,Var:register,EA_next:address,Value:number)
-.input reg_def_use_flow_def
+.input reg_def_use_flow_def(filename="reg_def_use.flow_def.facts")
 .decl reg_def_use_live_var_def(Block:address,VarIdentity:register,LiveVar:register,EA_def:address)
-.input reg_def_use_live_var_def
+.input reg_def_use_live_var_def(filename="reg_def_use.live_var_def.facts")
 .decl reg_def_use_ref_in_block(Block:address,Var:register)
-.input reg_def_use_ref_in_block
+.input reg_def_use_ref_in_block(filename="reg_def_use.ref_in_block.facts")
 .decl reg_def_use_return_block_end(Callee:address,CalleeEnd:address,Block:address,BlockEnd:address)
-.input reg_def_use_return_block_end
+.input reg_def_use_return_block_end(filename="reg_def_use.return_block_end.facts")
 .decl reg_def_use_used(EA:address,Var:register,Index:operand_index)
-.input reg_def_use_used
+.input reg_def_use_used(filename="reg_def_use.used.facts")
 .decl reg_def_use_used_in_block(Block:address,EA_used:address,Var:register,Index:operand_index)
-.input reg_def_use_used_in_block
+.input reg_def_use_used_in_block(filename="reg_def_use.used_in_block.facts")
 .decl reg_jump(Src:address,Reg:register)
 .input reg_jump
 .decl reg_map(RegIn:input_reg,Reg:register)
@@ -329,21 +319,21 @@ arch_store_immediate(0,0,0,0,"NONE","NONE",0,0):- false.
 .decl stack_base_reg_move(Block:address,EA:address,Src:register,Dst:register)
 .input stack_base_reg_move
 .decl stack_def_use_block_last_def(EA:address,EA_def:address,Var:stack_var)
-.input stack_def_use_block_last_def
+.input stack_def_use_block_last_def(filename="stack_def_use.block_last_def.facts")
 .decl stack_def_use_def(EA:address,Var:stack_var)
-.input stack_def_use_def
+.input stack_def_use_def(filename="stack_def_use.def.facts")
 .decl stack_def_use_defined_in_block(Block:address,Var:stack_var)
-.input stack_def_use_defined_in_block
+.input stack_def_use_defined_in_block(filename="stack_def_use.defined_in_block.facts")
 .decl stack_def_use_live_var_def(Block:address,VarIdentity:stack_var,LiveVar:stack_var,EA_def:address)
-.input stack_def_use_live_var_def
+.input stack_def_use_live_var_def(filename="stack_def_use.live_var_def.facts")
 .decl stack_def_use_moves_limit(Moves:unsigned)
-.input stack_def_use_moves_limit
+.input stack_def_use_moves_limit(filename="stack_def_use.moves_limit.facts")
 .decl stack_def_use_ref_in_block(Block:address,Var:stack_var)
-.input stack_def_use_ref_in_block
+.input stack_def_use_ref_in_block(filename="stack_def_use.ref_in_block.facts")
 .decl stack_def_use_used(EA:address,Var:stack_var,Index:operand_index)
-.input stack_def_use_used
+.input stack_def_use_used(filename="stack_def_use.used.facts")
 .decl stack_def_use_used_in_block(Block:address,EA_used:address,Var:stack_var,Index:operand_index)
-.input stack_def_use_used_in_block
+.input stack_def_use_used_in_block(filename="stack_def_use.used_in_block.facts")
 .decl step_limit(Limit:unsigned)
 .input step_limit
 .decl step_limit_small(Limit:unsigned)
@@ -367,7 +357,192 @@ step_limit_small(3).
 .functor functor_data_unsigned(EA:address,Size:unsigned):unsigned
 .functor functor_data_signed(EA:address,Size:unsigned):number
 
+// .decl functor_data_signed(EA:address,Size:unsigned, Res: number)
+// .input functor_data_signed
+// .decl functor_data_unsigned(EA:address,Size:unsigned, Res: unsigned)
+// .input functor_data_unsigned
+// .decl functor_data_valid(EA:address,Size:unsigned, Res: unsigned)
+
+// non-recursive
+block_next(Block,EA,Block2) :- 
+   block_last_instruction(Block,EA),
+   may_fallthrough(EA,Block2),
+   !no_return_call_propagated(EA),
+   !inter_procedural_edge(EA,Block2),
+   block(Block2).
+block_next(Block,EA,Block2) :- 
+   lsda_callsite_addresses(Beg,End,Block2),
+   block_last_instruction(Block,EA),
+   EA >= Beg,
+   EA < End,
+   block(Block2).
+block_next(Block,EA,EA_next) :- 
+   block_last_instruction(Block,EA),
+   direct_jump(EA,EA_next),
+   !inter_procedural_edge(EA,EA_next).
+compare_and_jump_immediate(EA,EA,CC,Reg,0) :- 
+   instruction(EA,_,_,Operation,_,_,_,_,_,_),
+   arch_cmp_zero_operation(Operation),
+   arch_jump(EA),
+   arch_conditional(EA,CC),
+   instruction_get_op(EA,_,Op),
+   op_regdirect_contains_reg(Op,Reg).
+compare_and_jump_immediate(EA,EA,CC,Reg,0) :- 
+   instruction(EA,_,_,Operation,_,_,_,_,_,_),
+   arch_cmp_zero_operation(Operation),
+   arch_jump(EA),
+   arch_conditional(EA,CC),
+   instruction_get_op(EA,_,Op),
+   register_access(EA,RegIn,"R"),
+   reg_map(RegIn,Reg),
+   !op_regdirect_contains_reg(Op,Reg).
+compare_and_jump_register(EA,EA,CC,Reg1,Reg2) :- 
+   cmp_reg_to_reg(EA,Reg1,Reg2),
+   arch_jump(EA),
+   arch_conditional(EA,CC).
+def_used_for_address(EA,Reg,"PCRelative") :- 
+   arch_pc_relative_addr(EA,Reg,_).
+got_relative_operand(EA,Index,as(((as(TargetEA, number)+Addend)+Adjustment), address)) :- 
+   relocation( _tmp_53,"GOTOFF",Symbol,Addend,SymbolIndex,_,_),
+   relocation_adjustment_total( _tmp_53,Adjustment),
+   symbol(TargetEA,_,_,_,_,_,_,SymbolIndex,Symbol),
+   instruction_displacement_offset(EA,Index,DisplacementOffset,_),
+    _tmp_53 = (EA+DisplacementOffset).
+jump_table_element_access(EA,Size,as(TableStart, address),as(RegIndex, register)) :- 
+   data_access(EA,_,"NONE","NONE",RegIndex, _tmp_69,TableStart,Size),
+   RegIndex != "NONE",
+   data_segment(Beg,End),
+   as(TableStart, address) >= Beg,
+   as(TableStart, address) <= End,
+    _tmp_69 = as(Size, number).
+jump_table_element_access(EA,1,as(TableStart, address),as(RegBase, register)) :- 
+   data_access(EA,_,"NONE",RegBase,"NONE",_,TableStart,1),
+   RegBase != "NONE",
+   data_segment(Beg,End),
+   as(TableStart, address) >= Beg,
+   as(TableStart, address) <= End.
+reg_def_use_def_used(EA_def,Var,EA_used,Index) :- 
+   reg_def_use_used(EA_used,Var,Index),
+   reg_def_use_block_last_def(EA_used,EA_def,Var).
+reg_def_use_live_var_used(Block,Var,Var,EA_used,Index,0) :- 
+   reg_def_use_used_in_block(Block,EA_used,Var,Index),
+   !reg_def_use_block_last_def(EA_used,_,Var).
+reg_has_base_image(EA,Reg) :- 
+   base_address(ImageBase),
+   pc_relative_operand(EA,_,ImageBase),
+   code_in_block(EA,_),
+   reg_def_use_def(EA,Reg),
+   instruction(EA,_,_,inlined_Operation_773,_,_,_,_,_,_),
+   inlined_Operation_773 = "LEA".
+reg_has_base_image(EA_code,Reg) :- 
+   binary_format("PE"),
+   base_address(ImageBase),
+   code_in_block(EA_code,_),
+   arch_memory_access("LOAD",EA_code,_,_,_,_,_,_,_),
+   pc_relative_operand(EA_code,_,EA_data),
+   @functor_data_valid(EA_data,8) = 1,
+   ImageBase = as(@functor_data_signed(EA_data,8), address),
+   reg_def_use_def(EA_code,Reg).
+relative_jump_table_entry_candidate(EA,TableStart,1,Ref,Dest,4,0) :- 
+   relative_address(EA,1,TableStart,Ref,Dest,"first"),
+   Dest < TableStart,
+   relative_address_start(Ref,4,_,_,_),
+   loaded_section(Start,End,_),
+   Ref >= Start,
+   Ref < End,
+   Dest >= Start,
+   Dest < End.
+stack_def_use_def_used(EA_def,Var,EA_used,Var,Index) :- 
+   stack_def_use_used(EA_used,Var,Index),
+   stack_def_use_block_last_def(EA_used,EA_def,Var).
+stack_def_use_live_var_used_in_block(Block,EA_used,[BaseReg,StackPos],[BaseReg,StackPos],EA_used,Index,0) :- 
+   stack_def_use_used_in_block(Block,EA_used,[BaseReg,StackPos],Index).
+value_reg(EA,Reg,EA,"NONE",0,as(Val, number),1) :- 
+   arch_pc_relative_addr(EA,Reg,Val),
+   track_register(Reg).
+value_reg(EA,Reg,EA,"NONE",0,(as((EA+Size), number)+Offset),1) :- 
+   code_in_block(EA,_),
+   arch_reg_arithmetic_operation(EA,Reg,PcReg,1,Offset),
+   instruction(EA,Size,_,_,_,_,_,_,_,_),
+   !instruction_has_relocation(EA,_),
+   PcReg = "RIP",
+   track_register(Reg).
+value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps1) <= value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps2) :- 
+   Steps2 <= Steps1.
+
+.printsize reg_jump
+.printsize base_relative_operation
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> recursive 
+base_relative_jump(EA_relop,EA) :- 
+   reg_jump(EA,_),
+   base_relative_operation(EA_relop,EA).
+base_relative_operand(EA_used,Op_index,RVA) :- 
+   reg_has_base_image(EA_def,Reg),
+   reg_def_use_def_used(EA_def,Reg,EA_used,Op_index),
+   possible_rva_operand(EA_used,Op_index,RVA).
+
+base_relative_operand(EA_def2,Op_index_access,RVA) :- 
+   reg_has_base_image(EA_def1,Reg1),
+   reg_def_use_def_used(EA_def1,Reg1,EA,_),
+   data_access(EA_def2,Op_index_access,"NONE","NONE",_,4,Offset,_),
+   Offset > 0,
+   reg_def_use_def_used(EA_def2,Reg2,EA,_),
+   possible_rva_operand(EA_def2,Op_index_access,RVA),
+   data_access(EA,_,"NONE",Reg1,Reg2,1,_,_).
+
+base_relative_operand(EA_def2,Op_index_access,RVA) :- 
+   reg_has_base_image(EA_def1,Reg1),
+   reg_def_use_def_used(EA_def1,Reg1,EA,_),
+   data_access(EA_def2,Op_index_access,"NONE","NONE",_,4,Offset,_),
+   Offset > 0,
+   reg_def_use_def_used(EA_def2,Reg2,EA,_),
+   possible_rva_operand(EA_def2,Op_index_access,RVA),
+   data_access(EA,_,"NONE",Reg2,Reg1,1,_,_).
+
+base_relative_operand(EA_def1,Op_index,as(Value, address)) :- 
+   reg_has_base_image(EA_def2,Reg2),
+   reg_def_use_def_used(EA_def2,Reg2,EA,_),
+   arch_reg_reg_arithmetic_operation(EA,Reg1,Reg1,Reg2,1,0),
+   reg_def_use_def_used(EA_def1,Reg1,EA,_),
+   instruction_get_op(EA_def1,Op_index,Op),
+   instruction(EA_def1,_,_,inlined_Operation_41,_,_,_,_,_,_),
+   inlined_Operation_41 = "LEA",
+   op_indirect(Op,_,_,_,_,Value,_),
+   Value > 0.
+
+base_relative_operand(EA_def1,Op_index,as(Value, address)) :- 
+   reg_has_base_image(EA_def2,Reg2),
+   reg_def_use_def_used(EA_def2,Reg2,EA,Op_index_access),
+   data_access(EA,Op_index_access,"NONE",Reg2,Reg1,1,0,_),
+   !instruction(EA,_,_,"LEA",_,_,_,_,_,_),
+   reg_def_use_def_used(EA_def1,Reg1,EA,_),
+   instruction_get_op(EA_def1,Op_index,Op),
+   instruction(EA_def1,_,_,inlined_Operation_497,_,_,_,_,_,_),
+   inlined_Operation_497 = "LEA",
+   op_indirect(Op,_,_,_,_,Value,_),
+   Value > 0.
+
+base_relative_operand(EA_def1,Op_index,as(Value, address)) :- 
+   reg_has_base_image(EA_def2,Reg2),
+   reg_def_use_def_used(EA_def2,Reg2,EA,Op_index_access),
+   data_access(EA,Op_index_access,"NONE",Reg1,Reg2,1,0,_),
+   !instruction(EA,_,_,"LEA",_,_,_,_,_,_),
+   reg_def_use_def_used(EA_def1,Reg1,EA,_),
+   instruction_get_op(EA_def1,Op_index,Op),
+   instruction(EA_def1,_,_,inlined_Operation_498,_,_,_,_,_,_),
+   inlined_Operation_498 = "LEA",
+   op_indirect(Op,_,_,_,_,Value,_),
+   Value > 0.
+
+base_relative_operation(EA_relop,EA_inst) :- 
+   base_relative_operand(EA_relop,_,_),
+   reg_def_use_def_used(EA_relop,_,EA_inst,_).
+
+base_relative_operation(EA_relop,EA_next) :- 
+   base_relative_operand(EA_relop,_,_),
+   reg_def_use_def_used(EA_relop,_,EA_inst,_),
+   reg_def_use_def_used(EA_inst,_,EA_next,_).
+
 block_next(Block,EA,Dest) :- 
    block_last_instruction(Block,EA),
    jump_table_target(EA,Dest).
@@ -426,6 +601,30 @@ flags_and_jump_pair(EA_flags,EA_jmp,CC) :-
    arch_jump(EA_jmp),
    arch_conditional(EA_jmp,CC).
 
+got_relative_operand(EA3,Index,as(Dest, address)) :- 
+   reg_has_got(EA1,Reg1),
+   reg_def_use_def_used(EA1,Reg1,EA2,_),
+   arch_reg_reg_arithmetic_operation(EA2,Reg3,Reg1,Reg2,Mult,0),
+   reg_def_use_def_used(EA2,Reg3,EA3,_),
+   op_immediate_and_reg(EA3,_,Reg3,Index,_),
+   value_reg(EA3,Reg3,_,Reg2,Mult,Dest,_).
+
+got_relative_operand(EA,Index,(Got+as(Offset, address))) :- 
+   reg_has_got(EA_base,Reg),
+   reg_def_use_def_used(EA_base,Reg,EA,Index),
+   instruction_get_op(EA,Index,Op),
+   op_indirect_mapped(Op,"NONE",Reg,_,_,Offset,_),
+   Offset != 0,
+   got_reference_pointer(Got).
+
+got_relative_operand(EA,Index,(Got+as(Offset, address))) :- 
+   reg_has_got(EA_base,Reg),
+   reg_def_use_def_used(EA_base,Reg,EA,Index),
+   instruction_get_op(EA,Index,Op),
+   op_indirect_mapped(Op,"NONE",_,Reg,1,Offset,_),
+   Offset != 0,
+   got_reference_pointer(Got).
+
 jump_table_element_access(EA,Size,TableStartAddr,"NONE") :- 
    pc_relative_operand(EA,1,TableStartAddr),
    data_access(EA,_,_,_,_,_,_,Size),
@@ -462,46 +661,40 @@ jump_table_element_access(EA,Size,as(TableStart, address),as(RegBase, register))
    as(TableStart, address) >= Beg,
    as(TableStart, address) <= End.
 
-jump_table_element_access(EA,Size,as(Tmp1, address),as(RegIndex, register)) :-
+jump_table_element_access(EA,Size,as((Base+Offset), address),as(RegIndex, register)) :-
    data_access(EA,_,"NONE",RegBase,RegIndex, _tmp_70,Offset,Size),
    RegBase != "NONE",
    RegBase_nn = as(RegBase, register),
    RegIndex != "NONE",
    const_value_reg_used(EA,_,_,RegBase_nn,Base),
    data_segment(Beg,End),
-   Tmp1 = (Base+Offset),
-   as(Tmp1, address) >= Beg,
-   as(Tmp1, address) <= End,
+   as((Base+Offset), address) >= Beg,
+   as((Base+Offset), address) <= End,
    _tmp_70 = as(Size, number).
 
-// TODO: need to escape this rule because we don't have range
-// jump_table_max(TableStart,Tmp2) :- 
-//    jump_table_element_access(EA,Size,TableStart,RegIndex),
-//    code_in_block(EA,Block),
-//    !reg_def_use_block_last_def(EA,_,RegIndex),
-//    last_value_reg_limit(_,Block,RegIndex,Value,"MAX",_),
-//    Value >= 0,
-//    Tmp1= (as(Value, unsigned)*Size),
-//    Tmp2 = (TableStart+Tmp1).
+jump_table_max(TableStart,(TableStart+(as(Value, unsigned)*Size))) :- 
+   jump_table_element_access(EA,Size,TableStart,RegIndex),
+   code_in_block(EA,Block),
+   !reg_def_use_block_last_def(EA,_,RegIndex),
+   last_value_reg_limit(_,Block,RegIndex,Value,"MAX",_),
+   Value >= 0.
 
-// jump_table_max(TableStart,) :- 
-//    jump_table_element_access(EA,Size,TableStart,RegIndex),
-//    code_in_block(EA,_),
-//    reg_def_use_block_last_def(EA,EA_def,RegIndex),
-//    last_value_reg_limit(EA_def,_,RegIndex,Value,"MAX",_),
-//    Value >= 0,
-//    Tmp1 = (as(Value, unsigned)*Size),
-//    Tmp2 = (TableStart+Tmp1).
+jump_table_max(TableStart,(TableStart+(as(Value, unsigned)*Size))) :- 
+   jump_table_element_access(EA,Size,TableStart,RegIndex),
+   code_in_block(EA,_),
+   reg_def_use_block_last_def(EA,EA_def,RegIndex),
+   last_value_reg_limit(EA_def,_,RegIndex,Value,"MAX",_),
+   Value >= 0.
 
-// jump_table_max(TableStart2,(TableStart2+(@functor_data_unsigned(generator_0,Size1)*Size2))) :- 
-//    jump_table_element_access(EA1,Size1,TableStart1,_),
-//    jump_table_max(TableStart1,TableEnd1),
-//    reg_def_use_def_used(EA1,Reg,EA2,_),
-//    EA1 != EA2,
-//    jump_table_element_access(EA2,Size2,TableStart2,Reg),
-//    TableStart1 != TableStart2,
-//    @functor_data_valid(generator_0,Size1) = 1,
-//    generator_0 = range(TableStart1,(TableEnd1+Size1),Size1).
+jump_table_max(TableStart2,(TableStart2+(@functor_data_unsigned(generator_0,Size1)*Size2))) :- 
+   jump_table_element_access(EA1,Size1,TableStart1,_),
+   jump_table_max(TableStart1,TableEnd1),
+   reg_def_use_def_used(EA1,Reg,EA2,_),
+   EA1 != EA2,
+   jump_table_element_access(EA2,Size2,TableStart2,Reg),
+   TableStart1 != TableStart2,
+   @functor_data_valid(generator_0,Size1) = 1,
+   generator_0 = range(TableStart1,(TableEnd1+Size1),Size1).
 
 jump_table_signed(TableStart,Signed) :- 
    jump_table_element_access(EA,Size,TableStart,_),
@@ -531,10 +724,10 @@ jump_table_signed(TableStart,1) :-
    jump_table_element_access(_,PtrSize,TableStart,_),
    PtrSize = 8.
 
-// jump_table_start(EA_jump,4,(ImageBase+Value),ImageBase,1) :- 
-//    base_address(ImageBase),
-//    base_relative_jump(EA_base,EA_jump),
-//    base_relative_operand(EA_base,_,Value).
+jump_table_start(EA_jump,4,(ImageBase+Value),ImageBase,1) :- 
+   base_address(ImageBase),
+   base_relative_jump(EA_base,EA_jump),
+   base_relative_operand(EA_base,_,Value).
 
 jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
    jump_table_element_access(EA,Size,TableStart,_),
@@ -544,13 +737,13 @@ jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :-
    reg_call(EA_jump,_),
    code_in_block(EA_jump,_).
 
-// jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
-//    jump_table_element_access(EA,Size,TableStart,_),
-//    value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
-//    Reg != "NONE",
-//    reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
-//    reg_call(EA_jump,_),
-//    code_in_block(EA_jump,_).
+jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
+   jump_table_element_access(EA,Size,TableStart,_),
+   value_reg(EA_add,RegJump,EA,Reg,Scale,Base,_),
+   Reg != "NONE",
+   reg_def_use_def_used(EA_add,RegJump,EA_jump,_),
+   reg_call(EA_jump,_),
+   code_in_block(EA_jump,_).
 
 jump_table_start(EA_jump,Size,TableStart,as(Base, address),Scale) :- 
    jump_table_element_access(EA,Size,TableStart,_),
@@ -609,38 +802,25 @@ jump_table_target(EA,Dest) :-
 last_value_reg_limit(From,To,Reg,Value,LimitType,0) :- 
    value_reg_limit(From,To,Reg,Value,LimitType).
 
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
    code_in_block(EA,Block),
    block_next(Block,BlockEnd,BlockNext),
    !reg_def_use_defined_in_block(Block,PropagatedReg),
-   !conditional_jump(BlockEnd),
-   Tmp1 = (Steps+1).
+   !conditional_jump(BlockEnd).
 
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
    code_in_block(EA,Block),
    block_next(Block,BlockEnd,BlockNext),
    !reg_def_use_defined_in_block(Block,PropagatedReg),
-   no_value_reg_limit(BlockEnd),
-   Tmp1 = (Steps + 1).
+   no_value_reg_limit(BlockEnd).
 
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType, Tmp1) :- 
-   step_limit_small(StepLimit),
-   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
-   Steps <= StepLimit,
-   code_in_block(EA,Block),
-   block_next(Block,BlockEnd,BlockNext),
-   !reg_def_use_defined_in_block(Block,PropagatedReg),
-   cmp_defines(BlockEnd,BlockNext,Reg),
-   Reg != PropagatedReg,
-   Tmp1 = (Steps+1).
-
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -648,10 +828,19 @@ last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedTy
    block_next(Block,BlockEnd,BlockNext),
    !reg_def_use_defined_in_block(Block,PropagatedReg),
    cmp_defines(BlockEnd,BlockNext,Reg),
-   Reg != PropagatedReg,
-   Tmp1 = (Steps + 1).
+   Reg != PropagatedReg.
 
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
+   step_limit_small(StepLimit),
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= StepLimit,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   cmp_defines(BlockEnd,BlockNext,Reg),
+   Reg != PropagatedReg.
+
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -659,10 +848,9 @@ last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedTy
    block_next(Block,BlockEnd,BlockNext),
    !reg_def_use_defined_in_block(Block,PropagatedReg),
    cmp_defines(BlockEnd,DefinedNext,PropagatedReg),
-   BlockNext != DefinedNext,
-   Tmp1 = (Steps + 1).
+   BlockNext != DefinedNext.
 
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -670,10 +858,9 @@ last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedTy
    block_next(Block,BlockEnd,BlockNext),
    !reg_def_use_defined_in_block(Block,PropagatedReg),
    value_reg_limit(BlockEnd,BlockNext,Reg,_,_),
-   Reg != PropagatedReg,
-   Tmp1 = (Steps+1).
+   Reg != PropagatedReg.
 
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -683,10 +870,9 @@ last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedTy
    value_reg_limit(BlockEnd,BlockNext,PropagatedReg,Val,Type),
    PropagatedType = "MAX",
    Type = "MAX",
-   PropagatedVal < Val,
-   Tmp1 = (Steps+1).
+   PropagatedVal < Val.
 
-last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -696,10 +882,9 @@ last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedTy
    value_reg_limit(BlockEnd,BlockNext,PropagatedReg,Val,Type),
    PropagatedType = "MIN",
    Type = "MIN",
-   PropagatedVal > Val,
-   Tmp1 = (Steps+1).
+   PropagatedVal > Val.
 
-last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -710,10 +895,9 @@ last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedTy
    BlockEnd <= BlockEnd,
    code_in_block(BlockEnd,Block),
    block_next(Block,BlockEnd,EA_next),
-   !reg_def_use_block_last_def(BlockEnd,_,SrcReg),
-   Tmp1 = (Steps+1).
+   !reg_def_use_block_last_def(BlockEnd,_,SrcReg).
 
-last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,Tmp1) :- 
+last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(From,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -724,10 +908,9 @@ last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedTy
    BlockEnd <= BlockEnd,
    code_in_block(BlockEnd,Block),
    block_next(Block,BlockEnd,EA_next),
-   reg_def_use_block_last_def(BlockEnd,From,SrcReg),
-   Tmp1 = (Steps+1).
+   reg_def_use_block_last_def(BlockEnd,From,SrcReg).
 
-last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType, Tmp1) :- 
+last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(From,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -741,10 +924,9 @@ last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType
    code_in_block(EA_mov,inlined_Block_193),
    may_fallthrough(EA_mov,EA_next),
    code_in_block(EA_next,inlined_Block_193),
-   reg_def_use_block_last_def(EA_mov,From,SrcReg),
-   Tmp1 = (Steps+1).
+   reg_def_use_block_last_def(EA_mov,From,SrcReg).
 
-last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,Tmp1) :- 
+last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,(Steps+1)) :- 
    step_limit_small(StepLimit),
    last_value_reg_limit(_,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
    Steps <= StepLimit,
@@ -758,8 +940,7 @@ last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType
    code_in_block(EA_mov,inlined_Block_194),
    may_fallthrough(EA_mov,EA_next),
    code_in_block(EA_next,inlined_Block_194),
-   !reg_def_use_block_last_def(EA_mov,_,SrcReg),
-   Tmp1 = (Steps+1).
+   !reg_def_use_block_last_def(EA_mov,_,SrcReg).
 
 no_value_reg_limit(EA_jmp) :- 
    compare_and_jump_immediate(_,EA_jmp,CC,_,_),
@@ -866,6 +1047,12 @@ reg_has_base_image(EA,Reg) :-
    arch_reg_reg_arithmetic_operation(EA,Reg,Reg2,_,Mult,0),
    Mult > 1.
 
+reg_has_got(EA,Reg) :- 
+   value_reg(EA,Reg,_,"NONE",_,Offset,_),
+   got_section(Name),
+   loaded_section( _tmp_88,_,Name),
+    _tmp_88 = as(Offset, address).
+
 reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset) :- 
    def_used_for_address(EA,Reg_def,_),
    arch_reg_reg_arithmetic_operation(EA,Reg_def,Reg1,Reg2,Mult,Offset),
@@ -875,6 +1062,123 @@ reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offs
    reg_def_use_def_used(EA_def2,Reg2,EA,_),
    EA != EA_def2.
 .plan 1:(3,1,2,4), 2:(4,1,2,3)
+
+relative_jump_table_entry_candidate(TableStart,TableStart,Size,Reference,(Reference+@functor_data_unsigned(TableStart,Size)),Scale,0) :- 
+   jump_table_start(_,Size,TableStart,Reference,Scale),
+   jump_table_signed(TableStart,inlined_Signed_1118),
+   inlined_Signed_1118 = 0,
+   @functor_data_valid(TableStart,Size) = 1,
+   code_in_block( _tmp_318,_),
+   loaded_section(SectionStart,SectionEnd,_),
+   TableStart >= SectionStart,
+   TableStart < SectionEnd,
+    _tmp_318 = (Reference+@functor_data_unsigned(TableStart,Size)).
+
+relative_jump_table_entry_candidate(TableStart,TableStart,Size,Reference,Dest,Scale,0) :- 
+   jump_table_start(_,Size,TableStart,Reference,Scale),
+   jump_table_signed(TableStart,inlined_Signed_1119),
+   inlined_Signed_1119 = 0,
+   @functor_data_valid(TableStart,Size) = 1,
+   inlined_Dest_1119 = (Reference+@functor_data_unsigned(TableStart,Size)),
+   is_padding(inlined_Dest_1119),
+   after_end(inlined_Dest_1119,inlined_End_1119),
+   after_end(Dest,inlined_End_1119),
+   !is_padding(Dest),
+   code_in_block(Dest,_),
+   loaded_section(SectionStart,SectionEnd,_),
+   TableStart >= SectionStart,
+   TableStart < SectionEnd.
+
+relative_jump_table_entry_candidate(TableStart,TableStart,Size,Reference,as((as(Reference, number)+(as(Scale, number)*@functor_data_signed(TableStart,Size))), address),Scale,0) :- 
+   jump_table_start(_,Size,TableStart,Reference,Scale),
+   jump_table_signed(TableStart,inlined_Signed_1120),
+   inlined_Signed_1120 = 1,
+   @functor_data_valid(TableStart,Size) = 1,
+   code_in_block( _tmp_319,_),
+   loaded_section(SectionStart,SectionEnd,_),
+   TableStart >= SectionStart,
+   TableStart < SectionEnd,
+    _tmp_319 = as((as(Reference, number)+(as(Scale, number)*@functor_data_signed(TableStart,Size))), address).
+
+relative_jump_table_entry_candidate(TableStart,TableStart,Size,Reference,Dest,Scale,0) :- 
+   jump_table_start(_,Size,TableStart,Reference,Scale),
+   jump_table_signed(TableStart,inlined_Signed_1121),
+   inlined_Signed_1121 = 1,
+   @functor_data_valid(TableStart,Size) = 1,
+   inlined_Dest_1121 = as((as(Reference, number)+(as(Scale, number)*@functor_data_signed(TableStart,Size))), address),
+   is_padding(inlined_Dest_1121),
+   after_end(inlined_Dest_1121,inlined_End_1121),
+   after_end(Dest,inlined_End_1121),
+   !is_padding(Dest),
+   code_in_block(Dest,_),
+   loaded_section(SectionStart,SectionEnd,_),
+   TableStart >= SectionStart,
+   TableStart < SectionEnd.
+
+relative_jump_table_entry_candidate((LastEA+Size),TableStart,Size,Reference,(Reference+@functor_data_unsigned((LastEA+Size),Size)),Scale,Offset) :- 
+   relative_jump_table_entry_candidate(LastEA,TableStart,Size,Reference,_,Scale,Offset),
+   jump_table_max(TableStart,TableEnd),
+   TableEnd >= (LastEA+Size),
+   !symbol((LastEA+Size),_,_,_,_,_,_,_,_),
+   data_segment(BegData,EndData),
+   BegData <= TableStart,
+   ((LastEA+Size)+Size) <= EndData,
+   jump_table_signed(TableStart,inlined_Signed_1122),
+   inlined_Signed_1122 = 0,
+   @functor_data_valid((LastEA+Size),Size) = 1,
+   code_in_block( _tmp_320,_),
+    _tmp_320 = (Reference+@functor_data_unsigned((LastEA+Size),Size)).
+
+relative_jump_table_entry_candidate((LastEA+Size),TableStart,Size,Reference,Dest,Scale,Offset) :- 
+   relative_jump_table_entry_candidate(LastEA,TableStart,Size,Reference,_,Scale,Offset),
+   jump_table_max(TableStart,TableEnd),
+   TableEnd >= (LastEA+Size),
+   !symbol((LastEA+Size),_,_,_,_,_,_,_,_),
+   data_segment(BegData,EndData),
+   BegData <= TableStart,
+   ((LastEA+Size)+Size) <= EndData,
+   jump_table_signed(TableStart,inlined_Signed_1123),
+   inlined_Signed_1123 = 0,
+   @functor_data_valid((LastEA+Size),Size) = 1,
+   inlined_Dest_1123 = (Reference+@functor_data_unsigned((LastEA+Size),Size)),
+   is_padding(inlined_Dest_1123),
+   after_end(inlined_Dest_1123,inlined_End_1123),
+   after_end(Dest,inlined_End_1123),
+   !is_padding(Dest),
+   code_in_block(Dest,_).
+
+relative_jump_table_entry_candidate((LastEA+Size),TableStart,Size,Reference,as((as(Reference, number)+(as(Scale, number)*@functor_data_signed((LastEA+Size),Size))), address),Scale,Offset) :- 
+   relative_jump_table_entry_candidate(LastEA,TableStart,Size,Reference,_,Scale,Offset),
+   jump_table_max(TableStart,TableEnd),
+   TableEnd >= (LastEA+Size),
+   !symbol((LastEA+Size),_,_,_,_,_,_,_,_),
+   data_segment(BegData,EndData),
+   BegData <= TableStart,
+   ((LastEA+Size)+Size) <= EndData,
+   jump_table_signed(TableStart,inlined_Signed_1124),
+   inlined_Signed_1124 = 1,
+   @functor_data_valid((LastEA+Size),Size) = 1,
+   code_in_block( _tmp_321,_),
+    _tmp_321 = as((as(Reference, number)+(as(Scale, number)*@functor_data_signed((LastEA+Size),Size))), address).
+
+
+relative_jump_table_entry_candidate((LastEA+Size),TableStart,Size,Reference,Dest,Scale,Offset) :- 
+   relative_jump_table_entry_candidate(LastEA,TableStart,Size,Reference,_,Scale,Offset),
+   jump_table_max(TableStart,TableEnd),
+   TableEnd >= (LastEA+Size),
+   !symbol((LastEA+Size),_,_,_,_,_,_,_,_),
+   data_segment(BegData,EndData),
+   BegData <= TableStart,
+   ((LastEA+Size)+Size) <= EndData,
+   jump_table_signed(TableStart,inlined_Signed_1125),
+   inlined_Signed_1125 = 1,
+   @functor_data_valid((LastEA+Size),Size) = 1,
+   inlined_Dest_1125 = as((as(Reference, number)+(as(Scale, number)*@functor_data_signed((LastEA+Size),Size))), address),
+   is_padding(inlined_Dest_1125),
+   after_end(inlined_Dest_1125,inlined_End_1125),
+   after_end(Dest,inlined_End_1125),
+   !is_padding(Dest),
+   code_in_block(Dest,_).
 
 stack_def_use_def_used(EA_def,VarDef,EA_used,VarUsed,Index) :- 
    stack_def_use_live_var_at_block_end(Block,BlockUsed,Var),
@@ -938,27 +1242,49 @@ stack_def_use_live_var_used_in_block(Block,EA,[BaseReg,StackPos],[FinalBaseReg,F
    !reg_def_use_def(EA,BaseReg),
    !stack_def_use_def(EA,[BaseReg,StackPos]).
 
-stack_def_use_live_var_used_in_block(Block,EA,[BaseReg,Tmp1],UsedVar,EA_used,Index,Moves) :- 
+stack_def_use_live_var_used_in_block(Block,EA,[BaseReg,(StackPos+Offset)],UsedVar,EA_used,Index,Moves) :- 
    stack_def_use_live_var_used_in_block(Block,Next,[BaseReg,StackPos],UsedVar,EA_used,Index,Moves),
    block_instruction_next(Block,EA,Next),
    adjusts_stack_in_block(_,EA,BaseReg,Offset),
    !stack_def_use_def(EA,[BaseReg,StackPos]),
    arch_stack_pointer(BaseReg),
-   Tmp1 = (StackPos+Offset)
-   Tmp1 >= 0.
+   (StackPos+Offset) >= 0.
 
-stack_def_use_live_var_used_in_block(Block,EA,[BaseReg,Tmp1],UsedVar,EA_used,Index,Moves) :- 
+stack_def_use_live_var_used_in_block(Block,EA,[BaseReg,(StackPos+Offset)],UsedVar,EA_used,Index,Moves) :- 
    stack_def_use_live_var_used_in_block(Block,Next,[BaseReg,StackPos],UsedVar,EA_used,Index,Moves),
    block_instruction_next(Block,EA,Next),
    adjusts_stack_in_block(_,EA,BaseReg,Offset),
    !stack_def_use_def(EA,[BaseReg,StackPos]),
-   !arch_stack_pointer(BaseReg),
-   Tmp1 = (StackPos+Offset).
+   !arch_stack_pointer(BaseReg).
 
 stack_def_use_live_var_used_in_block(Block,EA,[SrcBaseReg,StackPos],UsedVar,EA_used,Index,Moves) :- 
    stack_def_use_live_var_used_in_block(Block,Next,[DstBaseReg,StackPos],UsedVar,EA_used,Index,Moves),
    block_instruction_next(Block,EA,Next),
    stack_base_reg_move(_,EA,SrcBaseReg,DstBaseReg).
+
+tls_desc_call(Load,Call,(Start+Offset)) :- 
+   tls_segment(Start,_,_),
+   tls_descriptor(EA,Offset),
+   pc_relative_operand(Load,_,EA),
+   arch_call(Call,_),
+   const_value_reg_used(Call,Load,_,_, _tmp_137),
+    _tmp_137 = as(EA, number).
+
+tls_desc_call(Load,Call,(Start+Offset)) :- 
+   tls_segment(Start,_,_),
+   tls_descriptor(EA,Offset),
+   got_relative_operand(Load,_,EA),
+   arch_call(Call,_),
+   const_value_reg_used(Call,Load,_,_, _tmp_138),
+    _tmp_138 = as(EA, number).
+
+tls_get_addr(Load,Call,(Start+Offset)) :- 
+   binary_format("ELF"),
+   pc_relative_operand(Load,_,EA),
+   tls_index(EA,Offset),
+   reg_def_use_def_used(Load,Reg,Call,_),
+   call_tls_get_addr(Call,Reg),
+   tls_segment(Start,_,_).
 
 value_reg(EA,Reg,EA,"NONE",0,Immediate,1) :- 
    def_used_for_address(EA,Reg,_),
@@ -981,37 +1307,34 @@ value_reg(EA,Reg,EA,Reg,1,0,1) :-
    def_used_for_address(EA,Reg,_),
    value_reg_unsupported(EA,Reg).
 
-value_reg(EA,Reg,EA_from,"Unknown",Immediate,Base,Tmp2) :- 
+value_reg(EA,Reg,EA_from,"Unknown",Immediate,Base,(Steps+1)) :- 
    step_limit(StepLimit),
    value_reg(EA,Reg,EA_from,"NONE",0,Base,Steps),
-   Tmp1 = (StepLimit-2)
-   Steps <= Tmp1,
+   Steps <= (StepLimit-2),
    value_reg_edge(EA,Reg,EA,Reg,1,Immediate),
-   Immediate != 0,
-   Tmp2 = (Steps+1).
+   Immediate != 0.
 
-value_reg(EA1,Reg1,EA3,Reg3,Tmp2,Tmp4,Tmp5) :- 
+value_reg(EA1,Reg1,EA3,Reg3,(Multiplier*Multiplier2),((Offset2*Multiplier)+Offset),(Steps+1)) :- 
    step_limit(StepLimit),
    value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
-   Tmp1 = (StepLimit-2)
-   Steps <= Tmp1,
+   Steps <= (StepLimit-2),
    value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
-   EA1 > EA2,
-   Tmp2 = (Multiplier*Multiplier2),
-   Tmp3 = (Offset2*Multiplier),
-   Tmp4 = (Tmp3+Offset),
-   Tmp5 = (Steps+1).
+   EA1 > EA2.
 
-value_reg(EA1,Reg1,EA3,Reg3,Tmp1,Tmp3,Tmp4) :- 
+value_reg(EA1,Reg1,EA3,Reg3,(Multiplier*Multiplier2),((Offset2*Multiplier)+Offset),(Steps+5)) :- 
    step_limit(StepLimit),
    value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
    Steps <= (StepLimit-6),
    value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
-   EA1 < EA2,
-   Tmp1 = (Multiplier*Multiplier2),
-   Tmp2 = (Offset2*Multiplier),
-   Tmp3 = (Tmp2+Offset),
-   Tmp4 = (Steps+5).
+   EA1 < EA2.
+
+value_reg(EA,Reg,EA,"NONE",0,as(Address, number),1) :- 
+   arch_return_reg(Reg),
+   tls_get_addr(_,EA,Address).
+
+value_reg(EA,Reg,EA,"NONE",0,as(Address, number),1) :- 
+   arch_return_reg(Reg),
+   tls_desc_call(_,EA,Address).
 
 value_reg(EA,Reg,EA,"NONE",0,as(Address, number),1) :- 
    def_used_for_address(EA,Reg,_),
@@ -1025,55 +1348,34 @@ value_reg(EA,Reg,EA,"NONE",0,as(Offset, number),1) :-
    op_regdirect_contains_reg(Op2,Reg),
    track_register(Reg).
 
-value_reg(EA,Reg_def,EA_third,Reg3,Tmp3,Tmp6,Tmp8) :- 
+value_reg(EA,Reg_def,EA_third,Reg3,(Mult1+(Mult*Mult2)),((Offset+Offset1)+(Offset2*Mult)),(max(Steps1,Steps2)+2)) :- 
    step_limit(StepLimit),
    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
    value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
-   Tmp1 = (StepLimit-3),
-   Steps1 <= Tmp1,
+   Steps1 <= (StepLimit-3),
    EA != EA_third,
    value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
-   Steps2 <= Tmp1,
-   Tmp2 = (Mult*Mult2),
-   Tmp3 = (Mult1+Tmp2),
-   Tmp4 = (Offset+Offset1),
-   Tmp5 = (Offset2*Mult),
-   Tmp6 = (Tmp4+Tmp5),
-   Tmp7 = max(Steps1,Steps2),
-   Tmp8 = (Tmp7+2).
+   Steps2 <= (StepLimit-3).
 
-value_reg(EA,Reg_def,EA_third,Reg3,Tmp2,Tmp5,Tmp7) :- 
+value_reg(EA,Reg_def,EA_third,Reg3,(Mult*Mult2),((Offset+Offset1)+(Offset2*Mult)),(max(Steps1,Steps2)+2)) :- 
    step_limit(StepLimit),
    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
    value_reg(EA_def1,Reg1,_,"NONE",_,Offset1,Steps1),
-   Tmp1 = (StepLimit-3),
-   Steps1 <= Tmp1,
+   Steps1 <= (StepLimit-3),
    value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
-   Steps2 <= Tmp1,
+   Steps2 <= (StepLimit-3),
    EA != EA_third,
-   Reg3 != "NONE",
-   Tmp2 = (Mult*Mult2),
-   Tmp3 =(Offset+Offset1),
-   Tmp4 = (Offset2*Mult),
-   Tmp5 = (Tmp3+Tmp4),
-   Tmp6 = max(Steps1,Steps2),
-   Tmp7 = (Tmp6+2).
+   Reg3 != "NONE".
 
-value_reg(EA,Reg_def,EA_third,Reg3,Mult1,Tmp4,Tmp6) :- 
+value_reg(EA,Reg_def,EA_third,Reg3,Mult1,((Offset+Offset1)+(Offset2*Mult)),(max(Steps1,Steps2)+2)) :- 
    step_limit(StepLimit),
    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
    value_reg(EA_def2,Reg2,_,"NONE",_,Offset2,Steps2),
-   Tmp1 = (StepLimit-3),
-   Steps2 <= Tmp1,
+   Steps2 <= (StepLimit-3),
    value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
-   Steps1 <= Tmp1,
+   Steps1 <= (StepLimit-3),
    Reg3 != "NONE",
-   EA != EA_third,
-   Tmp2 = (Offset+Offset1),
-   Tmp3 = (Offset2*Mult),
-   Tmp4 = (Tmp2+Tmp3),
-   Tmp5 = max(Steps1,Steps2),
-   Tmp6 = (Tmp5+2).
+   EA != EA_third.
 
 value_reg(EALoad,Reg2,EALoad,"NONE",0,Immediate,1) :- 
    arch_store_immediate(EAStore,_,_,Immediate,RegBaseStore,"NONE",_,StackPosStore),
@@ -1092,11 +1394,7 @@ value_reg(EA,Reg,EA,"NONE",0,as(TargetAddr, number),1) :-
    defined_symbol(_,_,_,_,_,_,_,_,Symbol),
    as(TargetAddr, number) >= 0.
 
-/////////////////////////////////////////////
-.decl value_reg_functor(EA:address,Reg:register,
-                EA_reg1:address,Reg1:reg_nullable,Multiplier:number,Offset:number,Steps:unsigned)
-.ouput value_reg_functor
-value_reg_functor(EA,Reg,EA,"NONE",0,@functor_data_signed(MemAddr,Size),1) :- 
+value_reg(EA,Reg,EA,"NONE",0,@functor_data_signed(MemAddr,Size),1) :- 
    def_used_for_address(EA,Reg,_),
    arch_memory_access("LOAD",EA,SrcOp,_,Reg,_,_,_,_),
    simple_data_access_pattern(MemAddr,SrcOp,Size,EA),
@@ -1105,7 +1403,6 @@ value_reg_functor(EA,Reg,EA,"NONE",0,@functor_data_signed(MemAddr,Size),1) :-
    @functor_data_valid(MemAddr,Size) = 1,
    !symbolic_expr_from_relocation(MemAddr,_,_,_,_),
    @functor_data_signed(MemAddr,Size) >= 0.
-/////////////////////////////////////////////
 
 value_reg_edge(EA,Reg,EA_prev,Reg_origin,1,0) :- 
    def_used_for_address(EA_prev,Reg_origin,_),
@@ -1128,63 +1425,57 @@ value_reg_edge(EALoad,Reg2,EAPrev,Reg1,1,0) :-
    inlined_IndexReg_886 = "NONE",
    reg_def_use_def_used(EAPrev,Reg1,EAStore,_).
 
-value_reg_limit(EA_jmp,EA_branch,Reg,,BranchLT) :- 
+value_reg_limit(EA_jmp,EA_branch,Reg,(Immediate+BranchOffset),BranchLT) :- 
    compare_and_jump_immediate(_,EA_jmp,CC,Reg,Immediate),
    track_register(Reg),
    limit_type_map(CC,BranchLT,_,BranchOffset,_),
    direct_jump(EA_jmp,EA_branch),
-   may_fallthrough(EA_jmp,_),
-   Tmp1 = (Immediate+BranchOffset).
+   may_fallthrough(EA_jmp,_).
 
-value_reg_limit(EA_jmp,EA_fallthrough,Reg,Tmp1,FallthroughLT) :- 
+value_reg_limit(EA_jmp,EA_fallthrough,Reg,(Immediate+FallthroughOffset),FallthroughLT) :- 
    compare_and_jump_immediate(_,EA_jmp,CC,Reg,Immediate),
    track_register(Reg),
    limit_type_map(CC,_,FallthroughLT,_,FallthroughOffset),
    direct_jump(EA_jmp,_),
-   may_fallthrough(EA_jmp,EA_fallthrough),
-   Tmp1 = (Immediate+FallthroughOffset).
+   may_fallthrough(EA_jmp,EA_fallthrough).
 
-value_reg_limit(EA_jmp,EA_branch,Reg2,Tmp1,LT1) :- 
+value_reg_limit(EA_jmp,EA_branch,Reg2,(Immediate+Offset1),LT1) :- 
    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
    limit_type_map(CC,LT1,_,Offset1,_),
    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg1),
    arch_move_reg_imm(EA_regdef,Reg1,Immediate,_),
    track_register(Reg2),
    direct_jump(EA_jmp,EA_branch),
-   may_fallthrough(EA_jmp,_),
-   Tmp1 = (Immediate+Offset1).
+   may_fallthrough(EA_jmp,_).
 
-value_reg_limit(EA_jmp,EA_branch,Reg1,Tmp1,LT2) :- 
+value_reg_limit(EA_jmp,EA_branch,Reg1,(Immediate+Offset2),LT2) :- 
    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
    limit_type_map(CC,_,LT2,_,Offset2),
    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg2),
    arch_move_reg_imm(EA_regdef,Reg2,Immediate,_),
    track_register(Reg1),
    direct_jump(EA_jmp,EA_branch),
-   may_fallthrough(EA_jmp,_),
-   Tmp1 = (Immediate+Offset2).
+   may_fallthrough(EA_jmp,_).
 
-value_reg_limit(EA_jmp,EA_fallthrough,Reg2,Tmp1,LT2) :- 
+value_reg_limit(EA_jmp,EA_fallthrough,Reg2,(Immediate+Offset2),LT2) :- 
    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
    limit_type_map(CC,_,LT2,_,Offset2),
    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg1),
    arch_move_reg_imm(EA_regdef,Reg1,Immediate,_),
    track_register(Reg2),
    direct_jump(EA_jmp,_),
-   may_fallthrough(EA_jmp,EA_fallthrough),
-   Tmp1 = (Immediate+Offset2).
+   may_fallthrough(EA_jmp,EA_fallthrough).
 
-value_reg_limit(EA_jmp,EA_fallthrough,Reg1,Tmp1,LT1) :- 
+value_reg_limit(EA_jmp,EA_fallthrough,Reg1,(Immediate+Offset1),LT1) :- 
    compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
    limit_type_map(CC,LT1,_,Offset1,_),
    reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg2),
    arch_move_reg_imm(EA_regdef,Reg2,Immediate,_),
    track_register(Reg1),
    direct_jump(EA_jmp,_),
-   may_fallthrough(EA_jmp,EA_fallthrough),
-   Tmp1 = (Immediate+Offset1).
+   may_fallthrough(EA_jmp,EA_fallthrough).
 
-value_reg_limit(EA_target,EA_limited,Reg,Tmp1,BranchLT) :- 
+value_reg_limit(EA_target,EA_limited,Reg,(Immediate+BranchOffset),BranchLT) :- 
    compare_and_jump_indirect(EA_cmp,EA_jmp,CC,IndirectOp,Immediate),
    limit_type_map(CC,BranchLT,_,BranchOffset,_),
    next(EA_cmp,EA_jmp),
@@ -1194,10 +1485,9 @@ value_reg_limit(EA_target,EA_limited,Reg,Tmp1,BranchLT) :-
    instruction_get_op(EA_target,_,IndirectOp),
    code_in_block(EA_target,inlined_Block_887),
    may_fallthrough(EA_target,EA_limited),
-   code_in_block(EA_limited,inlined_Block_887),
-   Tmp1 = (Immediate+BranchOffset).
+   code_in_block(EA_limited,inlined_Block_887).
 
-value_reg_limit(EA_target,EA_limited,Reg,Tmp1,FallthroughLT) :- 
+value_reg_limit(EA_target,EA_limited,Reg,(Immediate+FallthroughOffset),FallthroughLT) :- 
    compare_and_jump_indirect(EA_cmp,EA_jmp,CC,IndirectOp,Immediate),
    limit_type_map(CC,_,FallthroughLT,_,FallthroughOffset),
    next(EA_cmp,EA_jmp),
@@ -1207,8 +1497,7 @@ value_reg_limit(EA_target,EA_limited,Reg,Tmp1,FallthroughLT) :-
    instruction_get_op(EA_target,_,IndirectOp),
    code_in_block(EA_target,inlined_Block_888),
    may_fallthrough(EA_target,EA_limited),
-   code_in_block(EA_limited,inlined_Block_888),
-   Tmp1 = (Immediate+FallthroughOffset).
+   code_in_block(EA_limited,inlined_Block_888).
 
 value_reg_unsupported(EA,Reg) :- 
    def_used_for_address(EA,Reg,_),
@@ -1226,4 +1515,9 @@ value_reg_unsupported(EA,Reg) :-
    def_used_for_address(EA,Reg,_),
    arch_memory_access("LOAD",EA,_,_,Reg,_,RegIndex,_,_),
    RegIndex != "NONE".
-
+value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps1) <= value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps2) :- 
+   Steps2 <= Steps1.
+value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps1) <= value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps2) :- 
+   Steps2 <= Steps1.
+value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps1) <= value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps2) :- 
+   Steps2 <= Steps1.

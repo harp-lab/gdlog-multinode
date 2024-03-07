@@ -1,11 +1,17 @@
 #pragma once
 // #include <cuda_runtime.h>
-#include <functional>
-#include <nvfunctional>
 #include <cstdint>
+#include <functional>
+#include <iostream>
+#include <nvfunctional>
 
 using u64 = unsigned long long;
 using u32 = unsigned long;
+
+enum class raw_column_type { NUM_COL_T, STRING_COL_T };
+
+#define C_NUM(x) (-x - 15)
+#define C_ZERO 18847
 
 #ifndef USE_64_BIT_TUPLE
 using column_type = uint32_t;
@@ -18,6 +24,10 @@ using tuple_permutation_t = int;
 
 #define EMPTY_HASH_ENTRY UINT64_MAX
 #define MAX_ARITY 10
+
+inline column_type s2d(std::string const &str) {
+    return std::hash<std::string>{}(str) & 0x7FFFFFFF;
+}
 
 // TODO: use thrust vector as tuple type??
 // using t_gpu_index = thrust::device_vector<u64>;
@@ -36,13 +46,35 @@ struct TupleGenerator {
         }
     }
 
+    TupleGenerator(int inner_arity, std::vector<int> map) {
+        this->arity = map.size();
+        this->inner_arity = inner_arity;
+        for (int i = 0; i < arity; i++) {
+            reorder_map[i] = map[i];
+        }
+    }
+
     __host__ __device__ void operator()(tuple_type inner, tuple_type outer,
                                         tuple_type result) {
         for (int i = 0; i < arity; i++) {
             if (reorder_map[i] < inner_arity) {
                 result[i] = inner[reorder_map[i]];
+                continue;
             } else {
                 result[i] = outer[reorder_map[i] - inner_arity];
+                continue;
+            }
+            if (reorder_map[i] >= MAX_ARITY) {
+                if (reorder_map[i] == C_ZERO) {
+                    result[i] = 0;
+                } else {
+                    result[i] = reorder_map[i];
+                }
+                continue;
+            }
+            if (reorder_map[i] < 0) {
+                result[i] = -reorder_map[i] - 16;
+                continue;
             }
         }
     }
@@ -58,16 +90,26 @@ struct TupleProjector {
     };
 
     int arity;
-    int project[MAX_ARITY]; 
+    int project[MAX_ARITY];
+
+    int *get_project() { return project; }
 
     TupleProjector(int arity, std::vector<int> project) : arity(arity) {
         for (int i = 0; i < arity; i++) {
             this->project[i] = project[i];
         }
     }
+
+    TupleProjector(std::vector<int> project) : arity(arity) {
+        arity = project.size();
+        for (int i = 0; i < arity; i++) {
+            this->project[i] = project[i];
+        }
+    }
 };
 
-// using tuple_generator_hook = nvstd::function<void(tuple_type, tuple_type, tuple_type)>;
+// using tuple_generator_hook = nvstd::function<void(tuple_type, tuple_type,
+// tuple_type)>;
 
 /**
  * @brief TODO: remove this use comparator function
@@ -200,7 +242,6 @@ struct tuple_indexed_less2 {
         return false;
     }
 };
-
 
 struct tuple_weak_less {
 

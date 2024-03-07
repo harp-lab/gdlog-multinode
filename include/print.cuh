@@ -7,19 +7,29 @@
 #include <vector>
 // test helper
 
-void print_hashes(GHashRelContainer* target, const char *rel_name);
+void print_hashes(GHashRelContainer *target, const char *rel_name);
 
-void print_tuple_rows(GHashRelContainer* target, const char *rel_name, bool sort=true);
+void print_tuple_rows(GHashRelContainer *target, const char *rel_name,
+                      bool sort = true);
+void dump_tuple_rows(GHashRelContainer *target, const char *rel_name,
+                     const char *file_name, bool sort = true);
 
-void print_tuple_raw_data(GHashRelContainer* target, const char *rel_name);
+void print_tuple_relation(Relation *rel, const char *rel_name,
+                          bool sort = true);
+
+void print_tuple_rows(GHashRelContainer *target, const char *rel_name,
+                      std::map<column_type, std::string> &str_map,
+                      std::vector<int> str_cols, bool sort = true);
+
+void print_tuple_raw_data(GHashRelContainer *target, const char *rel_name);
 
 void print_memory_usage();
 
-void print_tuple_list(tuple_type* tuples, tuple_size_t rows, tuple_size_t arity);
+void print_tuple_list(tuple_type *tuples, tuple_size_t rows,
+                      tuple_size_t arity);
 
 tuple_size_t get_free_memory();
 
 tuple_size_t get_total_memory();
 
 // TODO: define a logger class can print log on expected MPI ranks
-

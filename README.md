@@ -7,27 +7,44 @@
 - The complete benchmark of the CUDA-based transitive closure computation experiment can be executed on an Nvidia A100 GPU with a minimum of 40 GB GPU memory. The ThetaGPU single-GPU node is a suitable choice.
 - Partial benchmarks can be run on other Nvidia GPUs, but they may result in program termination for certain datasets due to limited GPU memory, leading to an instance of the `std::bad_alloc: cudaErrorMemoryAllocation: out of memory` error.
 
-### NVIDIA CUDA Toolkit (version 11.4.2 or later)
-- Download and install the NVIDIA CUDA Toolkit from the NVIDIA website: [https://developer.nvidia.com/cuda-toolkit-archive](https://developer.nvidia.com/cuda-toolkit-archive)
-- Follow the installation instructions for your operating system. Make sure to install version 11.4.2 or later.
+### NVIDIA HPC SDK (version >= 23.1)
+- Download and install the NVIDIA HPC SDK from the NVIDIA website: [https://developer.nvidia.com/nvidia-hpc-sdk-releases](https://developer.nvidia.com/nvidia-hpc-sdk-releases)
+- Follow the installation instructions for your operating system. Make sure CUDA >= 11.8
+example bash environment setting:
+```
+# NVHPC env
+export NVARCH=Linux_x86_64
+export NVCOMPILERS=/opt/nvidia/hpc_sdk
+export MANPATH=$MANPATH:$NVCOMPILERS/$NVARCH/24.1/compilers/man
+export PATH=$NVCOMPILERS/$NVARCH/24.1/compilers/bin:$PATH
+# NVHPC OpenMPI
+export PATH=$NVCOMPILERS/$NVARCH/24.1/comm_libs/mpi/bin:$PATH
+export MANPATH=$MANPATH:$NVCOMPILERS/$NVARCH/24.1/comm_libs/mpi/man
+```
+
 ### CMake 
-- Download and install CMake(version 3.9 or later) from the CMake website: [https://cmake.org/download/](https://cmake.org/download/)
+- Download and install CMake(version 3.25 or later) from the CMake website: [https://cmake.org/download/](https://cmake.org/download/)
 ## Thrust
-- need apply patch https://github.com/NVIDIA/thrust/pull/1832/files to fix integer overflow in `thrust::reduce`
+- need apply patch https://github.com/NVIDIA/thrust/pull/1832/files to fix integer overflow in `thrust::reduce`, if CUDA < 12.0.
+
+## CMake Configuration Option
+- `-DPOLARIS_RDMA=on` : please add this CMake Flag if you are on ANLF Polaris
+- `-DFORCE_GPU_DIRECT=on` : Enble GPUDirect. Please add this flag is you are using OpenMPI inside Nvidia HPC SDK.
+- `-DUSE_64BIT_DOMAIN=on` : Enable 64bit data column support. (WARNNING: this is unstable and may cause memory wasted.)
 
 ## Transitive Closure Computation
 - Transitive closure computation is a fundamental operation in graph analytics and relational algebra.
 - We present a CUDA-based implementation of transitive closure computation that is optimized for sparse graphs.
 - Build and run instructions are provided below:
 ```shell
-cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -S./ -B./build 
+cmake -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFORCE_GPU_DIRECT=on -S./ -B./build 
 cd build
 make
 ```
 This will build the `TC` executable using the nvcc compiler.
 - The `TC` executable takes a single argument, which is the path to the input file containing the graph data. The input file should be in the following format:
 ```shell
-./TC ../data/data_5.txt
+mpirun -np 1 ./TC ../data/data_5.txt
 ```
 ### Run instructions for Polaris
 - Run using Interactive node:

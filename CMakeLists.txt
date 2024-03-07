@@ -150,6 +150,7 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_include}/tuple.cuh"
     "${gpu_ra_include}/lie.cuh"
     "${gpu_ra_include}/comm.cuh"
+    "${gpu_ra_include}/rt_incl.h"
     "${gpu_ra_src}/tuple.cu"
     "${gpu_ra_src}/print.cu"
     "${gpu_ra_src}/relation.cu"
@@ -166,6 +167,7 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_src}/tokenizer.cpp"
     "${gpu_ra_src}/ast.cpp"
     "${gpu_ra_src}/comm.cu"
+    "${gpu_ra_src}/rt.cpp"
 )
 
 file(GLOB source_file_tc
@@ -177,7 +179,7 @@ file(GLOB source_path_lenght
 )
 
 file(GLOB source_cspa
-    "${test_dir}/cspa.cu"
+    "${test_dir}/cspa2.cu"
 )
 
 file(GLOB source_file_datastructure
@@ -206,8 +208,12 @@ if(POLARIS_RDMA)
     target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm mpi_gtl)
     target_compile_definitions(gpu_ra PUBLIC DEFAULT_GPU_RDMA=1)
 else()
+    if (FORCE_GPU_DIRECT)
+        target_compile_definitions(gpu_ra PUBLIC DEFAULT_GPU_RDMA=1)
+    endif()
     target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm)
 endif()
+
 set_target_properties(gpu_ra PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 target_compile_options(gpu_ra PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
     -lineinfo
@@ -225,10 +231,10 @@ target_compile_options(TC PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
     --extended-lambda>)
 set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
-# add_executable(CSPA ${source_cspa})
-# target_link_libraries(CSPA gpu_ra)
-# target_compile_features(CSPA PUBLIC cxx_std_17)
-# set_target_properties(CSPA PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+# add_executable(CSPA2 ${source_cspa})
+# target_link_libraries(CSPA2 gpu_ra)
+# target_compile_features(CSPA2 PUBLIC cxx_std_17)
+# set_target_properties(CSPA2 PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
 # add_executable(SG ${source_file_sg})
 # target_link_libraries(SG gpu_ra)
@@ -243,4 +249,21 @@ set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECT
 # target_link_libraries(BLOCK_OVERLAP gpu_ra)
 # target_compile_features(BLOCK_OVERLAP PUBLIC cxx_std_17)
 # set_target_properties(BLOCK_OVERLAP PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+
+# file(GLOB source_file_value_analysis
+#     "${test_dir}/value_analysis.cu"
+# )
+# add_executable(VALUE_ANALYSIS ${source_file_value_analysis})
+# target_link_libraries(VALUE_ANALYSIS gpu_ra)
+# target_compile_features(VALUE_ANALYSIS PUBLIC cxx_std_17)
+# set_target_properties(VALUE_ANALYSIS PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+
+file(GLOB source_file_value_analysis_test
+    "${test_dir}/value_analysis_debug.cu"
+)
+add_executable(VALUE_ANALYSIS_TEST ${source_file_value_analysis_test})
+target_link_libraries(VALUE_ANALYSIS_TEST gpu_ra)
+target_compile_features(VALUE_ANALYSIS_TEST PUBLIC cxx_std_17)
+set_target_properties(VALUE_ANALYSIS_TEST PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+
 

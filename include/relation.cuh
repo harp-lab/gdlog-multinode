@@ -1,12 +1,12 @@
 #pragma once
-#include "tuple.cuh"
 #include "builtin.h"
+#include "tuple.cuh"
 
 #include <map>
-#include <string>
-#include <vector>
-#include <thrust/host_vector.h>
 #include <rmm/device_vector.hpp>
+#include <string>
+#include <thrust/host_vector.h>
+#include <vector>
 
 #ifndef RADIX_SORT_THRESHOLD
 #define RADIX_SORT_THRESHOLD 0
@@ -218,6 +218,41 @@ struct Relation {
     void flush_delta(int grid_size, int block_size, float *detail_time);
 
     void defragement(RelationVersion ver, int grid_size, int block_size);
+
+    Relation(){};
+    Relation(std::string name, int arity, column_type *data,
+             tuple_size_t data_row_size, tuple_size_t index_column_size,
+             int dependent_column_size, int grid_size, int block_size,
+             bool tmp_flag = false);
+    Relation(std::string name, int arity, column_type *data,
+             tuple_size_t data_row_size, tuple_size_t index_column_size,
+             int dependent_column_size, bool tmp_flag = false);
+
+    GHashRelContainer *get_version(RelationVersion ver) {
+        if (ver == RelationVersion::DELTA) {
+            return delta;
+        } else if (ver == RelationVersion::FULL) {
+            return full;
+        } else if (ver == RelationVersion::NEWT) {
+            return newt;
+        }
+        throw std::runtime_error("unknown relation version");
+    }
+
+    void drop() {
+        if (delta) {
+            delta->free();
+            delete delta;
+        }
+        if (newt) {
+            newt->free();
+            delete newt;
+        }
+        if (full) {
+            full->free();
+            delete full;
+        }
+    }
 };
 
 /**
@@ -233,10 +268,17 @@ struct Relation {
  * @param grid_size
  * @param block_size
  */
+bool is_number(const std::string &s);
 void load_relation(Relation *target, std::string name, int arity,
                    column_type *data, tuple_size_t data_row_size,
                    tuple_size_t index_column_size, int dependent_column_size,
                    int grid_size, int block_size, bool tmp_flag = false);
 
-void file_to_buffer(std::string file_path, thrust::host_vector<column_type> &buffer,
+void file_to_buffer(std::string file_path,
+                    thrust::host_vector<column_type> &buffer,
                     std::map<column_type, std::string> &string_map);
+
+void file_to_buffer(std::string file_path,
+                    thrust::host_vector<column_type> &buffer,
+                    std::map<column_type, std::string> &string_map,
+                    std::vector<int> column_order);

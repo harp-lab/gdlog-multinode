@@ -1,0 +1,514 @@
+// souffle -L /usr/local/src/ddisasm/build/lib/ -j 16 -o /workspace/dataset/value_analysis_non_recur /workspace/gdlog-multinode/test/souffle/ddisasm/value_analysis_non_recur.dl
+// DDISASM_DEBUG_DIR=/workspace/dataset/capstone  DDISASM_GTIRB_MODULE_NAME=libcapstone.so.5 /workspace/dataset/value_analysis_non_recur -j 16 -F /workspace/dataset/capstone/disassembly/ -D /workspace/dataset/capstone/value_analysis/
+.type input_reg <: symbol
+.type reg_nullable <: symbol
+.type register <: reg_nullable
+.type address <: unsigned
+.type operand_code <: unsigned
+.type operand_index <: unsigned
+
+.type limit_type <: symbol
+.type block_type <: symbol
+
+.type access_mode <: symbol
+.type symbol_position <: symbol
+
+.type stack_var = [BaseReg:register,StackPos:number]
+.type condition_code <: symbol
+
+// input relations
+.decl adjusts_stack_in_block(Block:address,EA:address,BaseReg:register,Offset:number)
+.input adjusts_stack_in_block
+.decl after_end(EA:address,End:address)
+.input after_end
+.decl arch_call(EA:address,DestOperandIndex:operand_index)
+.input arch_call(filename="arch.call.facts")
+.decl arch_cmp_operation(Operation:symbol)
+.input arch_cmp_operation(filename="arch.cmp_operation.facts")
+.decl arch_cmp_zero_operation(Operation:symbol)
+.input arch_cmp_zero_operation(filename="arch.cmp_zero_operation.facts")
+arch_cmp_zero_operation(""):-
+    false.
+.decl arch_condition_flags_reg(Reg:register)
+.input arch_condition_flags_reg(filename="arch.condition_flags_reg.facts")
+.decl arch_conditional(EA:address,CC:condition_code)
+.input arch_conditional(filename="arch.conditional.facts")
+.decl arch_extend_load(EA:address,Signed:unsigned,SrcBits:unsigned)
+.input arch_extend_load(filename="arch.extend_load.facts")
+.decl arch_extend_reg(EA:address,Reg:register,Signed:unsigned,SrcBits:unsigned)
+.input arch_extend_reg(filename="arch.extend_reg.facts")
+.decl arch_jump(EA:address)
+.input arch_jump(filename="arch.jump.facts")
+.decl arch_memory_access(AccessType:symbol,EA:address,SrcOp:operand_index,DstOp:operand_index,
+    DirectReg:register,BaseReg:reg_nullable,IndexReg:reg_nullable,Mult:number,Offset:number)
+.input arch_memory_access(filename="arch.memory_access.facts")
+.decl arch_move_reg_imm(EA:address,Dst:register,Imm:number,ImmIndex:operand_index)
+.input arch_move_reg_imm(filename="arch.move_reg_imm.facts")
+.decl arch_move_reg_reg(EA:address,Dst:register,Src:register)
+.input arch_move_reg_reg(filename="arch.move_reg_reg.facts")
+.decl arch_pc_relative_addr(EA:address,Reg:register,Target:address)
+.input arch_pc_relative_addr(filename="arch.pc_relative_addr.facts")
+arch_pc_relative_addr(0,"",0):- false.
+.decl arch_reg_arithmetic_operation(EA:address,Dst:register,Src:register,Mult:number,Offset:number)
+.input arch_reg_arithmetic_operation(filename="arch.reg_arithmetic_operation.facts")
+.decl arch_reg_reg_arithmetic_operation(EA:address,Dst:register,Src1:register,Src2:register,Mult:number,Offset:number)
+.input arch_reg_reg_arithmetic_operation(filename="arch.reg_reg_arithmetic_operation.facts")
+.decl arch_register_size_bytes(Reg:input_reg,Size:unsigned)
+.input arch_register_size_bytes(filename="arch.register_size_bytes.facts")
+.decl arch_return_reg(Reg:register)
+.input arch_return_reg(filename="arch.return_reg.facts")
+.decl arch_stack_pointer(Reg:register)
+.input arch_stack_pointer(filename="arch.stack_pointer.facts")
+.decl arch_store_immediate(EA:address,SrcOp:operand_index,DstOp:operand_index,
+    Immediate:number,BaseReg:reg_nullable,IndexReg:reg_nullable,Mult:number,Offset:number)
+.input arch_store_immediate(filename="arch.store_immediate.facts")
+arch_store_immediate(0,0,0,0,"NONE","NONE",0,0):- false.
+.decl base_address(ea:address)
+.input base_address
+.decl base_relative_operation(EA_relop:address,EA:address)
+.input base_relative_operation
+.decl binary_format(Format:symbol)
+.input binary_format
+.decl block(Block:address)
+.input block
+.decl block_instruction_next(Block:address,Before:address,After:address)
+.input block_instruction_next
+.decl block_last_instruction(Block:address,EA:address)
+.input block_last_instruction
+.decl call_tls_get_addr(Call:address,Reg:register)
+.input call_tls_get_addr
+.decl cmp_immediate_to_reg(EA:address,Reg:register,Imm_index:operand_index,Immediate:number)
+.input cmp_immediate_to_reg
+.decl cmp_reg_to_reg(EA:address,Reg1:register,Reg2:register)
+.input cmp_reg_to_reg
+.decl code_in_block(EA:address,Block:address)
+.input code_in_block
+.decl conditional_jump(src:address)
+.input conditional_jump
+.decl data_access(EA:address,Op_index:operand_index,RegSegment:reg_nullable,RegBase:reg_nullable,RegIndex:reg_nullable,Mult:number,Offset:number,Size:unsigned)
+.input data_access
+.decl data_segment(Begin:address,End:address)
+.input data_segment
+.decl defined_symbol(ea:address,size:unsigned,type:symbol,scope:symbol,visibility:symbol,sectionIndex:unsigned,originTable:symbol,tableIndex:unsigned,name:symbol)
+.input defined_symbol
+.decl direct_call(EA:address,Dest:address)
+.input direct_call
+.decl direct_jump(src:address, dest:address)
+.input direct_jump
+.decl got_reference_pointer(EA:address)
+.input got_reference_pointer
+.decl got_section(name:symbol)
+.input got_section
+.decl instruction(ea:address,size:unsigned,prefix:symbol,opcode:symbol,
+          op1:operand_code,op2:operand_code,op3:operand_code,op4:operand_code,
+          immOffset:unsigned,displacementOffset:unsigned)
+.input instruction
+.decl instruction_displacement_offset(EA:address,Index:operand_index,Offset:unsigned,Size:unsigned)
+.input instruction_displacement_offset
+.decl instruction_get_dest_op(EA:address,Index:operand_index,Op:operand_code)
+.input instruction_get_dest_op
+.decl instruction_get_op(ea:address, index:operand_index, operator:operand_code)
+.input instruction_get_op
+.decl instruction_get_src_op(EA:address,Index:operand_index,Op:operand_code)
+.input instruction_get_src_op
+.decl instruction_has_relocation(EA:address,Rel:address)
+.input instruction_has_relocation
+.decl inter_procedural_edge(Src:address,Dest:address)
+.input inter_procedural_edge
+.decl is_padding(EA:address)
+.input is_padding
+.decl is_xor_reset(EA:address)
+.input is_xor_reset
+.decl limit_reg_op(EA:address,DstReg:register,SrcReg:register,Offset:number)
+.input limit_reg_op
+.decl limit_type_map(CC:condition_code,BranchLT:limit_type,FallthroughLT:limit_type,BranchOffset:number,FallthroughOffset:number)
+.input limit_type_map
+.decl loaded_section(Beg:address,End:address,Name:symbol)
+.input loaded_section
+.decl lsda_callsite_addresses(Start:address,End:address,LandingPad:address)
+.input lsda_callsite_addresses
+.decl may_fallthrough(o:address,d:address)
+.input may_fallthrough
+.decl next(n:address,m:address)
+.input next
+.decl no_return_call_propagated(EA:address)
+.input no_return_call_propagated
+.decl no_value_reg_limit(EA_jmp:address)
+.input no_value_reg_limit
+.decl op_immediate(Code:operand_code,Offset:number,SizeBytes:unsigned)
+.input op_immediate
+.decl op_immediate_and_reg(EA:address,Operation:symbol,Reg:register,Imm_index:operand_index,Immediate:number)
+.input op_immediate_and_reg
+.decl op_indirect(Code:operand_code,Reg1:input_reg,Reg2:input_reg,Reg3:input_reg,
+        Multiplier:number,Offset:number,SizeBytes:unsigned)
+.input op_indirect
+.decl op_indirect_mapped(Op:operand_code,Reg1:reg_nullable,Reg2:reg_nullable,Reg3:reg_nullable,Mult:number,Offset:number,Size:unsigned)
+.input op_indirect_mapped
+.decl op_regdirect(Code:operand_code,RegisterName:input_reg)
+.input op_regdirect
+.decl op_regdirect_contains_reg(Op:operand_code,Reg:register)
+.input op_regdirect_contains_reg
+.decl pc_relative_operand(src:address,index:operand_index, dest:address)
+.input pc_relative_operand
+.decl possible_rva_operand(EA:address,Index:operand_index,Dest:address)
+.input possible_rva_operand
+.decl reg_call(Src:address,Reg:register)
+.input reg_call
+.decl reg_def_use_block_last_def(EA:address,EA_def:address,Var:register)
+.input reg_def_use_block_last_def(filename="reg_def_use.block_last_def.facts")
+.decl reg_def_use_def(EA:address,Var:register)
+.input reg_def_use_def(filename="reg_def_use.def.facts")
+// .decl reg_def_use_def_used(EA_def:address,Var:register,EA_used:address,Index_used:operand_index)
+// .input reg_def_use_def_used(filename="reg_def_use.def_used.facts")
+.decl reg_def_use_defined_in_block(Block:address,Var:register)
+.input reg_def_use_defined_in_block(filename="reg_def_use.defined_in_block.facts")
+.decl reg_def_use_flow_def(EA:address,Var:register,EA_next:address,Value:number)
+.input reg_def_use_flow_def(filename="reg_def_use.flow_def.facts")
+.decl reg_def_use_live_var_def(Block:address,VarIdentity:register,LiveVar:register,EA_def:address)
+.input reg_def_use_live_var_def(filename="reg_def_use.live_var_def.facts")
+.decl reg_def_use_ref_in_block(Block:address,Var:register)
+.input reg_def_use_ref_in_block(filename="reg_def_use.ref_in_block.facts")
+.decl reg_def_use_return_block_end(Callee:address,CalleeEnd:address,Block:address,BlockEnd:address)
+.input reg_def_use_return_block_end(filename="reg_def_use.return_block_end.facts")
+.decl reg_def_use_used(EA:address,Var:register,Index:operand_index)
+.input reg_def_use_used(filename="reg_def_use.used.facts")
+.decl reg_def_use_used_in_block(Block:address,EA_used:address,Var:register,Index:operand_index)
+.input reg_def_use_used_in_block(filename="reg_def_use.used_in_block.facts")
+.decl reg_jump(Src:address,Reg:register)
+.input reg_jump
+.decl reg_map(RegIn:input_reg,Reg:register)
+.input reg_map
+.decl reg_used_for(EA:address,Reg:register,Type:symbol)
+.input reg_used_for
+.decl register_access(EA:address,Register:input_reg,AccessMode:access_mode)
+.input register_access
+.decl relative_address(EA:address,Size:unsigned,TableStart:address,Reference:address,Dest:address,DestIsFirstOrSecond:symbol)
+.input relative_address
+.decl relative_address_start(EA:address,Size:unsigned,Reference:address,Dest:address, DestIsFirstOrSecond:symbol)
+.input relative_address_start
+.decl relocation(EA:address,Type:symbol,Name:symbol,Addend:number,SymbolIndex:unsigned,Section:symbol,RelType:symbol)
+.input relocation
+.decl relocation_adjustment_total(EA:address,Adjustment:number)
+.input relocation_adjustment_total
+.decl simple_data_access_pattern(Address:address,Op_index:unsigned,Size:unsigned,FromWhere:address)
+.input simple_data_access_pattern
+.decl stack_base_reg_move(Block:address,EA:address,Src:register,Dst:register)
+.input stack_base_reg_move
+.decl stack_def_use_block_last_def(EA:address,EA_def:address,Var:stack_var)
+.input stack_def_use_block_last_def(filename="stack_def_use.block_last_def.facts")
+.decl stack_def_use_def(EA:address,Var:stack_var)
+.input stack_def_use_def(filename="stack_def_use.def.facts")
+.decl stack_def_use_defined_in_block(Block:address,Var:stack_var)
+.input stack_def_use_defined_in_block(filename="stack_def_use.defined_in_block.facts")
+.decl stack_def_use_live_var_def(Block:address,VarIdentity:stack_var,LiveVar:stack_var,EA_def:address)
+.input stack_def_use_live_var_def(filename="stack_def_use.live_var_def.facts")
+.decl stack_def_use_moves_limit(Moves:unsigned)
+.input stack_def_use_moves_limit(filename="stack_def_use.moves_limit.facts")
+.decl stack_def_use_ref_in_block(Block:address,Var:stack_var)
+.input stack_def_use_ref_in_block(filename="stack_def_use.ref_in_block.facts")
+.decl stack_def_use_used(EA:address,Var:stack_var,Index:operand_index)
+.input stack_def_use_used(filename="stack_def_use.used.facts")
+.decl stack_def_use_used_in_block(Block:address,EA_used:address,Var:stack_var,Index:operand_index)
+.input stack_def_use_used_in_block(filename="stack_def_use.used_in_block.facts")
+.decl step_limit(Limit:unsigned)
+.input step_limit
+.decl step_limit_small(Limit:unsigned)
+step_limit_small(3).
+.decl symbol(ea:address,size:unsigned,type:symbol,scope:symbol,visibility:symbol,sectionIndex:unsigned,originTable:symbol,tableIndex:unsigned,name:symbol)
+.input symbol
+.decl symbolic_expr_from_relocation(EA:address,Size:unsigned,Symbol:symbol,Offset:number,TargetEA:address)
+.input symbolic_expr_from_relocation
+.decl take_address(Src:address,Address_taken:address)
+.input take_address
+.decl tls_descriptor(EA:address,Offset:unsigned)
+.input tls_descriptor
+.decl tls_index(EA:address,Offset:unsigned)
+.input tls_index
+.decl tls_segment(Start:address,End:address,Align:unsigned)
+.input tls_segment
+.decl track_register(Reg:register)
+.input track_register
+
+.decl tls_desc_call(Load:address,Call:address,Dest:address)
+.input tls_desc_call
+.output tls_desc_call
+
+.decl tls_get_addr(Load:address,Call:address,Dest:address)
+.input tls_get_addr
+.output tls_get_addr
+
+.decl base_relative_operand(EA:address,Index:operand_index,Dest:address)
+.input base_relative_operand
+.output base_relative_operand
+
+.decl base_relative_jump(EA_relop:address,EA:address)
+.input base_relative_jump
+.output base_relative_jump
+
+.decl got_relative_operand(EA:address,Index:operand_index,Dest:address)
+.input got_relative_operand
+.output got_relative_operand
+
+.decl reg_has_got(EA:address,Reg:register)
+.input reg_has_got
+.output reg_has_got
+
+.decl jump_table_max(TableStart:address,TableEnd:address)
+.input jump_table_max
+.output jump_table_max
+
+
+
+.output adjusts_stack_in_block
+.output after_end
+.output arch_call
+.output arch_cmp_operation
+.output arch_cmp_zero_operation
+.output arch_condition_flags_reg
+.output arch_conditional
+.output arch_extend_load
+.output arch_extend_reg
+.output arch_jump
+.output arch_memory_access
+.output arch_move_reg_imm
+.output arch_move_reg_reg
+.output arch_pc_relative_addr
+.output arch_reg_arithmetic_operation
+.output arch_reg_reg_arithmetic_operation
+.output arch_register_size_bytes
+.output arch_return_reg
+.output arch_stack_pointer
+.output arch_store_immediate
+.output base_address
+.output base_relative_operation
+.output binary_format
+.output block
+.output block_instruction_next
+.output block_last_instruction
+.output call_tls_get_addr
+.output cmp_immediate_to_reg
+.output cmp_reg_to_reg
+.output code_in_block
+.output conditional_jump
+.output data_access
+.output data_segment
+.output defined_symbol
+.output direct_call
+.output direct_jump
+.output got_reference_pointer
+.output got_section
+.output instruction
+.output instruction_displacement_offset
+.output instruction_get_dest_op
+.output instruction_get_op
+.output instruction_get_src_op
+.output instruction_has_relocation
+.output inter_procedural_edge
+.output is_padding
+.output is_xor_reset
+.output limit_reg_op
+.output limit_type_map
+.output loaded_section
+.output lsda_callsite_addresses
+.output may_fallthrough
+.output next
+.output no_return_call_propagated
+.output no_value_reg_limit
+.output op_immediate
+.output op_immediate_and_reg
+.output op_indirect
+.output op_indirect_mapped
+.output op_regdirect
+.output op_regdirect_contains_reg
+.output pc_relative_operand
+.output possible_rva_operand
+.output reg_call
+.output reg_def_use_block_last_def
+.output reg_def_use_def
+.output reg_def_use_defined_in_block
+.output reg_def_use_flow_def
+.output reg_def_use_live_var_def
+.output reg_def_use_ref_in_block
+.output reg_def_use_return_block_end
+.output reg_def_use_used
+.output reg_def_use_used_in_block
+.output reg_jump
+.output reg_map
+.output reg_used_for
+.output register_access
+.output relative_address
+.output relative_address_start
+.output relocation
+.output relocation_adjustment_total
+.output simple_data_access_pattern
+.output stack_base_reg_move
+.output stack_def_use_block_last_def
+.output stack_def_use_def
+.output stack_def_use_defined_in_block
+.output stack_def_use_live_var_def
+.output stack_def_use_moves_limit
+.output stack_def_use_ref_in_block
+.output stack_def_use_used
+.output stack_def_use_used_in_block
+.output step_limit
+.output symbol
+.output symbolic_expr_from_relocation
+.output take_address
+.output tls_descriptor
+.output tls_index
+.output tls_segment
+.output track_register
+
+.functor functor_data_valid(EA:address,Size:unsigned):unsigned
+.functor functor_data_unsigned(EA:address,Size:unsigned):unsigned
+.functor functor_data_signed(EA:address,Size:unsigned):number
+
+.decl block_next(Block:address,BlockEnd:address,NextBlock:address)
+.output block_next
+.decl compare_and_jump_immediate(EA_cmp:address,EA_jmp:address,CC:condition_code,Reg:register,Immediate:number)
+.output compare_and_jump_immediate
+.decl compare_and_jump_register(EA_cmp:address,EA_jmp:address,CC:condition_code,Reg1:register,Reg2:register)
+.output compare_and_jump_register
+.decl def_used_for_address(EA_def:address,Reg:register,Type:symbol)
+.output def_used_for_address
+.decl got_relative_operand(EA:address,Index:operand_index,Dest:address)
+.output got_relative_operand
+.decl jump_table_element_access(EA:address,Size:unsigned,TableStart:address,RegIndex:register)
+.output jump_table_element_access
+.decl reg_def_use_def_used(EA_def:address,Var:register,EA_used:address,Index_used:operand_index)
+.output reg_def_use_def_used
+.decl reg_def_use_live_var_used(Block:address,LiveVar:register,UsedVar:register,EA_used:address,Index:operand_index,Moves:unsigned) overridable
+.output reg_def_use_live_var_used
+.decl reg_has_base_image(EA:address,Reg:register)
+.output reg_has_base_image
+.decl relative_jump_table_entry_candidate(EA:address,TableStart:address,Size:unsigned,Reference:address,Dest:address,Scale:number,Offset:number)
+.input relative_jump_table_entry_candidate
+.output relative_jump_table_entry_candidate
+.decl stack_def_use_def_used(EA_def:address,VarDef:stack_var,EA_used:address,VarUsed:stack_var,Index_used:operand_index)
+.output stack_def_use_def_used
+.decl stack_def_use_live_var_used_in_block(Block:address,EA:address,LiveVar:stack_var,UsedVar:stack_var,EA_used:address,Index:operand_index,Moves:unsigned)
+.output stack_def_use_live_var_used_in_block
+.decl value_reg(EA:address,Reg:register,
+                EA_reg1:address,Reg1:reg_nullable,Multiplier:number,Offset:number,Steps:unsigned)
+.output value_reg
+
+.printsize block_next
+.printsize compare_and_jump_immediate
+.printsize compare_and_jump_register
+.printsize def_used_for_address
+.printsize got_relative_operand
+.printsize jump_table_element_access
+.printsize reg_def_use_def_used
+.printsize reg_def_use_live_var_used
+.printsize reg_has_base_image
+.printsize relative_jump_table_entry_candidate
+.printsize stack_def_use_def_used
+.printsize stack_def_use_live_var_used_in_block
+.printsize value_reg
+
+// non-recursive
+block_next(Block,EA,Block2) :- 
+   block_last_instruction(Block,EA),
+   may_fallthrough(EA,Block2),
+   !no_return_call_propagated(EA),
+   !inter_procedural_edge(EA,Block2),
+   block(Block2).
+block_next(Block,EA,Block2) :- 
+   lsda_callsite_addresses(Beg,End,Block2),
+   block_last_instruction(Block,EA),
+   EA >= Beg,
+   EA < End,
+   block(Block2).
+block_next(Block,EA,EA_next) :- 
+   block_last_instruction(Block,EA),
+   direct_jump(EA,EA_next),
+   !inter_procedural_edge(EA,EA_next).
+compare_and_jump_immediate(EA,EA,CC,Reg,0) :- 
+   instruction(EA,_,_,Operation,_,_,_,_,_,_),
+   arch_cmp_zero_operation(Operation),
+   arch_jump(EA),
+   arch_conditional(EA,CC),
+   instruction_get_op(EA,_,Op),
+   op_regdirect_contains_reg(Op,Reg).
+compare_and_jump_immediate(EA,EA,CC,Reg,0) :- 
+   instruction(EA,_,_,Operation,_,_,_,_,_,_),
+   arch_cmp_zero_operation(Operation),
+   arch_jump(EA),
+   arch_conditional(EA,CC),
+   instruction_get_op(EA,_,Op),
+   register_access(EA,RegIn,"R"),
+   reg_map(RegIn,Reg),
+   !op_regdirect_contains_reg(Op,Reg).
+compare_and_jump_register(EA,EA,CC,Reg1,Reg2) :- 
+   cmp_reg_to_reg(EA,Reg1,Reg2),
+   arch_jump(EA),
+   arch_conditional(EA,CC).
+def_used_for_address(EA,Reg,"PCRelative") :- 
+   arch_pc_relative_addr(EA,Reg,_).
+got_relative_operand(EA,Index,as(((as(TargetEA, number)+Addend)+Adjustment), address)) :- 
+   relocation( _tmp_53,"GOTOFF",Symbol,Addend,SymbolIndex,_,_),
+   relocation_adjustment_total( _tmp_53,Adjustment),
+   symbol(TargetEA,_,_,_,_,_,_,SymbolIndex,Symbol),
+   instruction_displacement_offset(EA,Index,DisplacementOffset,_),
+    _tmp_53 = (EA+DisplacementOffset).
+jump_table_element_access(EA,Size,as(TableStart, address),as(RegIndex, register)) :- 
+   data_access(EA,_,"NONE","NONE",RegIndex, _tmp_69,TableStart,Size),
+   RegIndex != "NONE",
+   data_segment(Beg,End),
+   as(TableStart, address) >= Beg,
+   as(TableStart, address) <= End,
+    _tmp_69 = as(Size, number).
+jump_table_element_access(EA,1,as(TableStart, address),as(RegBase, register)) :- 
+   data_access(EA,_,"NONE",RegBase,"NONE",_,TableStart,1),
+   RegBase != "NONE",
+   data_segment(Beg,End),
+   as(TableStart, address) >= Beg,
+   as(TableStart, address) <= End.
+reg_def_use_def_used(EA_def,Var,EA_used,Index) :- 
+   reg_def_use_used(EA_used,Var,Index),
+   reg_def_use_block_last_def(EA_used,EA_def,Var).
+reg_def_use_live_var_used(Block,Var,Var,EA_used,Index,0) :- 
+   reg_def_use_used_in_block(Block,EA_used,Var,Index),
+   !reg_def_use_block_last_def(EA_used,_,Var).
+reg_has_base_image(EA,Reg) :- 
+   base_address(ImageBase),
+   pc_relative_operand(EA,_,ImageBase),
+   code_in_block(EA,_),
+   reg_def_use_def(EA,Reg),
+   instruction(EA,_,_,inlined_Operation_773,_,_,_,_,_,_),
+   inlined_Operation_773 = "LEA".
+reg_has_base_image(EA_code,Reg) :- 
+   binary_format("PE"),
+   base_address(ImageBase),
+   code_in_block(EA_code,_),
+   arch_memory_access("LOAD",EA_code,_,_,_,_,_,_,_),
+   pc_relative_operand(EA_code,_,EA_data),
+   @functor_data_valid(EA_data,8) = 1,
+   ImageBase = as(@functor_data_signed(EA_data,8), address),
+   reg_def_use_def(EA_code,Reg).
+relative_jump_table_entry_candidate(EA,TableStart,1,Ref,Dest,4,0) :- 
+   relative_address(EA,1,TableStart,Ref,Dest,"first"),
+   Dest < TableStart,
+   relative_address_start(Ref,4,_,_,_),
+   loaded_section(Start,End,_),
+   Ref >= Start,
+   Ref < End,
+   Dest >= Start,
+   Dest < End.
+stack_def_use_def_used(EA_def,Var,EA_used,Var,Index) :- 
+   stack_def_use_used(EA_used,Var,Index),
+   stack_def_use_block_last_def(EA_used,EA_def,Var).
+stack_def_use_live_var_used_in_block(Block,EA_used,[BaseReg,StackPos],[BaseReg,StackPos],EA_used,Index,0) :- 
+   stack_def_use_used_in_block(Block,EA_used,[BaseReg,StackPos],Index).
+value_reg(EA,Reg,EA,"NONE",0,as(Val, number),1) :- 
+   arch_pc_relative_addr(EA,Reg,Val),
+   track_register(Reg).
+value_reg(EA,Reg,EA,"NONE",0,(as((EA+Size), number)+Offset),1) :- 
+   code_in_block(EA,_),
+   arch_reg_arithmetic_operation(EA,Reg,PcReg,1,Offset),
+   instruction(EA,Size,_,_,_,_,_,_,_,_),
+   !instruction_has_relocation(EA,_),
+   PcReg = "RIP",
+   track_register(Reg).
+value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps1) <= value_reg(EA,Reg,EA_reg1,Reg1,Multiplier,Offset,Steps2) :- 
+   Steps2 <= Steps1.

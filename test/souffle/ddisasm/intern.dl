@@ -1,0 +1,35 @@
+// this file is used to create eliminate all functor call and compound data type
+
+
+.type input_reg <: symbol
+.type reg_nullable <: symbol
+.type register <: reg_nullable
+.type address <: unsigned
+.type operand_code <: unsigned
+.type operand_index <: unsigned
+
+.type limit_type <: symbol
+.type block_type <: symbol
+
+.type access_mode <: symbol
+.type symbol_position <: symbol
+
+.type stack_var = [BaseReg:register,StackPos:number]
+.type condition_code <: symbol
+
+.decl stack_def_use_block_last_def1(EA:address,EA_def:address,Var:stack_var)
+.decl stack_def_use_def(EA:address,Var:stack_var)
+.input stack_def_use_def1
+.decl stack_def_use_defined_in_block1(Block:address,Var:stack_var)
+.input stack_def_use_defined_in_block1
+.decl stack_def_use_live_var_def(Block:address,VarIdentity:stack_var,LiveVar:stack_var,EA_def:address)
+.input stack_def_use_live_var_def
+.decl stack_def_use_moves_limit(Moves:unsigned)
+.input stack_def_use_moves_limit
+.decl stack_def_use_ref_in_block(Block:address,Var:stack_var)
+.input stack_def_use_ref_in_block
+.decl stack_def_use_used(EA:address,Var:stack_var,Index:operand_index)
+.input stack_def_use_used
+.decl stack_def_use_used_in_block(Block:address,EA_used:address,Var:stack_var,Index:operand_index)
+.input stack_def_use_used_in_block
+
