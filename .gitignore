@@ -10,3 +10,5 @@ test/cuDF/*.log
 scripts/*.error
 scripts/*.out
 .clangd
+# Ignore all venv folders recursively
+**/venv/
