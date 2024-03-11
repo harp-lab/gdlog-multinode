@@ -3,10 +3,14 @@ CompileFlags:
     - -forward-unknown-to-host-compiler
     - -rdc=true
     - --generate-code*
+    - --expt-relaxed-constexpr
+    - --extended-lambda
+    - --default-stream
+    - --options-file
   Add:
     - -xcuda
-    - -std=c++20
-    - --cuda-gpu-arch=sm_60
-    - --cuda-path=/opt/cuda
+    - -std=c++17
+    - --cuda-gpu-arch=sm_80
+    - --cuda-path=/opt/nvidia/hpc_sdk/Linux_x86_64/22.11/cuda/
     - -L/opt/cuda/lib
     - -I/opt/cuda/include

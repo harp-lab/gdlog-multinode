@@ -1,4 +1,5 @@
 #pragma once
+#include "builtin.h"
 #include "relation.cuh"
 #include "tuple.cuh"
 #include <thrust/host_vector.h>
@@ -28,12 +29,11 @@ struct RelationalJoin {
     // the relation to store the generated join result
     Relation *output_rel;
     // hook function will be mapped on every join result tuple
-    tuple_generator_hook tuple_generator;
+    TupleGenerator tuple_generator;
     // filter to be applied on every join result tuple
-    tuple_predicate tuple_pred;
 
-    // TODO: reserved for optimization
-    JoinDirection direction;
+    std::vector<int> reorder_map;
+
     int grid_size;
     int block_size;
 
@@ -45,13 +45,12 @@ struct RelationalJoin {
 
     RelationalJoin(Relation *inner_rel, RelationVersion inner_ver,
                    Relation *outer_rel, RelationVersion outer_ver,
-                   Relation *output_rel, tuple_generator_hook tp_gen,
-                   tuple_predicate tp_pred, JoinDirection direction,
-                   int grid_size, int block_size, float *detail_time)
+                   Relation *output_rel, TupleGenerator tp_gen, int grid_size,
+                   int block_size, float *detail_time)
         : inner_rel(inner_rel), inner_ver(inner_ver), outer_rel(outer_rel),
           outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
-          tuple_pred(tp_pred), direction(direction), grid_size(grid_size),
-          block_size(block_size), detail_time(detail_time){};
+          grid_size(grid_size), block_size(block_size),
+          detail_time(detail_time){};
 
     void operator()();
 };
@@ -64,19 +63,49 @@ struct RelationalCopy {
     Relation *src_rel;
     RelationVersion src_ver;
     Relation *dest_rel;
-    tuple_copy_hook tuple_generator;
-    tuple_predicate tuple_pred;
+    TupleProjector tuple_generator;
 
     int grid_size;
     int block_size;
     bool copied = false;
+    bool iterative = false;
 
     RelationalCopy(Relation *src, RelationVersion src_ver, Relation *dest,
-                   tuple_copy_hook tuple_generator, tuple_predicate tuple_pred,
-                   int grid_size, int block_size)
+                   TupleProjector tuple_generator, int grid_size,
+                   int block_size, bool iterative = false)
         : src_rel(src), src_ver(src_ver), dest_rel(dest),
-          tuple_generator(tuple_generator), tuple_pred(tuple_pred),
-          grid_size(grid_size), block_size(block_size) {}
+          tuple_generator(tuple_generator), grid_size(grid_size),
+          block_size(block_size), iterative(iterative) {}
+
+    void operator()();
+};
+
+struct RelationalFilter {
+    Relation *src_rel;
+    RelationVersion src_ver;
+    TupleFilter tuple_pred;
+
+    bool copied = false;
+
+    RelationalFilter(Relation *src, RelationVersion src_ver,
+                     TupleFilter tuple_pred)
+        : src_rel(src), src_ver(src_ver), tuple_pred(tuple_pred) {}
+
+    void operator()();
+};
+
+/**
+ * @brief Relation Algerbra kernal for ARITHMETIC
+ *  This operator will apply arithmetic operation on every tuple in src relation
+ */
+struct RelationalArithm {
+    Relation *src_rel;
+    RelationVersion src_ver;
+    TupleArithmetic tuple_generator;
+
+    RelationalArithm(Relation *src, RelationVersion src_ver,
+                     TupleArithmetic tuple_generator)
+        : src_rel(src), src_ver(src_ver), tuple_generator(tuple_generator) {}
 
     void operator()();
 };
@@ -91,27 +120,40 @@ struct RelationalACopy {
     Relation *src_rel;
     Relation *dest_rel;
     // function will be mapped on all tuple copied
-    tuple_copy_hook tuple_generator;
-    // filter for copied tuple
-    tuple_predicate tuple_pred;
+    TupleProjector tuple_generator;
 
     int grid_size;
     int block_size;
 
     RelationalACopy(Relation *src, Relation *dest,
-                    tuple_copy_hook tuple_generator, tuple_predicate tuple_pred,
-                    int grid_size, int block_size)
+                    TupleProjector tuple_generator, int grid_size,
+                    int block_size)
         : src_rel(src), dest_rel(dest), tuple_generator(tuple_generator),
-          tuple_pred(tuple_pred), grid_size(grid_size), block_size(block_size) {
-    }
+          grid_size(grid_size), block_size(block_size) {}
 
     void operator()();
 };
 
+// a relation algebra operator that will sync up all ranks of the same relation
+// this operator will distribute the tuple to all ranks by hash of joined column
+struct RelationalSync {
+    Relation *src_rel;
+    RelationVersion src_ver;
+
+    RelationalSync(Relation *src, RelationVersion src_ver)
+        : src_rel(src), src_ver(src_ver) {}
+
+    void operator()(){
+        // nothing happened here, the inference engine will handle the
+        // communication
+    };
+};
+
 /**
  * @brief possible RA types
- * 
+ *
  */
-using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy>;
+using ra_op = std::variant<RelationalJoin, RelationalCopy, RelationalACopy,
+                           RelationalFilter, RelationalArithm, RelationalSync>;
 
-enum RAtypes { JOIN, COPY, ACOPY };
+enum RAtypes { JOIN, COPY, ACOPY, FILTER, ARITHM, SYNC };

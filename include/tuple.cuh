@@ -1,33 +1,78 @@
 #pragma once
 // #include <cuda_runtime.h>
 #include <functional>
+#include <nvfunctional>
+#include <cstdint>
 
 using u64 = unsigned long long;
 using u32 = unsigned long;
 
-using column_type = u32;
+#ifndef USE_64_BIT_TUPLE
+using column_type = uint32_t;
+#else
+using column_type = uint64_t;
+#endif
 using tuple_type = column_type *;
-using tuple_size_t = u64;
+using tuple_size_t = unsigned long long;
+
+#define EMPTY_HASH_ENTRY UINT64_MAX
+#define MAX_ARITY 10
 
 // TODO: use thrust vector as tuple type??
 // using t_gpu_index = thrust::device_vector<u64>;
 // using t_gpu_tuple = thrust::device_vector<u64>;
 
-// using t_data_internal = thrust::device_vector<u64>;
-/**
- * @brief u64* to store the actual relation tuples, for serialize concern
- *
- */
-using t_data_internal = u64 *;
-
-typedef void (*tuple_generator_hook)(tuple_type, tuple_type, tuple_type);
+// typedef void (*tuple_generator_hook)(tuple_type, tuple_type, tuple_type);
 typedef void (*tuple_copy_hook)(tuple_type, tuple_type);
+// using tuple_copy_hook = nvstd::function<void(tuple_type, tuple_type)>;
 typedef bool (*tuple_predicate)(tuple_type);
 
-// struct tuple_generator_hook {
-//     __host__ __device__
-//     void operator()(tuple_type inner, tuple_type outer, tuple_type newt) {};
-// };
+
+struct TupleGenerator {
+    int reorder_map[10];
+    int arity;
+    int inner_arity;
+
+    TupleGenerator(int arity, int inner_arity, std::vector<int> map) {
+        this->arity = arity;
+        this->inner_arity = inner_arity;
+        for (int i = 0; i < arity; i++) {
+            reorder_map[i] = map[i];
+        }
+    }
+
+    __host__ __device__ void operator()(tuple_type inner, tuple_type outer,
+                                        tuple_type result) {
+        for (int i = 0; i < arity; i++) {
+            if (reorder_map[i] < inner_arity) {
+                result[i] = inner[reorder_map[i]];
+            } else {
+                result[i] = outer[reorder_map[i] - inner_arity];
+            }
+        }
+    }
+};
+
+struct TupleProjector {
+    __host__ __device__ tuple_type operator()(const tuple_type &tuple,
+                                              const tuple_type &result) {
+        for (int i = 0; i < arity; i++) {
+            result[i] = tuple[project[i]];
+        }
+        return result;
+    };
+
+    int arity;
+    int project[MAX_ARITY]; 
+
+    TupleProjector(int arity, std::vector<int> project) : arity(arity) {
+        for (int i = 0; i < arity; i++) {
+            this->project[i] = project[i];
+        }
+    }
+};
+
+// using tuple_generator_hook = nvstd::function<void(tuple_type, tuple_type, tuple_type)>;
 
 /**
  * @brief TODO: remove this use comparator function
