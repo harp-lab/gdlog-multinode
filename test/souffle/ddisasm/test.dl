@@ -184,6 +184,12 @@
 // .output value_reg_limit
 .input value_reg_limit
 
+.decl reg_def_use_defined_in_block(Block:address,Var:register)
+.input reg_def_use_defined_in_block
+
+.decl conditional_jump(src:address)
+.input conditional_jump
+
 block_next(Block,EA,Dest) :- 
    block_last_instruction(Block,EA),
    jump_table_target(EA,Dest).
@@ -425,3 +431,34 @@ jump_table_target(EA,Dest) :-
 
 last_value_reg_limit(From,To,Reg,Value,LimitType,0) :- 
    value_reg_limit(From,To,Reg,Value,LimitType).
+
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   !conditional_jump(BlockEnd),
+   Tmp1 = (Steps+1).
+
+// .decl last_value_reg_limit_tmp0(Block:address,PropagatedReg:register,PropagatedVal:number,PropagatedType:limit_type)
+// .printsize last_value_reg_limit_tmp0
+// .output last_value_reg_limit_tmp0
+// last_value_reg_limit_tmp0(Block, PropagatedReg,PropagatedVal,PropagatedType) :- 
+//    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+//    Steps <= 3,
+//    code_in_block(EA,Block).
+// .output code_in_block
+
+// .decl last_value_reg_limit1(BlockEnd:address,BlockNext:address,PropagatedReg:register,PropagatedVal:number,PropagatedType:limit_type,Step: unsigned)
+// .printsize last_value_reg_limit1
+// .output last_value_reg_limit1
+// last_value_reg_limit1(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+//    last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+//    Steps <= 3,
+//    code_in_block(EA,Block),
+//    block_next(Block,BlockEnd,BlockNext),
+//    !reg_def_use_defined_in_block(Block,PropagatedReg),
+//    !conditional_jump(BlockEnd),
+//    Tmp1 = (Steps+1).
+

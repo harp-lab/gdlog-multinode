@@ -35,8 +35,10 @@ inline column_type s2d(std::string const &str) {
 
 struct TupleGenerator {
     int reorder_map[10];
-    int arity;
-    int inner_arity;
+    int arity = 0;
+    int inner_arity = 0;
+
+    TupleGenerator() {};
 
     TupleGenerator(int arity, int inner_arity, std::vector<int> map) {
         this->arity = arity;

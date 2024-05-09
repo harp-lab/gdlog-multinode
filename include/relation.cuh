@@ -116,6 +116,11 @@ __global__ void get_copy_result(tuple_type *src_tuples,
                                 tuple_size_t tuple_counts,
                                 TupleProjector tp_gen);
 
+__global__ void get_copy_result(tuple_type *src_tuples, bool *src_bitmap,
+                                column_type *dest_raw_data, int output_arity,
+                                tuple_size_t tuple_counts,
+                                TupleProjector tp_gen);
+
 //////////////////////////////////////////////////////
 // CPU functions
 

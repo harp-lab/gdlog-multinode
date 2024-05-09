@@ -93,9 +93,10 @@ struct RelationalJoin : public RelationalOperation {
           outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
           grid_size(grid_size), block_size(block_size),
           detail_time(detail_time), debug(debug) {
-        if (inner_rel == nullptr || outer_rel == nullptr || output_rel == nullptr) {
+        if (inner_rel == nullptr || outer_rel == nullptr ||
+            output_rel == nullptr) {
             throw std::runtime_error("inner, outer or output relation is null"
-                                        " in RelationalJoin"); 
+                                     " in RelationalJoin");
         }
         type = JOIN;
     };
@@ -110,9 +111,10 @@ struct RelationalJoin : public RelationalOperation {
           outer_ver(outer_ver), output_rel(output_rel), tuple_generator(tp_gen),
           grid_size(grid_size), block_size(block_size),
           detail_time(detail_time), tuple_pred(tuple_pred), debug(debug) {
-        if (inner_rel == nullptr || outer_rel == nullptr || output_rel == nullptr) {
+        if (inner_rel == nullptr || outer_rel == nullptr ||
+            output_rel == nullptr) {
             throw std::runtime_error("inner, outer or output relation is null"
-                                        " in RelationalJoin"); 
+                                     " in RelationalJoin");
         }
         type = JOIN;
     };
@@ -197,7 +199,7 @@ struct RelationalFilterProject : public RelationalOperation {
           dest_rel(dest), dest_ver(dest_ver), tuple_generator(tuple_generator) {
         if (src == nullptr) {
             throw std::runtime_error("src relation is null");
-        } 
+        }
         type = FILTER_PROJ;
     }
 
@@ -230,7 +232,6 @@ struct RelationalArithm : public RelationalOperation {
     }
 };
 
-
 struct RelationalArithmProject : public RelationalOperation {
     Relation *src_rel;
     RelationVersion src_ver;
@@ -240,8 +241,8 @@ struct RelationalArithmProject : public RelationalOperation {
     TupleProjector tuple_projector;
 
     RelationalArithmProject(Relation *src, RelationVersion src_ver,
-                            TupleArithmeticSingle tuple_generator, Relation *dest,
-                            RelationVersion dest_ver,
+                            TupleArithmeticSingle tuple_generator,
+                            Relation *dest, RelationVersion dest_ver,
                             TupleProjector tuple_projector)
         : src_rel(src), src_ver(src_ver), tuple_generator(tuple_generator),
           dest_rel(dest), dest_ver(dest_ver), tuple_projector(tuple_projector) {
@@ -297,7 +298,7 @@ struct RelationalSync : public RelationalOperation {
         type = SYNC;
     }
 
-    void operator()(){
+    void operator()() {
         // nothing happened here, the inference engine will handle the
         // communication
     };
@@ -315,6 +316,11 @@ struct RelationalNegation : public RelationalOperation {
     Relation *neg_rel;
     RelationVersion neg_ver;
 
+    bool left_flag = true;
+
+    Relation *output_rel;
+    TupleGenerator tuple_generator;
+
     int grid_size;
     int block_size;
 
@@ -322,6 +328,16 @@ struct RelationalNegation : public RelationalOperation {
                        RelationVersion neg_ver, int grid_size, int block_size)
         : src_rel(src), src_ver(src_ver), neg_rel(neg), neg_ver(neg_ver),
           grid_size(grid_size), block_size(block_size) {
+        type = NEGATION;
+    }
+
+    RelationalNegation(Relation *src, RelationVersion src_ver, Relation *neg,
+                       RelationVersion neg_ver, Relation *output_rel,
+                       TupleGenerator tuple_generator, bool left_flag,
+                       int grid_size, int block_size)
+        : src_rel(src), src_ver(src_ver), neg_rel(neg), neg_ver(neg_ver),
+          output_rel(output_rel), tuple_generator(tuple_generator),
+          left_flag(left_flag), grid_size(grid_size), block_size(block_size) {
         type = NEGATION;
     }
 
@@ -341,7 +357,7 @@ struct RelationalIndex : public RelationalOperation {
         type = INDEX;
     }
 
-    void operator()(){
+    void operator()() {
         // nothing happened here, the inference engine will handle the
     };
 

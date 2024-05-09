@@ -106,6 +106,23 @@ __global__ void get_copy_result(tuple_type *src_tuples,
     }
 }
 
+__global__ void get_copy_result(tuple_type *src_tuples, bool *src_bitmap,
+                                column_type *dest_raw_data, int output_arity,
+                                tuple_size_t tuple_counts,
+                                TupleProjector tp_gen) {
+    int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+    if (index >= tuple_counts)
+        return;
+
+    int stride = blockDim.x * gridDim.x;
+    for (tuple_size_t i = index; i < tuple_counts; i += stride) {
+        tuple_type dest_tp = dest_raw_data + output_arity * i;
+        if (!src_bitmap[i]) {
+            tp_gen(src_tuples[i], dest_tp);
+        }
+    }
+}
+
 void Relation::flush_delta(int grid_size, int block_size, float *detail_time) {
     if (delta->tuple_counts == 0) {
         return;

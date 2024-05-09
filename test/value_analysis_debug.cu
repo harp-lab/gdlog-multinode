@@ -73,6 +73,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     DECLARE_RELATION_INPUT(analysis_scc, instruction_get_op, 3, 1);
     DECLARE_RELATION_INPUT(analysis_scc, take_address, 2, 2);
     DECLARE_RELATION_INPUT(analysis_scc, op_regdirect_contains_reg, 2, 1);
+    DECLARE_RELATION_INPUT(analysis_scc, reg_def_use_defined_in_block, 2, 1);
+    DECLARE_RELATION_INPUT(analysis_scc, conditional_jump, 1, 1);
 
     //////////////
     DECLARE_RELATION_INPUT_OUTPUT(analysis_scc, cmp_defines, 3, 2);
@@ -239,6 +241,7 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
                                  3_1_2_4_5, 1);
     CREATE_FULL_INDEXED_RELATION(analysis_scc, reg_def_use_def_used, 3, 1_0_2,
                                  1);
+    CREATE_FULL_INDEXED_RELATION(analysis_scc, reg_def_use_defined_in_block, 2, 0_1, 2);
 
     analysis_scc.verbose_log = true;
 
@@ -692,26 +695,26 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
          clause_meta("code_in_block", {"EA_jump", "_"}),
          clause_meta("reg_def_use_def_used",
                      {"EA_base", "Reg", "EA_jump", "_"}),
-         clause_meta("instruction", {"EA_base", "_", "_", s2d("SUB"), "_",
-         "_",
+         clause_meta("instruction", {"EA_base", "_", "_", s2d("SUB"), "_", "_",
                                      "_", "_", "_", "_"}),
          clause_meta("jump_table_element_access",
                      {"EA_base", "Size", "TableReference", "_"}),
          clause_meta("const_value_reg_used",
                      {"EA_base", "_", "_", "Reg", "TableReference"})},
         // -->
-        clause_meta("jump_table_start", {"EA_jump", "Size", "TableReference",
-         // FIXME: this is actually -1, but this column is not used, so we are safe in result
-                                         "TableReference", n2d(999)}));
-        
+        clause_meta("jump_table_start",
+                    {"EA_jump", "Size", "TableReference",
+                     // FIXME: this is actually -1, but this column is not used,
+                     // so we are safe in result
+                     "TableReference", n2d(999)}));
+
     DATALOG_RECURISVE_RULE(
         analysis_scc, analysis_scc_init, 27,
         {clause_meta("reg_jump", {"EA_jump", "_"}),
          clause_meta("code_in_block", {"EA_jump", "_"}),
          clause_meta("reg_def_use_def_used",
                      {"EA_base", "Reg", "EA_jump", "_"}),
-         clause_meta("instruction", {"EA_base", "_", "_", s2d("ADD"), "_",
-         "_",
+         clause_meta("instruction", {"EA_base", "_", "_", s2d("ADD"), "_", "_",
                                      "_", "_", "_", "_"}),
          clause_meta("jump_table_element_access",
                      {"EA_base", "Size", "TableStart", "_"}),
@@ -739,29 +742,52 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
         clause_meta("last_value_reg_limit",
                     {"From", "To", "Reg", "Value", "LimitType", n2d(0)}));
 
-    // ;
-    // last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,_tmp_1)
-    // :- ;
-    // last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
-    // ;    Steps <= 3,
-    // ;    code_in_block(EA,Block),
-    // ;    block_next(Block,BlockEnd,BlockNext),
-    // ;    !reg_def_use_defined_in_block(Block,PropagatedReg),
-    // ;    !conditional_jump(BlockEnd),
-    // ;    _tmp_1 = (Steps+1).
     // DATALOG_RECURISVE_RULE(
     //     analysis_scc, analysis_scc_init, 31,
-    //     {clause_meta("last_value_reg_limit", {"_", "EA", "PropagatedReg",
-    //     "PropagatedVal", "PropagatedType", "Steps"}),
-    //      clause_meta("<=", "Steps", n2d(3)),
+    //     {clause_meta("last_value_reg_limit",
+    //                  {"_", "EA", "PropagatedReg", "PropagatedVal",
+    //                   "PropagatedType", "Steps"}),
+    //      clause_meta("<=", {"Steps", n2d(3)}),
     //      clause_meta("code_in_block", {"EA", "Block"}),
     //      clause_meta("block_next", {"Block", "BlockEnd", "BlockNext"}),
     //      clause_meta("reg_def_use_defined_in_block", {"Block",
-    //      "PropagatedReg"}), clause_meta("conditional_jump", {"BlockEnd"})},
+    //      "PropagatedReg"},
+    //                  FULL, true),
+    //      clause_meta("conditional_jump", {"BlockEnd"}, FULL, true)},
     //     // -->
-    //     clause_meta("last_value_reg_limit", {"BlockEnd", "BlockNext",
-    //     "PropagatedReg", "PropagatedVal", "PropagatedType", "_tmp_1"}));
+    //     clause_meta("last_value_reg_limit",
+    //                 {"BlockEnd", "BlockNext", "PropagatedReg",
+    //                 "PropagatedVal",
+    //                  "PropagatedType", "_tmp_1"}));
 
+    DECLARE_RELATION_OUTPUT(analysis_scc, last_value_reg_limit_tmp0, 5, 1);
+    DATALOG_RECURISVE_RULE(
+        analysis_scc, analysis_scc_init, 3100,
+        {clause_meta("last_value_reg_limit",
+                     {"_", "EA", "PropagatedReg", "PropagatedVal",
+                      "PropagatedType", "Steps"}),
+         clause_meta("<=", {"Steps", n2d(3)}),
+         clause_meta("code_in_block", {"EA", "Block"})},
+        // -->
+        clause_meta(
+            "last_value_reg_limit_tmp0",
+            {"Block", "PropagatedReg", "PropagatedVal", "PropagatedType", "Steps"}));
+    // DECLARE_RELATION_OUTPUT(analysis_scc, last_value_reg_limit_debug, 6, 1);
+    DATALOG_RECURISVE_RULE(
+        analysis_scc, analysis_scc_init, 3101,
+        {clause_meta(
+             "last_value_reg_limit_tmp0",
+             {"Block", "PropagatedReg", "PropagatedVal", "PropagatedType", "Steps"}),
+         clause_meta("block_next", {"Block", "BlockEnd", "BlockNext"}),
+         clause_meta("reg_def_use_defined_in_block", {"Block", "PropagatedReg"},
+                     FULL, true),
+         clause_meta("conditional_jump", {"BlockEnd"}, FULL, true),
+         clause_meta("+", {"Steps", n2d(1)})
+         },
+        // -->
+        clause_meta("last_value_reg_limit",
+                    {"BlockEnd", "BlockNext", "PropagatedReg", "PropagatedVal",
+                     "PropagatedType", "Steps"}));
     //
 
     // std::cout << "String Map >> : " << std::endl;
@@ -795,11 +821,6 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     PRINT_REL_SIZE(analysis_scc, "compare_and_jump_register");
     PRINT_REL_SIZE(analysis_scc, "const_value_reg_used");
     PRINT_REL_SIZE(analysis_scc, "reg_def_use_def_used");
-    // PRINT_REL_SIZE(analysis_scc, "dollarbir_rule7_filter_delta_0_723")
-    // print_tuple_rows(block_next->full, "block_next");
-    // print_tuple_rows(compare_and_jump_immediate->full,
-    // "compare_and_jump_immediate"); print_tuple_rows(jump_table_target->full,
-    // "jump_table_target");
     std::cout << "None value str : " << s2d("NONE") << std::endl;
     PRINT_REL_SIZE(analysis_scc, "def_used_for_address");
     PRINT_REL_SIZE(analysis_scc, "flags_and_jump_pair");
@@ -810,6 +831,7 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     PRINT_REL_SIZE(analysis_scc, "jump_table_start");
     PRINT_REL_SIZE(analysis_scc, "jump_table_target");
     PRINT_REL_SIZE(analysis_scc, "last_value_reg_limit");
+    PRINT_REL_SIZE(analysis_scc, "last_value_reg_limit_tmp0");
 }
 
 MAIN_ENTRANCE(run)

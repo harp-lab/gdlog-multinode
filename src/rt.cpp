@@ -361,12 +361,13 @@ str_vec_to_column_meta_t_vec(std::vector<std::string> cols) {
     return result;
 }
 
-void BINARY_JOIN(LIE &lie, LIE &lie_init, std::string inner_name,
-                 RelationVersion inner_ver, std::string outer_name,
-                 RelationVersion outer_ver, std::string output_name,
-                 std::vector<std::string> inner_cols,
-                 std::vector<std::string> outer_cols,
-                 std::vector<std::string> output_cols, bool index, bool debug) {
+void GENERAL_BINARY_JOIN(LIE &lie, LIE &lie_init, std::string inner_name,
+                         RelationVersion inner_ver, std::string outer_name,
+                         RelationVersion outer_ver, std::string output_name,
+                         std::vector<std::string> inner_cols,
+                         std::vector<std::string> outer_cols,
+                         std::vector<std::string> output_cols, bool index,
+                         bool negation_flag, bool debug) {
     if (inner_cols.size() == 0 || outer_cols.size() == 0) {
         throw std::runtime_error("Empty column for join");
     }
@@ -533,14 +534,52 @@ void BINARY_JOIN(LIE &lie, LIE &lie_init, std::string inner_name,
     }
     std::cout << std::endl;
 
-    auto join_ra =
-        RelationalJoin(inner_rel, inner_ver, outer_rel, outer_ver, output_rel,
-                       utp, grid_size, block_size, detail_time);
-    if (debug) {
-        // std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
-        join_ra.debug_flag = 0;
+    if (!negation_flag) {
+        auto join_ra =
+            RelationalJoin(inner_rel, inner_ver, outer_rel, outer_ver,
+                           output_rel, utp, grid_size, block_size, detail_time);
+        if (debug) {
+            join_ra.debug_flag = 0;
+        }
+        lie.add_ra(join_ra);
+    } else {
+        if (outer_ver != NEWT) {
+            throw std::runtime_error("Negation only support newt relation");
+        }
+        auto negate_ra = RelationalNegation(inner_rel, inner_ver, outer_rel,
+                                            outer_ver, grid_size, block_size);
+        negate_ra.left_flag = false;
+        // auto copy_ra = RelationalCopy(outer, NEWT, output_rel, )
+        if (debug) {
+            negate_ra.debug_flag = 0;
+        }
+        lie.add_ra(negate_ra);
+        PROJECT(lie, outer_indexed_name, NEWT, output_name,
+                str_vec_to_column_meta_t_vec(outer_cols),
+                str_vec_to_column_meta_t_vec(output_cols), debug);
     }
-    lie.add_ra(join_ra);
+}
+
+void BINARY_JOIN(LIE &lie, LIE &lie_init, std::string inner_name,
+                 RelationVersion inner_ver, std::string outer_name,
+                 RelationVersion outer_ver, std::string output_name,
+                 std::vector<std::string> inner_cols,
+                 std::vector<std::string> outer_cols,
+                 std::vector<std::string> output_cols, bool index, bool debug) {
+    GENERAL_BINARY_JOIN(lie, lie_init, inner_name, inner_ver, outer_name,
+                        outer_ver, output_name, inner_cols, outer_cols,
+                        output_cols, index, false, debug);
+}
+
+void NEGATE(LIE &lie, LIE &lie_init, std::string inner_name,
+            RelationVersion inner_ver, std::string outer_name,
+            RelationVersion outer_ver, std::string output_name,
+            std::vector<std::string> inner_cols,
+            std::vector<std::string> outer_cols,
+            std::vector<std::string> output_cols, bool index, bool debug) {
+    GENERAL_BINARY_JOIN(lie, lie_init, inner_name, inner_ver, outer_name,
+                        outer_ver, output_name, inner_cols, outer_cols,
+                        output_cols, index, true, debug);
 }
 
 void SEMI_NAIVE_BINARY_JOIN(LIE &lie, LIE &lie_init, Relation *inner_rel,
@@ -733,8 +772,10 @@ BinaryArithmeticOperator get_arithm_op(std::string op) {
     }
 }
 
+bool is_negation(std::string name) { return name[0] == '~'; }
+
 bool is_relname(std::string name) {
-    return !is_arithm_op(name) && !is_cmp_op(name);
+    return !is_negation(name) && !is_arithm_op(name) && !is_cmp_op(name);
 }
 
 template <typename BinaryOp>
@@ -984,7 +1025,8 @@ void process_copy_rule(LIE &lie, int rule_id,
         //     gen_tmp_filter_rel(lie, rule_id, incremental_clauses.size(),
         //                        copy_src_clause, copy_src_clause.ver);
         // std::cout << "CopyFilter from " << copy_src_clause.rel_name << " "
-        //           << copy_src_clause.ver << " to " << tmp_rel_name << std::endl;
+        //           << copy_src_clause.ver << " to " << tmp_rel_name <<
+        //           std::endl;
         FILTER_COPY(lie, copy_src_clause.rel_name, copy_src_clause.ver,
                     output_clause.rel_name, copy_src_clause.columns,
                     output_clause.columns, debug);
@@ -1479,12 +1521,26 @@ void process_non_incremental_clauses(
             std::cout << std::endl;
             lie.add_tmp_relation(tmp_rel);
             if (is_relname(nic.rel_name)) {
-                BINARY_JOIN(lie, lie_init, nic.rel_name, nic.ver,
-                            incr_outer.rel_name, incr_outer.ver, tmp_rel_name,
-                            force_interp_metavar(nic.columns),
-                            force_interp_metavar(incr_outer.columns),
-                            remove_const_output_clause(tmp_columns), false,
-                            debug);
+                if (!nic.negation_flag) {
+                    BINARY_JOIN(lie, lie_init, nic.rel_name, nic.ver,
+                                incr_outer.rel_name, incr_outer.ver,
+                                tmp_rel_name, force_interp_metavar(nic.columns),
+                                force_interp_metavar(incr_outer.columns),
+                                remove_const_output_clause(tmp_columns), false,
+                                debug);
+                } else {
+                    //  negation
+                    std::cout << "Negation join " << nic.rel_name << " "
+                              << nic.ver << " " << incr_outer.rel_name << " "
+                              << incr_outer.ver << " " << tmp_rel_name << " "
+                              << std::endl;
+                    NEGATE(lie, lie_init, nic.rel_name, nic.ver,
+                           incr_outer.rel_name, incr_outer.ver, tmp_rel_name,
+                           force_interp_metavar(nic.columns),
+                           force_interp_metavar(incr_outer.columns),
+                           remove_const_output_clause(tmp_columns), false,
+                           debug);
+                }
             } else if (is_cmp_op(nic.rel_name)) {
                 // TODO: check if next clause is join, if it is, no need for tmp
                 // relation
@@ -1507,13 +1563,29 @@ void process_non_incremental_clauses(
         } else {
             // no need for temporary relation
             if (is_relname(nic.rel_name)) {
-                BINARY_JOIN(lie, lie_init, nic.rel_name, nic.ver,
-                            incr_outer.rel_name, incr_outer.ver,
-                            output_clasue.rel_name,
-                            force_interp_metavar(nic.columns),
-                            force_interp_metavar(incr_outer.columns),
-                            remove_const_output_clause(output_clasue.columns),
-                            false, debug);
+                if (!nic.negation_flag) {
+                    BINARY_JOIN(
+                        lie, lie_init, nic.rel_name, nic.ver,
+                        incr_outer.rel_name, incr_outer.ver,
+                        output_clasue.rel_name,
+                        force_interp_metavar(nic.columns),
+                        force_interp_metavar(incr_outer.columns),
+                        remove_const_output_clause(output_clasue.columns),
+                        false, debug);
+                } else {
+                    // negation
+                    std::cout << "Negation join " <<
+                        nic.rel_name << " " << nic.ver << " " <<
+                        incr_outer.rel_name << " " << incr_outer.ver << " " <<
+                        output_clasue.rel_name << std::endl; 
+                    NEGATE(lie, lie_init, nic.rel_name, nic.ver,
+                           incr_outer.rel_name, incr_outer.ver,
+                           output_clasue.rel_name,
+                           force_interp_metavar(nic.columns),
+                           force_interp_metavar(incr_outer.columns),
+                           remove_const_output_clause(output_clasue.columns),
+                           false, debug);
+                }
             } else if (is_cmp_op(nic.rel_name)) {
                 COMP_REL<TupleFilter, BinaryFilterComparison,
                          RelationalFilterProject>(

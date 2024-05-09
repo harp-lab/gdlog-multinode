@@ -269,10 +269,12 @@ struct clause_meta {
     std::string rel_name;
     std::vector<column_meta_t> columns;
     RelationVersion ver = FULL;
+    bool negation_flag = false;
 
     clause_meta(std::string rel_name, std::vector<column_meta_t> columns,
-                RelationVersion ver = FULL)
-        : rel_name(rel_name), columns(columns), ver(ver) {}
+                RelationVersion ver = FULL, bool negation_flag = false)
+        : rel_name(rel_name), columns(columns), ver(ver),
+          negation_flag(negation_flag) {}
 
     clause_meta(){};
 
