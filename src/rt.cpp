@@ -380,16 +380,16 @@ void GENERAL_BINARY_JOIN(LIE &lie, LIE &lie_init, std::string inner_name,
 
     std::vector<int> inner_order;
     std::vector<int> outer_order;
-    // std::cout << "Inner cols: ";
-    // for (auto &col : inner_cols) {
-    //     std::cout << col << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "Outer cols: ";
-    // for (auto &col : outer_cols) {
-    //     std::cout << col << " ";
-    // }
-    // std::cout << std::endl;
+    std::cout << "Inner cols: ";
+    for (auto &col : inner_cols) {
+        std::cout << col << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Outer cols: ";
+    for (auto &col : outer_cols) {
+        std::cout << col << " ";
+    }
+    std::cout << std::endl;
     auto outer_col_original = outer_cols;
     auto inner_col_original = inner_cols;
     int joined_cnt =
@@ -554,6 +554,8 @@ void GENERAL_BINARY_JOIN(LIE &lie, LIE &lie_init, std::string inner_name,
             negate_ra.debug_flag = 0;
         }
         lie.add_ra(negate_ra);
+        std::cout << "Negate " << inner_name << " " << outer_name << " "
+                  << output_name << std::endl;
         PROJECT(lie, outer_indexed_name, NEWT, output_name,
                 str_vec_to_column_meta_t_vec(outer_cols),
                 str_vec_to_column_meta_t_vec(output_cols), debug);
@@ -869,7 +871,15 @@ TupleHook _comp_tp(std::vector<column_meta_t> &target, clause_meta comp) {
             }
         }
         if (!found) {
-            throw std::runtime_error("Column not found in target");
+            std::stringstream error_ss;
+            if (std::holds_alternative<std::string>(col)) {
+                error_ss << "Column not found in target: "
+                         << std::get<std::string>(col);
+            } else {
+                error_ss << "Const is invalid in target: "
+                         << std::get<long>(col);
+            }
+            throw std::runtime_error(error_ss.str());
         }
         return -1;
     };
@@ -1058,12 +1068,23 @@ void process_non_incremental_const_filter_clause(
     for (auto &jc : joinec_cs) {
         filtered_cols.push_back(jc);
         arity++;
+        // std::cout << jc << " ";
     }
-    for (auto &njc : non_joince_cs) {
-        // check if metavar exists in joined columns
-        if (!metavar_exists_huh(njc, filtered_cols)) {
-            filtered_cols.push_back(njc);
-            arity++;
+    // std::cout << std::endl;
+    // for (auto &njc : non_joince_cs) {
+    //     // check if metavar exists in joined columns
+    //     if (!metavar_exists_huh(njc, filtered_cols)) {
+    //         filtered_cols.push_back(njc);
+    //         arity++;
+    //     }
+    // }
+    for (auto &njc: ic.columns) {
+        if (std::holds_alternative<std::string>(njc)) {
+            if (!metavar_exists_huh(std::get<std::string>(njc), filtered_cols) &&
+                !metavar_wildcard_huh(std::get<std::string>(njc))) {
+                filtered_cols.push_back(njc);
+                arity++;
+            }
         }
     }
     auto jcc = joinec_cs.size();
@@ -1071,8 +1092,15 @@ void process_non_incremental_const_filter_clause(
                                      grid_size, block_size, false);
     lie_init.add_relations(tmp_rel, false);
     lie.add_relations(tmp_rel, true);
-    std::cout << "CopyFilter from " << ic.rel_name << " " << ic.ver << " to "
+    std::cout << "1CopyFilter from " << ic.rel_name << " " << ic.ver << " to "
               << tmp_rel_name << std::endl;
+    // for (auto &col : filtered_cols) {
+    //     if (std::holds_alternative<std::string>(col)) {
+    //         std::cout << std::get<std::string>(col) << " ";
+    //     } else {
+    //         std::cout << std::get<long>(col) << " ";
+    //     }
+    // }
     FILTER_COPY(lie_init, ic.rel_name, FULL, tmp_rel_name, ic.columns,
                 filtered_cols, debug);
     // modify the clause to use the new relation
@@ -1605,7 +1633,7 @@ void process_non_incremental_clauses(
     }
 }
 
-void DATALOG_RECURISVE_RULE(LIE &lie, LIE &lie_init, int rule_id,
+void DATALOG_RECURSIVE_RULE(LIE &lie, LIE &lie_init, int rule_id,
                             std::vector<clause_meta> input_clauses,
                             clause_meta output_clause, bool debug) {
     std::cout << ">>>>>>>>>>> Processing rule " << rule_id << std::endl;
@@ -1740,9 +1768,17 @@ void DATALOG_RECURISVE_RULE(LIE &lie, LIE &lie_init, int rule_id,
     for (auto &ic : non_incremental_clauses) {
         if (!is_relname(ic.rel_name)) {
             // computational relation don't need constant filter
+            nc_clause_cnt++;
             continue;
         }
         if (ic.need_filter()) {
+            // print ic columns
+            // for (auto &col : ic.columns) {
+            //     if (std::holds_alternative<std::string>(col)) {
+            //         std::cout << std::get<std::string>(col) << " ";
+            //     }
+            // }
+            // std::cout << std::endl;
             process_non_incremental_const_filter_clause(
                 lie, lie_init, rule_id, nc_clause_cnt, ic,
                 joined_columns_non_incr_clause,

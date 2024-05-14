@@ -86,6 +86,9 @@
 
 .decl reg_def_use_def_used(EA_def:address,Var:register,EA_used:address,Index_used:operand_index)
 .input reg_def_use_def_used
+.decl reg_def_use_def_used_debug(EA_def:address,Var:register,EA_used:address,Index_used:operand_index)
+.output reg_def_use_def_used_debug
+.printsize reg_def_use_def_used_debug
 
 .decl const_value_reg_used(UsedEA:address,EADef:address,EARegDef:address,Reg:register,Value:number)
 .output const_value_reg_used
@@ -181,14 +184,77 @@
 .printsize last_value_reg_limit
 
 .decl value_reg_limit(From:address,To:address,Reg:register,Value:number,LimitType:limit_type)
-// .output value_reg_limit
-.input value_reg_limit
+.output value_reg_limit
+// .input value_reg_limit
 
 .decl reg_def_use_defined_in_block(Block:address,Var:register)
 .input reg_def_use_defined_in_block
 
 .decl conditional_jump(src:address)
 .input conditional_jump
+
+.decl no_value_reg_limit(EA_jmp:address)
+.input no_value_reg_limit
+
+.decl limit_reg_op(EA:address,DstReg:register,SrcReg:register,Offset:number)
+.input limit_reg_op
+
+.decl reg_def_use_block_last_def(EA:address,EA_def:address,Var:register)
+.input reg_def_use_block_last_def
+
+.decl arch_move_reg_imm(EA:address,Dst:register,Imm:number,ImmIndex:operand_index)
+.input arch_move_reg_imm
+
+.decl reg_def_use_used(EA:address,Var:register,Index:operand_index)
+.input reg_def_use_used
+
+.decl value_reg_unsupported(EA:address, Reg:register)
+.output value_reg_unsupported
+.printsize value_reg_unsupported
+
+.decl arch_move_reg_reg(EA:address,Dst:register,Src:register)
+.input arch_move_reg_reg
+
+.decl track_register(Reg:register)
+.input track_register
+
+.decl arch_call(EA:address,DestOperandIndex:operand_index)
+.input arch_call
+
+.decl reg_def_use_live_var_at_block_end(Block:address,BlockUsed:address,Var:register)
+.input reg_def_use_live_var_at_block_end
+
+.decl reg_def_use_live_var_def(Block:address,VarIdentity:register,LiveVar:register,EA_def:address)
+.input reg_def_use_live_var_def
+
+.decl reg_def_use_live_var_used(Block:address,LiveVar:register,UsedVar:register,EA_used:address,Index:operand_index,Moves:unsigned) overridable
+.decl reg_def_use_live_var_used_tmp1(Block:address,LiveVar:register,EA_used:address,Index:operand_index) overridable
+.input reg_def_use_live_var_used
+
+.decl reg_def_use_live_var_at_prior_used(EA_used:address,BlockUsed:address,Var:register)
+.input reg_def_use_live_var_at_prior_used
+
+.decl reg_def_use_return_block_end(Callee:address,CalleeEnd:address,Block:address,BlockEnd:address)
+.input reg_def_use_return_block_end
+
+.decl reg_def_use_return_val_used(EA_call:address,Callee:address,Reg:register,EA_used:address,Index_used:operand_index)
+.output reg_def_use_return_val_used
+.printsize reg_def_use_return_val_used
+
+.decl arch_return_reg(Reg:register)
+.input arch_return_reg
+
+.decl direct_call(EA:address,Dest:address)
+.input direct_call
+
+.decl reg_has_base_image(EA:address,Reg:register)
+.input reg_has_base_image
+
+.decl limit_type_map(CC:condition_code,BranchLT:limit_type,FallthroughLT:limit_type,BranchOffset:number,FallthroughOffset:number)
+.input limit_type_map
+
+.decl next(n:address,m:address)
+.input next
 
 block_next(Block,EA,Dest) :- 
    block_last_instruction(Block,EA),
@@ -462,3 +528,393 @@ last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedTy
 //    !conditional_jump(BlockEnd),
 //    Tmp1 = (Steps+1).
 
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   no_value_reg_limit(BlockEnd),
+   Tmp1 = (Steps + 1).
+
+
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType, Tmp1) :- 
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   cmp_defines(BlockEnd,BlockNext,Reg),
+   Reg != PropagatedReg,
+   Tmp1 = (Steps+1).
+
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   cmp_defines(BlockEnd,DefinedNext,PropagatedReg),
+   BlockNext != DefinedNext,
+   Tmp1 = (Steps + 1).
+
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   value_reg_limit(BlockEnd,BlockNext,Reg,_,_),
+   Reg != PropagatedReg,
+   Tmp1 = (Steps+1).
+
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   value_reg_limit(BlockEnd,BlockNext,PropagatedReg,Val,Type),
+   PropagatedType = "MAX",
+   Type = "MAX",
+   PropagatedVal < Val,
+   Tmp1 = (Steps+1).
+
+last_value_reg_limit(BlockEnd,BlockNext,PropagatedReg,PropagatedVal,PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,PropagatedReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_next(Block,BlockEnd,BlockNext),
+   !reg_def_use_defined_in_block(Block,PropagatedReg),
+   value_reg_limit(BlockEnd,BlockNext,PropagatedReg,Val,Type),
+   PropagatedType = "MIN",
+   Type = "MIN",
+   PropagatedVal > Val,
+   Tmp1 = (Steps+1).
+
+last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_last_instruction(Block,BlockEnd),
+   limit_reg_op(BlockEnd,DstReg,SrcReg,Offset),
+   EA <= BlockEnd,
+   BlockEnd <= BlockEnd,
+   code_in_block(BlockEnd,Block),
+   block_next(Block,BlockEnd,EA_next),
+   !reg_def_use_block_last_def(BlockEnd,_,SrcReg),
+   Tmp1 = (Steps+1).
+
+last_value_reg_limit(BlockEnd,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,Tmp1) :- 
+   last_value_reg_limit(From,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_last_instruction(Block,BlockEnd),
+   limit_reg_op(BlockEnd,DstReg,SrcReg,Offset),
+   EA <= BlockEnd,
+   BlockEnd <= BlockEnd,
+   code_in_block(BlockEnd,Block),
+   block_next(Block,BlockEnd,EA_next),
+   reg_def_use_block_last_def(BlockEnd,From,SrcReg),
+   Tmp1 = (Steps+1).
+
+last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType, Tmp1) :- 
+   last_value_reg_limit(From,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_last_instruction(Block,BlockEnd),
+   limit_reg_op(EA_mov,DstReg,SrcReg,Offset),
+   EA <= EA_mov,
+   EA_mov <= BlockEnd,
+   code_in_block(EA_mov,Block),
+   EA_mov != BlockEnd,
+   code_in_block(EA_mov,inlined_Block_193),
+   may_fallthrough(EA_mov,EA_next),
+   code_in_block(EA_next,inlined_Block_193),
+   reg_def_use_block_last_def(EA_mov,From,SrcReg),
+   Tmp1 = (Steps+1).
+
+last_value_reg_limit(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,Tmp1) :- 
+   last_value_reg_limit(_,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+   Steps <= 3,
+   code_in_block(EA,Block),
+   block_last_instruction(Block,BlockEnd),
+   limit_reg_op(EA_mov,DstReg,SrcReg,Offset),
+   EA <= EA_mov,
+   EA_mov <= BlockEnd,
+   code_in_block(EA_mov,Block),
+   EA_mov != BlockEnd,
+   code_in_block(EA_mov,inlined_Block_194),
+   may_fallthrough(EA_mov,EA_next),
+   code_in_block(EA_next,inlined_Block_194),
+   !reg_def_use_block_last_def(EA_mov,_,SrcReg),
+   Tmp1 = (Steps+1).
+
+// .decl last_value_reg_limit_tmp6(From:address,To:address,Reg:register,Value:number,LimitType:limit_type,Steps:unsigned)
+// .printsize last_value_reg_limit_tmp6
+// .output last_value_reg_limit_tmp6
+// last_value_reg_limit_debug(EA_mov,EA_next,DstReg,(PropagatedVal+Offset),PropagatedType,Tmp1) :- 
+//    last_value_reg_limit(_,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+//    Steps <= 3,
+//    code_in_block(EA,Block),
+//    block_last_instruction(Block,BlockEnd),
+//    limit_reg_op(EA_mov,DstReg,SrcReg,Offset),
+//    EA <= EA_mov,
+//    EA_mov <= BlockEnd,
+//    code_in_block(EA_mov,Block),
+//    EA_mov != BlockEnd,
+//    code_in_block(EA_mov,inlined_Block_194),
+//    may_fallthrough(EA_mov,EA_next),
+//    code_in_block(EA_next,inlined_Block_194),
+//    !reg_def_use_block_last_def(EA_mov,_,SrcReg),
+//    Tmp1 = (Steps+1).
+
+
+// .decl last_value_reg_limit_debug(EA_mov:address, From:address, SrcReg:register)
+// .printsize last_value_reg_limit_debug
+// .output last_value_reg_limit_debug
+// last_value_reg_limit_debug(EA_mov, From,  SrcReg) :-
+//    last_value_reg_limit(From,EA,SrcReg,PropagatedVal,PropagatedType,Steps),
+//    Steps <= 3,
+//    code_in_block(EA,Block),
+//    block_last_instruction(Block,BlockEnd),
+//    limit_reg_op(EA_mov,DstReg,SrcReg,Offset),
+//    EA <= EA_mov,
+//    EA_mov <= BlockEnd,
+//    code_in_block(EA_mov,Block),
+//    EA_mov != BlockEnd,
+//    code_in_block(EA_mov,inlined_Block_193),
+//    may_fallthrough(EA_mov,EA_next),
+//    code_in_block(EA_next,inlined_Block_193),
+//    reg_def_use_block_last_def(EA_mov,From,SrcReg)
+//    // Tmp1 = (Steps+1)
+   // .
+
+.decl no_value_reg_limit_debug(EA_jmp:address)
+.printsize no_value_reg_limit_debug
+.output no_value_reg_limit_debug
+.printsize no_value_reg_limit
+
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+   CC = "O".
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+   CC = "NO".
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+   CC = "P".
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+   CC = "PE".
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+   CC = "S".
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,_,_),
+   CC = "NS".
+
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_register(EA_cmp,EA_jmp,_,Reg1,Reg2),
+   reg_def_use_block_last_def(EA_cmp,EA,Reg1),
+   !arch_move_reg_imm(EA,Reg1,_,_),
+   !reg_def_use_block_last_def(EA_cmp,_,Reg2).
+
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_register(EA_cmp,EA_jmp,_,Reg1,Reg2),
+   reg_def_use_block_last_def(EA_cmp,EA,Reg2),
+   !arch_move_reg_imm(EA,Reg2,_,_),
+   !reg_def_use_block_last_def(EA_cmp,_,Reg1).
+
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   compare_and_jump_register(EA_cmp,EA_jmp,_,Reg1,Reg2),
+   reg_def_use_block_last_def(EA_cmp,EA,Reg1),
+   !arch_move_reg_imm(EA,Reg1,_,_),
+   reg_def_use_block_last_def(EA_cmp,_,Reg2),
+   !arch_move_reg_imm(EA,Reg2,_,_).
+
+.decl instruction_non_cmp(EA:address)
+.printsize instruction_non_cmp
+.output instruction_non_cmp
+
+instruction_non_cmp(EA) :- 
+   instruction(EA,_,_,Operation,_,_,_,_,_,_),
+   !arch_cmp_operation(Operation).
+
+no_value_reg_limit_debug(EA_jmp),
+no_value_reg_limit(EA_jmp) :- 
+   flags_and_jump_pair(EA_cmp,EA_jmp,_),
+   instruction(EA_cmp,_,_,Operation,_,_,_,_,_,_),
+   !arch_cmp_operation(Operation).
+
+
+reg_def_use_def_used_debug(EA_def,Var,EA_used,Index),
+reg_def_use_def_used(EA_def,Var,EA_used,Index) :-
+   reg_def_use_used(EA_used,Var,Index),
+   reg_def_use_block_last_def(EA_used,EA_def,Var).
+
+reg_def_use_def_used_debug(EA_def,VarIdentity,EA_used,Index),
+reg_def_use_def_used(EA_def,VarIdentity,EA_used,Index) :- 
+   reg_def_use_live_var_at_block_end(Block,BlockUsed,Var),
+   reg_def_use_live_var_def(Block,VarIdentity,Var,EA_def),
+   reg_def_use_live_var_used(BlockUsed,Var,Var,EA_used,Index,_). 
+// .plan 1:(3,1,2)
+
+reg_def_use_def_used_debug(EA_def,Var,Next_EA_used,NextIndex),
+reg_def_use_def_used(EA_def,Var,Next_EA_used,NextIndex) :- 
+   reg_def_use_live_var_at_prior_used(EA_used,NextUsedBlock,Var),
+   reg_def_use_def_used(EA_def,Var,EA_used,_),
+   reg_def_use_live_var_used(NextUsedBlock,Var,Var,Next_EA_used,NextIndex,_).
+
+.printsize reg_def_use_live_var_used_tmp1
+reg_def_use_live_var_used_tmp1(Block,LiveVar,EA_used,Index) :- 
+   reg_def_use_live_var_used(Block,LiveVar,LiveVar,EA_used,Index,_).
+
+.decl reg_def_use_def_used_tmp2(EA_used:address,Var:register,Next_EA_used:address,NextIndex:operand_index)
+.printsize reg_def_use_def_used_tmp2
+.output reg_def_use_def_used_tmp2
+reg_def_use_def_used_tmp2(EA_used, Var, Next_EA_used, NextIndex) :-
+   reg_def_use_live_var_at_prior_used(EA_used,NextUsedBlock,Var),
+   reg_def_use_live_var_used(NextUsedBlock,Var,Var,Next_EA_used,NextIndex,_).
+
+reg_def_use_def_used_debug(EA_def,Reg,EA_used,Index),
+reg_def_use_def_used(EA_def,Reg,EA_used,Index) :- 
+   reg_def_use_return_val_used(_,Callee,Reg,EA_used,Index),
+   reg_def_use_return_block_end(Callee,_,_,BlockEnd),
+   reg_def_use_block_last_def(BlockEnd,EA_def,Reg).
+
+reg_def_use_return_val_used(EA_call,Callee,Reg,EA_used,Index_used) :- 
+   arch_return_reg(Reg),
+   reg_def_use_def_used(EA_call,Reg,EA_used,Index_used),
+   direct_call(EA_call,Callee).
+
+// reg_has_base_image(EA,Reg) :- 
+//    reg_has_base_image(EA2,Reg2),
+//    reg_def_use_def_used(EA2,Reg2,EA,_),
+//    arch_move_reg_reg(EA,Reg,Reg2).
+
+// reg_has_base_image(EA,Reg) :- 
+//    reg_has_base_image(EA2,Reg2),
+//    reg_def_use_def_used(EA2,Reg2,EA,_),
+//    arch_reg_reg_arithmetic_operation(EA,Reg,Reg2,_,Mult,0),
+//    Mult > 1.
+
+// reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset) :- 
+//    def_used_for_address(EA,Reg_def,_),
+//    arch_reg_reg_arithmetic_operation(EA,Reg_def,Reg1,Reg2,Mult,Offset),
+//    Reg1 != Reg2,
+//    reg_def_use_def_used(EA_def1,Reg1,EA,_),
+//    EA != EA_def1,
+//    reg_def_use_def_used(EA_def2,Reg2,EA,_),
+//    EA != EA_def2.
+// .plan 1:(3,1,2,4), 2:(4,1,2,3)
+
+.printsize value_reg_limit
+value_reg_limit(EA_jmp,EA_branch,Reg,Tmp1,BranchLT) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,Reg,Immediate),
+   track_register(Reg),
+   limit_type_map(CC,BranchLT,_,BranchOffset,_),
+   direct_jump(EA_jmp,EA_branch),
+   may_fallthrough(EA_jmp,_),
+   Tmp1 = (Immediate+BranchOffset).
+
+value_reg_limit(EA_jmp,EA_fallthrough,Reg,Tmp1,FallthroughLT) :- 
+   compare_and_jump_immediate(_,EA_jmp,CC,Reg,Immediate),
+   track_register(Reg),
+   limit_type_map(CC,_,FallthroughLT,_,FallthroughOffset),
+   direct_jump(EA_jmp,_),
+   may_fallthrough(EA_jmp,EA_fallthrough),
+   Tmp1 = (Immediate+FallthroughOffset).
+
+value_reg_limit(EA_jmp,EA_branch,Reg2,Tmp1,LT1) :- 
+   compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+   limit_type_map(CC,LT1,_,Offset1,_),
+   reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg1),
+   arch_move_reg_imm(EA_regdef,Reg1,Immediate,_),
+   track_register(Reg2),
+   direct_jump(EA_jmp,EA_branch),
+   may_fallthrough(EA_jmp,_),
+   Tmp1 = (Immediate+Offset1).
+
+value_reg_limit(EA_jmp,EA_branch,Reg1,Tmp1,LT2) :- 
+   compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+   limit_type_map(CC,_,LT2,_,Offset2),
+   reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg2),
+   arch_move_reg_imm(EA_regdef,Reg2,Immediate,_),
+   track_register(Reg1),
+   direct_jump(EA_jmp,EA_branch),
+   may_fallthrough(EA_jmp,_),
+   Tmp1 = (Immediate+Offset2).
+
+value_reg_limit(EA_jmp,EA_fallthrough,Reg2,Tmp1,LT2) :- 
+   compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+   limit_type_map(CC,_,LT2,_,Offset2),
+   reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg1),
+   arch_move_reg_imm(EA_regdef,Reg1,Immediate,_),
+   track_register(Reg2),
+   direct_jump(EA_jmp,_),
+   may_fallthrough(EA_jmp,EA_fallthrough),
+   Tmp1 = (Immediate+Offset2).
+
+value_reg_limit(EA_jmp,EA_fallthrough,Reg1,Tmp1,LT1) :- 
+   compare_and_jump_register(EA_cmp,EA_jmp,CC,Reg1,Reg2),
+   limit_type_map(CC,LT1,_,Offset1,_),
+   reg_def_use_block_last_def(EA_cmp,EA_regdef,Reg2),
+   arch_move_reg_imm(EA_regdef,Reg2,Immediate,_),
+   track_register(Reg1),
+   direct_jump(EA_jmp,_),
+   may_fallthrough(EA_jmp,EA_fallthrough),
+   Tmp1 = (Immediate+Offset1).
+
+value_reg_limit(EA_target,EA_limited,Reg,Tmp1,BranchLT) :- 
+   compare_and_jump_indirect(EA_cmp,EA_jmp,CC,IndirectOp,Immediate),
+   limit_type_map(CC,BranchLT,_,BranchOffset,_),
+   next(EA_cmp,EA_jmp),
+   direct_jump(EA_jmp,EA_target),
+   arch_memory_access("LOAD",EA_target,_,_,Reg,_,_,_,_),
+   track_register(Reg),
+   instruction_get_op(EA_target,_,IndirectOp),
+   code_in_block(EA_target,inlined_Block_887),
+   may_fallthrough(EA_target,EA_limited),
+   code_in_block(EA_limited,inlined_Block_887),
+   Tmp1 = (Immediate+BranchOffset).
+
+value_reg_limit(EA_target,EA_limited,Reg,Tmp1,FallthroughLT) :- 
+   compare_and_jump_indirect(EA_cmp,EA_jmp,CC,IndirectOp,Immediate),
+   limit_type_map(CC,_,FallthroughLT,_,FallthroughOffset),
+   next(EA_cmp,EA_jmp),
+   may_fallthrough(EA_jmp,EA_target),
+   arch_memory_access("LOAD",EA_target,_,_,Reg,_,_,_,_),
+   track_register(Reg),
+   instruction_get_op(EA_target,_,IndirectOp),
+   code_in_block(EA_target,inlined_Block_888),
+   may_fallthrough(EA_target,EA_limited),
+   code_in_block(EA_limited,inlined_Block_888),
+   Tmp1 = (Immediate+FallthroughOffset).
+
+
+value_reg_unsupported(EA,Reg) :- 
+   def_used_for_address(EA,Reg,_),
+   arch_move_reg_reg(EA,Dst,Src),
+   track_register(Dst),
+   !track_register(Src).
+value_reg_unsupported(EA,Reg) :- 
+   def_used_for_address(EA,Reg,_),
+   arch_call(EA,_).
+value_reg_unsupported(EA,Reg) :- 
+   def_used_for_address(EA,Reg,_),
+   arch_memory_access("LOAD",EA,_,_,Reg,RegBase,_,_,_),
+   RegBase != "NONE".
+value_reg_unsupported(EA,Reg) :- 
+   def_used_for_address(EA,Reg,_),
+   arch_memory_access("LOAD",EA,_,_,Reg,_,RegIndex,_,_),
+   RegIndex != "NONE".

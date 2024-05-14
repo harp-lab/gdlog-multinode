@@ -303,6 +303,11 @@ struct clause_meta {
     }
 };
 
+inline clause_meta negate_clause(clause_meta clause) {
+    clause.negation_flag = true;
+    return clause;
+}
+
 void ALIAS_RELATION(LIE &lie, LIE &lie_init, std::string rel_name,
                     std::string alias_name);
 
@@ -331,6 +336,13 @@ void BINARY_JOIN(LIE &lie, LIE &lie_init, std::string inner_name,
                  std::vector<std::string> outer_cols,
                  std::vector<std::string> output_cols, bool index = false,
                  bool debug = false);
+
+void NEGATE(LIE &lie, LIE &lie_init, std::string inner_name,
+            RelationVersion inner_ver, std::string outer_name,
+            RelationVersion outer_ver, std::string output_name,
+            std::vector<std::string> inner_cols,
+            std::vector<std::string> outer_cols,
+            std::vector<std::string> output_cols, bool index, bool debug);
 
 // TODO: remove this function
 void SEMI_NAIVE_BINARY_JOIN(LIE &lie, LIE &lie_init, Relation *inner_rel,
@@ -485,6 +497,6 @@ void FILTER_COMP_REL(LIE &lie, std::string src_rel_name,
 // 3. filter
 // 4. arith
 // using clause_meta_t =  std::vector<column_meta_t>;
-void DATALOG_RECURISVE_RULE(LIE &lie, LIE &lie_init, int rule_id,
+void DATALOG_RECURSIVE_RULE(LIE &lie, LIE &lie_init, int rule_id,
                             std::vector<clause_meta> input_clauses,
                             clause_meta output_clause, bool debug = false);
