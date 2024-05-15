@@ -523,6 +523,9 @@ bool is_number(const std::string &s) {
         return false;
     }
     for (char const &c : s) {
+        if (c == '-') {
+            continue;
+        }
         if (std::isdigit(c) == 0) {
             return false;
         }

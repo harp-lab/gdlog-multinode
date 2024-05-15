@@ -211,6 +211,8 @@ void RelationalJoin::operator()() {
         // print_tuple_rows(inner, inner_rel->name.data());
         std::cout << " outer size " << outer->tuple_counts << std::endl;
         // print_tuple_rows(outer, "outer", outer_rel->name.data());
+        // dump_tuple_rows(inner, inner_rel->name.c_str(), inner_rel->name.c_str());
+        // dump_tuple_rows(outer, outer_rel->name.c_str(), outer_rel->name.c_str());
     }
 
     KernelTimer timer;

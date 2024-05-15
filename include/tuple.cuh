@@ -59,10 +59,10 @@ struct TupleGenerator {
     __host__ __device__ void operator()(tuple_type inner, tuple_type outer,
                                         tuple_type result) {
         for (int i = 0; i < arity; i++) {
-            if (reorder_map[i] < inner_arity) {
+            if (reorder_map[i] < inner_arity && reorder_map[i] >= 0) {
                 result[i] = inner[reorder_map[i]];
                 continue;
-            } else {
+            } else if (reorder_map[i] >= inner_arity && reorder_map[i] < MAX_ARITY) {
                 result[i] = outer[reorder_map[i] - inner_arity];
                 continue;
             }
@@ -75,6 +75,7 @@ struct TupleGenerator {
                 continue;
             }
             if (reorder_map[i] < 0) {
+                printf("reorder_map[i] %d\n", reorder_map[i]);
                 result[i] = -reorder_map[i] - 16;
                 continue;
             }
@@ -86,7 +87,21 @@ struct TupleProjector {
     __host__ __device__ tuple_type operator()(const tuple_type &tuple,
                                               const tuple_type &result) {
         for (int i = 0; i < arity; i++) {
-            result[i] = tuple[project[i]];
+            if (project[i] > 0 && project[i] < MAX_ARITY) {
+                result[i] = tuple[project[i]];
+                continue;
+            }
+            if (project[i] < 0) {
+                result[i] = -project[i] - 16;
+            } else if (project[i] > MAX_ARITY) {
+                if (project[i] == C_ZERO) {
+                    result[i] = 0;
+                } else {
+                    result[i] = project[i];
+                }
+            } else {
+                result[i] = tuple[project[i]];
+            }
         }
         return result;
     };

@@ -643,18 +643,25 @@ std::vector<int> _tpprojector_index(std::vector<column_meta_t> &input_column,
                     if (std::find(used_meta_vars.begin(), used_meta_vars.end(),
                                   std::get<std::string>(col)) !=
                         used_meta_vars.end()) {
-                        std::cout << "Duplicate columns: "
+                        std::cout << "Duplicate columns prj: "
                                   << std::get<std::string>(col) << std::endl;
+                        result.push_back(
+                            std::distance(input_column.begin(), it));
                     } else {
                         used_meta_vars.push_back(std::get<std::string>(col));
                         result.push_back(
                             std::distance(input_column.begin(), it));
                     }
                 } else {
-                    std::cerr
-                        << "Missing columns: " << std::get<std::string>(col)
-                        << std::endl;
-                    throw std::runtime_error("Column not found in input");
+                    // check if its number
+                    if (is_number(std::get<std::string>(col))) {
+                        result.push_back(std::stoi(std::get<std::string>(col)));
+                    } else {
+                        std::cerr
+                            << "Missing columns: " << std::get<std::string>(col)
+                            << std::endl;
+                        throw std::runtime_error("Column not found in input");
+                    }
                 }
             }
         } else if (std::holds_alternative<long>(col)) {
@@ -708,6 +715,11 @@ void FILTER_COPY(LIE &lie, std::string src_name, RelationVersion src_ver,
     auto tppj = _tpprojector(input_column, output_column);
     auto ra = RelationalFilterProject(src, src_ver, tpf, dest, NEWT, tppj);
     if (debug) {
+        std::cout << "Filter Copy " << src_name << " " << dest_name << " ";
+        for (int i = 0; i < tppj.arity; i++) {
+            std::cout << tppj.project[i] << " ";
+        }
+        std::cout << std::endl;
         ra.debug_flag = 0;
     }
     if (tail) {
@@ -1078,9 +1090,10 @@ void process_non_incremental_const_filter_clause(
     //         arity++;
     //     }
     // }
-    for (auto &njc: ic.columns) {
+    for (auto &njc : ic.columns) {
         if (std::holds_alternative<std::string>(njc)) {
-            if (!metavar_exists_huh(std::get<std::string>(njc), filtered_cols) &&
+            if (!metavar_exists_huh(std::get<std::string>(njc),
+                                    filtered_cols) &&
                 !metavar_wildcard_huh(std::get<std::string>(njc))) {
                 filtered_cols.push_back(njc);
                 arity++;
@@ -1094,13 +1107,16 @@ void process_non_incremental_const_filter_clause(
     lie.add_relations(tmp_rel, true);
     std::cout << "1CopyFilter from " << ic.rel_name << " " << ic.ver << " to "
               << tmp_rel_name << std::endl;
-    // for (auto &col : filtered_cols) {
-    //     if (std::holds_alternative<std::string>(col)) {
-    //         std::cout << std::get<std::string>(col) << " ";
-    //     } else {
-    //         std::cout << std::get<long>(col) << " ";
-    //     }
-    // }
+    if (debug) {
+    for (auto &col : filtered_cols) {
+        if (std::holds_alternative<std::string>(col)) {
+            std::cout << std::get<std::string>(col) << " ";
+        } else {
+            std::cout << std::get<long>(col) << " ";
+        }
+    }
+    std::cout << std::endl;
+    }
     FILTER_COPY(lie_init, ic.rel_name, FULL, tmp_rel_name, ic.columns,
                 filtered_cols, debug);
     // modify the clause to use the new relation
@@ -1602,10 +1618,10 @@ void process_non_incremental_clauses(
                         false, debug);
                 } else {
                     // negation
-                    std::cout << "Negation join " <<
-                        nic.rel_name << " " << nic.ver << " " <<
-                        incr_outer.rel_name << " " << incr_outer.ver << " " <<
-                        output_clasue.rel_name << std::endl; 
+                    std::cout << "Negation join " << nic.rel_name << " "
+                              << nic.ver << " " << incr_outer.rel_name << " "
+                              << incr_outer.ver << " " << output_clasue.rel_name
+                              << std::endl;
                     NEGATE(lie, lie_init, nic.rel_name, nic.ver,
                            incr_outer.rel_name, incr_outer.ver,
                            output_clasue.rel_name,

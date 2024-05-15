@@ -91,6 +91,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     DECLARE_RELATION_INPUT_OUTPUT(analysis_scc,
                                   stack_def_use_live_var_at_prior_used, 4, 3);
     DECLARE_RELATION_INPUT_OUTPUT(analysis_scc, value_reg_unsupported, 2, 2);
+    ALIAS_RELATION(analysis_scc, analysis_scc_init, "value_reg_unsupported",
+                   "value_reg_unsupported__0_1__2");
     DECLARE_RELATION_INPUT_OUTPUT(analysis_scc,
                                   reg_def_use_live_var_at_block_end, 3, 0);
     DECLARE_RELATION_INPUT_OUTPUT(analysis_scc,
@@ -246,6 +248,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     CREATE_STATIC_INDEXED_RELATION(analysis_scc, may_fallthrough, 2, 0_1, 2);
     CREATE_STATIC_INDEXED_RELATION(analysis_scc, limit_reg_op, 3, 2_0_1, 1);
     CREATE_STATIC_INDEXED_RELATION(analysis_scc, limit_reg_op, 2, 2_0, 1);
+    CREATE_STATIC_INDEXED_RELATION(analysis_scc, arch_move_reg_reg, 3, 0_2_1,
+                                   2);
 
     CREATE_FULL_INDEXED_RELATION(analysis_scc, reg_def_use_def_used, 3, 0_1_2,
                                  2);
@@ -372,6 +376,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     //     // -->
     //     clause_meta("def_used_for_address", {"EA_def", "Reg1", "Type"}));
     // split this rule
+
+    // FIXME: this rule is not correct
     DECLARE_RELATION_OUTPUT(analysis_scc, def_used_for_address_load, 4, 3);
     DECLARE_RELATION_OUTPUT(analysis_scc, def_used_for_address_store, 5, 3);
     DECLARE_RELATION_OUTPUT(analysis_scc, def_used_for_address_load_store, 3,
@@ -612,7 +618,7 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
         analysis_scc, analysis_scc_init, 21,
         {clause_meta("jump_table_element_access",
                      {"_", n2d(8), "TableStart", "_"})}, // -->
-        clause_meta("jump_table_signed", {"TableStart", n2d(1)}), true);
+        clause_meta("jump_table_signed", {"TableStart", n2d(1)}));
 
     // DATALOG_RECURISVE_RULE(
     //     analysis_scc, analysis_scc_init, 22,
@@ -1125,11 +1131,19 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     // DECLARE_RELATION_OUTPUT(analysis_scc, instruction_non_cmp, 1, 1);
     DECLARE_RELATION(analysis_scc, instruction_non_cmp, 1, 1);
     analysis_scc_init.add_relations(instruction_non_cmp, false);
-    NEGATE(analysis_scc_init, analysis_scc_init, "arch_cmp_operation", FULL,
-           "instruction", FULL, "instruction_non_cmp", {"Operation"},
-           {"EA_cmp", "_", "_", "Operation", "_", "_", "_", "_", "_", "_"},
-           {"EA_cmp"}, false, false);
+    // FIXME: has issue with wildcard here
+    // NEGATE(analysis_scc_init, analysis_scc_init, "arch_cmp_operation", FULL,
+    //        "instruction", FULL, "instruction_non_cmp", {"Operation"},
+    //        {"EA_cmp", "_", "_", "Operation", "_", "_", "_", "_", "_", "_"},
+    //        {"EA_cmp"}, false, false);
     analysis_scc.add_relations(instruction_non_cmp, true);
+    FILTER_COPY(analysis_scc_init, "instruction", FULL, "instruction_non_cmp",
+                {"EA_cmp", "_", "_", s2d("CMP"), "_", "_", "_", "_", "_", "_"},
+                {"EA_cmp"});
+    FILTER_COPY(analysis_scc_init, "instruction", FULL, "instruction_non_cmp",
+                {"EA_cmp", "_", "_", s2d("TEST"), "_", "_", "_", "_", "_", "_"},
+                {"EA_cmp"});
+
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 45,
         {clause_meta("flags_and_jump_pair", {"EA_cmp", "EA_jmp", "_"}),
@@ -1214,10 +1228,6 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
         clause_meta("reg_def_use_def_used",
                     {"EA_def", "Reg", "EA_used", "Index"}));
 
-    // reg_def_use_return_val_used(EA_call,Callee,Reg,EA_used,Index_used) :-
-    //    arch_return_reg(Reg),
-    //    reg_def_use_def_used(EA_call,Reg,EA_used,Index_used),
-    //    direct_call(EA_call,Callee).
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 50,
         {clause_meta("reg_def_use_def_used",
@@ -1228,18 +1238,106 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
         clause_meta("reg_def_use_return_val_used",
                     {"EA_call", "Callee", "Reg", "EA_used", "Index_used"}));
 
-    // DATALOG_RECURSIVE_RULE(
-    //     analysis_scc, analysis_scc_init, 48,
-    //     {clause_meta(
-    //          "reg_def_use_live_var_used_tmp1",
-    //          {"NextUsedBlock", "Var", "Next_EA_used", "NextIndex"}),
-    //      clause_meta("reg_def_use_live_var_at_prior_used",
-    //                  {"EA_used", "NextUsedBlock", "Var"}),
-    //      clause_meta("reg_def_use_def_used",
-    //                  {"EA_def", "Var", "EA_used", "_"})},
-    //     // -->
-    //     clause_meta("reg_def_use_def_used_debug",
-    //                 {"EA_def", "Var", "Next_EA_used", "NextIndex"}));
+    // value_reg(EA,Reg,EA,"NONE",0,Immediate,1) :-
+    //    def_used_for_address(EA,Reg,_),
+    //    arch_move_reg_imm(EA,Reg,Immediate,_),
+    //    !instruction_has_relocation(EA,_).
+    // TODO: consider make negation static
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 83,
+        {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
+         clause_meta("arch_move_reg_imm", {"EA", "Reg", "Immediate", "_"}),
+         clause_meta("instruction_has_relocation", {"EA", "_"}, FULL, true)},
+        // -->
+        clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
+                                  "Immediate", n2d(1)}));
+
+// value_reg(EA,Reg,EA,"NONE",0,0,1) :- 
+//    def_used_for_address(EA,Reg,_),
+//    is_xor_reset(EA).
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 84,
+        {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
+         clause_meta("is_xor_reset", {"EA"})},
+        // -->
+        clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
+                                  n2d(0), n2d(1)}));
+
+// value_reg(EA,Reg,EA,"NONE",0,Immediate,1) :- 
+//    def_used_for_address(EA,Reg,_),
+//    reg_def_use_flow_def(EA,Reg,_,Immediate).
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 85,
+        {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
+         clause_meta("reg_def_use_flow_def", {"EA", "Reg", "_", "Immediate"})},
+        // -->
+        clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
+                                  "Immediate", n2d(1)}));
+        
+// value_reg(EA,Reg,EA,Reg,1,0,1) :- 
+//    def_used_for_address(EA,Reg,_),
+//    value_reg_unsupported(EA,Reg).
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 86,
+        {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
+         clause_meta("value_reg_unsupported", {"EA", "Reg"})},
+        // -->
+        clause_meta("value_reg", {"EA", "Reg", "EA", "Reg", n2d(1), n2d(0),
+                                  n2d(1)}));
+
+
+
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 97,
+        {clause_meta("def_used_for_address", {"EA_prev", "Reg_origin", "_"}),
+         clause_meta("reg_def_use_def_used",
+                     {"EA_prev", "Reg_origin", "EA", "_"}),
+         clause_meta("arch_move_reg_reg", {"EA", "Reg", "Reg_origin"}),
+         clause_meta("track_register", {"Reg"}),
+         clause_meta("=/=", {"EA", "EA_prev"})},
+        // -->
+        clause_meta("value_reg_edge",
+                    {"EA", "Reg", "EA_prev", "Reg_origin", n2d(1), n2d(0)}));
+
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 98,
+        {clause_meta("def_used_for_address", {"EA_prev", "Src", "_"}),
+         clause_meta("reg_def_use_def_used", {"EA_prev", "Src", "EA", "_"}),
+         clause_meta("arch_reg_arithmetic_operation",
+                     {"EA", "Dst", "Src", "Mult", "Immediate"}),
+         clause_meta("track_register", {"Dst"})},
+        // -->
+        clause_meta("value_reg_edge",
+                    {"EA", "Dst", "EA_prev", "Src", "Mult", "Immediate"}));
+
+    DECLARE_RELATION_OUTPUT(analysis_scc, value_reg_edge_tmp1, 4, 2);
+    ALIAS_RELATION(analysis_scc, analysis_scc_init, "value_reg_edge_tmp1",
+                   "value_reg_edge_tmp1__0_1_2_3__2");
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 9900,
+        {clause_meta("stack_def_use_def_used",
+                     {"EAStore", "RegBaseStore", "StackPosStore", "EALoad",
+                      "RegBaseLoad", "StackPosLoad", "_"}),
+         clause_meta("arch_memory_access",
+                     {s2d("STORE"), "EAStore", "_", "_", "Reg1", "RegBaseStore",
+                      s2d("NONE"), "_", "StackPosStore"}),
+         clause_meta("arch_memory_access",
+                     {s2d("LOAD"), "EALoad", "_", "_", "Reg2", "RegBaseLoad",
+                      s2d("NONE"), "_", "StackPosLoad"})},
+        // -->
+        clause_meta("value_reg_edge_tmp1",
+                    {"EAStore", "Reg1", "Reg2", "EALoad"}));
+
+    // DECLARE_RELATION_OUTPUT(analysis_scc, value_reg_edge_debug, 6, 1);
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 9901,
+        {clause_meta("value_reg_edge_tmp1",
+                     {"EAStore", "Reg1", "Reg2", "EALoad"}),
+         clause_meta("reg_def_use_def_used",
+                     {"EAPrev", "Reg1", "EAStore", "_"})},
+        // -->
+        clause_meta("value_reg_edge",
+                    {"EALoad", "Reg2", "EAPrev", "Reg1", n2d(1), n2d(0)}));
 
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 100,
@@ -1278,7 +1376,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
          clause_meta("limit_type_map", {"CC", "LT1", "_", "Offset1", "_"}),
          clause_meta("reg_def_use_block_last_def",
                      {"EA_cmp", "EA_regdef", "Reg1"}),
-         clause_meta("arch_move_reg_imm", {"EA_regdef", "Reg1", "Immediate", "_"}),
+         clause_meta("arch_move_reg_imm",
+                     {"EA_regdef", "Reg1", "Immediate", "_"}),
          clause_meta("direct_jump", {"EA_jmp", "EA_branch"}),
          clause_meta("+", {"Immediate", "Offset1"})},
         // -->
@@ -1294,7 +1393,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
          clause_meta("limit_type_map", {"CC", "_", "LT2", "Offset2", "_"}),
          clause_meta("reg_def_use_block_last_def",
                      {"EA_cmp", "EA_regdef", "Reg2"}),
-         clause_meta("arch_move_reg_imm", {"EA_regdef", "Reg2", "Immediate", "_"}),
+         clause_meta("arch_move_reg_imm",
+                     {"EA_regdef", "Reg2", "Immediate", "_"}),
          clause_meta("direct_jump", {"EA_jmp", "EA_branch"}),
          clause_meta("+", {"Immediate", "Offset2"})},
         // -->
@@ -1310,7 +1410,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
          clause_meta("limit_type_map", {"CC", "_", "LT2", "Offset2", "_"}),
          clause_meta("reg_def_use_block_last_def",
                      {"EA_cmp", "EA_regdef", "Reg1"}),
-         clause_meta("arch_move_reg_imm", {"EA_regdef", "Reg1", "Immediate", "_"}),
+         clause_meta("arch_move_reg_imm",
+                     {"EA_regdef", "Reg1", "Immediate", "_"}),
          clause_meta("may_fallthrough", {"EA_jmp", "EA_fallthrough"}),
          clause_meta("+", {"Immediate", "Offset2"})},
         // -->
@@ -1325,7 +1426,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
          clause_meta("track_register", {"Reg1"}),
          clause_meta("reg_def_use_block_last_def",
                      {"EA_cmp", "EA_regdef", "Reg2"}),
-         clause_meta("arch_move_reg_imm", {"EA_regdef", "Reg2", "Immediate", "_"}),
+         clause_meta("arch_move_reg_imm",
+                     {"EA_regdef", "Reg2", "Immediate", "_"}),
          clause_meta("may_fallthrough", {"EA_jmp", "EA_fallthrough"}),
          clause_meta("limit_type_map", {"CC", "LT1", "_", "Offset1", "_"}),
          clause_meta("+", {"Immediate", "Offset1"})},
@@ -1333,16 +1435,16 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
         clause_meta("value_reg_limit",
                     {"EA_jmp", "EA_fallthrough", "Reg1", "Immediate", "LT1"}));
 
-
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 106,
         {clause_meta("compare_and_jump_indirect",
                      {"EA_cmp", "EA_jmp", "CC", "IndirectOp", "Immediate"}),
          clause_meta("next", {"EA_cmp", "EA_jmp"}),
-         clause_meta("limit_type_map", {"CC", "BranchLT", "_", "BranchOffset", "_"}),
+         clause_meta("limit_type_map",
+                     {"CC", "BranchLT", "_", "BranchOffset", "_"}),
          clause_meta("direct_jump", {"EA_jmp", "EA_target"}),
-         clause_meta("arch_memory_access",
-                     {s2d("LOAD"), "EA_target", "_", "_", "Reg", "_", "_", "_", "_"}),
+         clause_meta("arch_memory_access", {s2d("LOAD"), "EA_target", "_", "_",
+                                            "Reg", "_", "_", "_", "_"}),
          clause_meta("track_register", {"Reg"}),
          clause_meta("instruction_get_op", {"EA_target", "_", "IndirectOp"}),
          clause_meta("code_in_block", {"EA_target", "inlined_Block_887"}),
@@ -1350,18 +1452,19 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
          clause_meta("code_in_block", {"EA_limited", "inlined_Block_887"}),
          clause_meta("+", {"Immediate", "BranchOffset"})},
         // -->
-        clause_meta("value_reg_limit",
-                    {"EA_target", "EA_limited", "Reg", "Immediate", "BranchLT"}));
+        clause_meta("value_reg_limit", {"EA_target", "EA_limited", "Reg",
+                                        "Immediate", "BranchLT"}));
 
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 107,
         {clause_meta("compare_and_jump_indirect",
                      {"EA_cmp", "EA_jmp", "CC", "IndirectOp", "Immediate"}),
          clause_meta("next", {"EA_cmp", "EA_jmp"}),
-         clause_meta("limit_type_map", {"CC", "_", "FallthroughLT", "_", "FallthroughOffset"}),
+         clause_meta("limit_type_map",
+                     {"CC", "_", "FallthroughLT", "_", "FallthroughOffset"}),
          clause_meta("may_fallthrough", {"EA_jmp", "EA_target"}),
-         clause_meta("arch_memory_access",
-                     {s2d("LOAD"), "EA_target", "_", "_", "Reg", "_", "_", "_", "_"}),
+         clause_meta("arch_memory_access", {s2d("LOAD"), "EA_target", "_", "_",
+                                            "Reg", "_", "_", "_", "_"}),
          clause_meta("track_register", {"Reg"}),
          clause_meta("instruction_get_op", {"EA_target", "_", "IndirectOp"}),
          clause_meta("code_in_block", {"EA_target", "inlined_Block_888"}),
@@ -1369,9 +1472,9 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
          clause_meta("code_in_block", {"EA_limited", "inlined_Block_888"}),
          clause_meta("+", {"Immediate", "FallthroughOffset"})},
         // -->
-        clause_meta("value_reg_limit",
-                    {"EA_target", "EA_limited", "Reg", "Immediate", "FallthroughLT"}));
-    
+        clause_meta("value_reg_limit", {"EA_target", "EA_limited", "Reg",
+                                        "Immediate", "FallthroughLT"}));
+
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 108,
         {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
@@ -1467,6 +1570,13 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     PRINT_REL_SIZE(analysis_scc, "reg_def_use_live_var_used_tmp1");
     PRINT_REL_SIZE(analysis_scc, "reg_def_use_return_val_used");
     PRINT_REL_SIZE(analysis_scc, "value_reg_limit");
+    PRINT_REL_SIZE(analysis_scc, "value_reg_edge");
+    PRINT_REL_SIZE(analysis_scc, "value_reg_edge_tmp1");
+    PRINT_REL_SIZE(analysis_scc, "value_reg");
+    // PRINT_REL_SIZE(analysis_scc, "def_used_for_address_load");
+    // PRINT_REL_SIZE(analysis_scc, "def_used_for_address_store");
+    // PRINT_REL_SIZE(analysis_scc, "def_used_for_address_load_store");
+    // dump_tuple_rows(value_reg->full, "value_reg", "value_reg");
 }
 
 MAIN_ENTRANCE(run)
