@@ -665,6 +665,9 @@ std::vector<int> _tpprojector_index(std::vector<column_meta_t> &input_column,
                 }
             }
         } else if (std::holds_alternative<long>(col)) {
+            std::cout << "Const column in prj: " << std::get<long>(col)
+                      << std::endl;
+            result.push_back(std::get<long>(col));
             continue;
         }
     }
@@ -744,7 +747,8 @@ void ALIAS_RELATION(LIE &lie, LIE &lie_init, std::string rel_name,
 
 bool is_arithm_op(std::string op) {
     return op.compare("+") == 0 || op.compare("-") == 0 ||
-           op.compare("*") == 0 || op.compare("/") == 0;
+           op.compare("*") == 0 || op.compare("/") == 0 ||
+           op.compare("MAX") == 0;
 }
 
 bool is_cmp_op(std::string op) {
@@ -781,6 +785,8 @@ BinaryArithmeticOperator get_arithm_op(std::string op) {
         return BinaryArithmeticOperator::MUL;
     } else if (op.compare("/") == 0) {
         return BinaryArithmeticOperator::DIV;
+    } else if (op.compare("MAX") == 0)  {
+        return BinaryArithmeticOperator::BMAX;
     } else {
         throw std::runtime_error("Invalid arithmetic operator");
     }
@@ -839,6 +845,9 @@ std::string binary_op_to_string(std::vector<BinaryArithmeticOperator> ops) {
             break;
         case BinaryArithmeticOperator::DIV:
             result += "/";
+            break;
+        case BinaryArithmeticOperator::BMAX:
+            result += "MAX";
             break;
         default:
             throw std::runtime_error("Invalid arithmetic operator");
@@ -1108,14 +1117,14 @@ void process_non_incremental_const_filter_clause(
     std::cout << "1CopyFilter from " << ic.rel_name << " " << ic.ver << " to "
               << tmp_rel_name << std::endl;
     if (debug) {
-    for (auto &col : filtered_cols) {
-        if (std::holds_alternative<std::string>(col)) {
-            std::cout << std::get<std::string>(col) << " ";
-        } else {
-            std::cout << std::get<long>(col) << " ";
+        for (auto &col : filtered_cols) {
+            if (std::holds_alternative<std::string>(col)) {
+                std::cout << std::get<std::string>(col) << " ";
+            } else {
+                std::cout << std::get<long>(col) << " ";
+            }
         }
-    }
-    std::cout << std::endl;
+        std::cout << std::endl;
     }
     FILTER_COPY(lie_init, ic.rel_name, FULL, tmp_rel_name, ic.columns,
                 filtered_cols, debug);

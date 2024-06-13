@@ -114,7 +114,7 @@ void LIE::execute_ra(ra_op &ra) {
     std::visit(
         dynamic_dispatch{
             [&](RelationalJoin &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 op();
             },
             [&](RelationalACopy &op) {
@@ -122,7 +122,7 @@ void LIE::execute_ra(ra_op &ra) {
                 op();
             },
             [&](RelationalCopy &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 // std::cout << "copied" << std::endl;
                 if (op.src_ver == FULL) {
                     if (!op.copied) {
@@ -134,23 +134,23 @@ void LIE::execute_ra(ra_op &ra) {
                 }
             },
             [&](RelationalFilterProject &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 op();
             },
             [&](RelationalFilter &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 op();
             },
             [&](RelationalArithm &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 op();
             },
             [&](RelationalArithmProject &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 op();
             },
             [&](RelationalNegation &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 op();
             },
             [&](RelationalSync &op) {
@@ -182,7 +182,7 @@ void LIE::execute_ra(ra_op &ra) {
             },
             [&](RelationalUnion &op) { op(); },
             [&](RelationalClear &op) {
-                op.print_debug_info();
+                // op.print_debug_info();
                 op();
             },
             [&](RelationalBroadcast &op) { mcomm->broadcast(op.src); }},

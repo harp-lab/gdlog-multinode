@@ -199,6 +199,7 @@ enum BinaryArithmeticOperator {
     MUL,
     DIV,
     MOD,
+    BMAX,
     EMPTY,
 };
 
@@ -253,6 +254,9 @@ struct TupleArithmetic {
                 continue;
             case BinaryArithmeticOperator::MOD:
                 result[i] = left_v % right_v;
+                continue;
+            case BinaryArithmeticOperator::BMAX:
+                result[i] = left_v > right_v ? left_v : right_v;
                 continue;
             case BinaryArithmeticOperator::EMPTY:
                 result[i] = tuple[i];

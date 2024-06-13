@@ -95,8 +95,8 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
                    "value_reg_unsupported__0_1__2");
     DECLARE_RELATION_INPUT_OUTPUT(analysis_scc,
                                   reg_def_use_live_var_at_block_end, 3, 0);
-    DECLARE_RELATION_INPUT_OUTPUT(analysis_scc,
-                                  reg_reg_arithmetic_operation_defs, 8, 2);
+    DECLARE_RELATION_INPUT(analysis_scc, reg_reg_arithmetic_operation_defs, 8,
+                           2);
     // TODO: change to output only
     // DECLARE_RELATION_OUTPUT(analysis_scc, flags_and_jump_pair, 3, 1);
     DECLARE_RELATION_INPUT_OUTPUT(analysis_scc, flags_and_jump_pair, 3, 1);
@@ -250,6 +250,10 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     CREATE_STATIC_INDEXED_RELATION(analysis_scc, limit_reg_op, 2, 2_0, 1);
     CREATE_STATIC_INDEXED_RELATION(analysis_scc, arch_move_reg_reg, 3, 0_2_1,
                                    2);
+    CREATE_STATIC_INDEXED_RELATION(
+        analysis_scc, reg_reg_arithmetic_operation_defs, 8, 4_5_0_1_2_3_6_7, 2);
+    CREATE_STATIC_INDEXED_RELATION(
+        analysis_scc, reg_reg_arithmetic_operation_defs, 7, 4_5_0_1_2_3_6, 2);
 
     CREATE_FULL_INDEXED_RELATION(analysis_scc, reg_def_use_def_used, 3, 0_1_2,
                                  2);
@@ -270,8 +274,14 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
                                  3);
     CREATE_FULL_INDEXED_RELATION(analysis_scc, block_next, 3, 1_0_2, 2);
     CREATE_FULL_INDEXED_RELATION(analysis_scc, block_next, 3, 0_1_2, 2);
-    CREATE_FULL_INDEXED_RELATION(analysis_scc,
-                                 reg_def_use_live_var_at_block_end, 3, 1_2_0, 2)
+    CREATE_FULL_INDEXED_RELATION(
+        analysis_scc, reg_def_use_live_var_at_block_end, 3, 1_2_0, 2);
+    CREATE_FULL_INDEXED_RELATION(analysis_scc, value_reg, 7, 0_1_2_3_4_5_6, 2);
+    CREATE_FULL_INDEXED_RELATION(analysis_scc, value_reg, 7, 0_1_2_3_4_5_6, 4);
+    CREATE_FULL_INDEXED_RELATION(analysis_scc, value_reg_edge, 6, 2_3_0_1_4_5,
+                                 2)
+
+    DECLARE_RELATION_OUTPUT(analysis_scc, value_reg_debug, 7, 1);
 
     analysis_scc.verbose_log = true;
 
@@ -1252,20 +1262,20 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
         clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
                                   "Immediate", n2d(1)}));
 
-// value_reg(EA,Reg,EA,"NONE",0,0,1) :- 
-//    def_used_for_address(EA,Reg,_),
-//    is_xor_reset(EA).
+    // value_reg(EA,Reg,EA,"NONE",0,0,1) :-
+    //    def_used_for_address(EA,Reg,_),
+    //    is_xor_reset(EA).
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 84,
         {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
          clause_meta("is_xor_reset", {"EA"})},
         // -->
-        clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
-                                  n2d(0), n2d(1)}));
+        clause_meta("value_reg",
+                    {"EA", "Reg", "EA", s2d("NONE"), n2d(0), n2d(0), n2d(1)}));
 
-// value_reg(EA,Reg,EA,"NONE",0,Immediate,1) :- 
-//    def_used_for_address(EA,Reg,_),
-//    reg_def_use_flow_def(EA,Reg,_,Immediate).
+    // value_reg(EA,Reg,EA,"NONE",0,Immediate,1) :-
+    //    def_used_for_address(EA,Reg,_),
+    //    reg_def_use_flow_def(EA,Reg,_,Immediate).
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 85,
         {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
@@ -1273,19 +1283,230 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
         // -->
         clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
                                   "Immediate", n2d(1)}));
-        
-// value_reg(EA,Reg,EA,Reg,1,0,1) :- 
-//    def_used_for_address(EA,Reg,_),
-//    value_reg_unsupported(EA,Reg).
+
+    // value_reg(EA,Reg,EA,Reg,1,0,1) :-
+    //    def_used_for_address(EA,Reg,_),
+    //    value_reg_unsupported(EA,Reg).
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 86,
         {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
          clause_meta("value_reg_unsupported", {"EA", "Reg"})},
         // -->
-        clause_meta("value_reg", {"EA", "Reg", "EA", "Reg", n2d(1), n2d(0),
-                                  n2d(1)}));
+        clause_meta("value_reg",
+                    {"EA", "Reg", "EA", "Reg", n2d(1), n2d(0), n2d(1)}));
 
+    // value_reg(EA,Reg,EA_from,"Unknown",Immediate,Base,Tmp2) :-
+    //    value_reg(EA,Reg,EA_from,"NONE",0,Base,Steps),
+    //    Tmp1 = 10,
+    //    Steps <= Tmp1,
+    //    value_reg_edge(EA,Reg,EA,Reg,1,Immediate),
+    //    Immediate != 0,
+    //    Tmp2 = (Steps+1).
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 87,
+        {clause_meta("value_reg", {"EA", "Reg", "EA_from", s2d("NONE"), n2d(0),
+                                   "Base", "Steps"}),
+         clause_meta("<=", {"Steps", n2d(10)}),
+         clause_meta("value_reg_edge",
+                     {"EA", "Reg", "EA", "Reg", n2d(1), "Immediate"}),
+         clause_meta("=/=", {"Immediate", n2d(0)}),
+         clause_meta("+", {"Steps", n2d(1)})},
+        // -->
+        clause_meta("value_reg", {"EA", "Reg", "EA_from", s2d("Unknown"),
+                                  "Immediate", "Base", "Steps"}));
 
+    // value_reg(EA1,Reg1,EA3,Reg3,Tmp2,Tmp4,Tmp5) :-
+    //    value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
+    //    Steps <= 10,
+    //    value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
+    //    EA1 > EA2,
+    //    Tmp2 = (Multiplier*Multiplier2),
+    //    Tmp3 = (Offset2*Multiplier),
+    //    Tmp4 = (Tmp3+Offset),
+    //    Tmp5 = (Steps+1).
+    // CREATE_FULL_INDEXED_RELATION(analysis_scc, value_reg, 6, 0_1_2_3_4_6, 2);
+
+    DECLARE_RELATION_OUTPUT(analysis_scc, value_reg_edge_filter2, 6, 2);
+    ALIAS_RELATION(analysis_scc, analysis_scc_init, "value_reg_edge_filter2",
+                   "value_reg_edge_filter2__0_1_2_3_4_5__2");
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 8800,
+        {clause_meta("value_reg_edge",
+                     {"EA1", "Reg1", "EA2", "Reg2", "Multiplier", "Offset"}),
+         clause_meta(">", {"EA1", "EA2"})},
+        // -->
+        clause_meta("value_reg_edge_filter2",
+                    {"EA2", "Reg2", "Reg1", "EA1", "Multiplier", "Offset"}));
+
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 88,
+        {clause_meta("value_reg", {"EA2", "Reg2", "EA3", "Reg3", "Multiplier2",
+                                   "Offset2", "Steps"}),
+         clause_meta("value_reg_edge_filter2",
+                     {"EA2", "Reg2", "Reg1", "EA1", "Multiplier", "Offset"}),
+         clause_meta("<=", {"Steps", n2d(10)}),
+         clause_meta("*", {"Multiplier", "Multiplier2"}),
+         // FIXME: add back this clause and fix negative number issue
+         //  clause_meta("*", {"Offset2", "Multiplier"}),
+         clause_meta("+", {"Offset", "Offset2"}),
+         clause_meta("+", {"Steps", n2d(1)})},
+        // -->
+        clause_meta("value_reg", {"EA1", "Reg1", "EA3", "Reg3", "Multiplier",
+                                  "Offset", "Steps"}));
+
+    // value_reg(EA1,Reg1,EA3,Reg3,Tmp1,Tmp3,Tmp4) :-
+    //    value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
+    //    Steps <= 4,
+    //    value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
+    //    EA1 < EA2,
+    //    Tmp1 = (Multiplier*Multiplier2),
+    //    Tmp2 = (Offset2*Multiplier),
+    //    Tmp3 = (Tmp2+Offset),
+    //    Tmp4 = (Steps+5).
+    DECLARE_RELATION_OUTPUT(analysis_scc, value_reg_edge_filter3, 6, 2);
+    ALIAS_RELATION(analysis_scc, analysis_scc_init, "value_reg_edge_filter3",
+                   "value_reg_edge_filter3__0_1_2_3_4_5__2");
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 8900,
+        {clause_meta("value_reg_edge",
+                     {"EA1", "Reg1", "EA2", "Reg2", "Multiplier", "Offset"}),
+         clause_meta("<", {"EA1", "EA2"})},
+        // -->
+        clause_meta("value_reg_edge_filter3",
+                    {"EA2", "Reg2", "Reg1", "EA1", "Multiplier", "Offset"}));
+
+    // FIXME: counts mismatch, but very few more tuples gened, need check
+    // value_reg rules before this 21405 21370
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 89,
+        {clause_meta("value_reg", {"EA2", "Reg2", "EA3", "Reg3", "Multiplier2",
+                                   "Offset2", "Steps"}),
+         clause_meta("value_reg_edge_filter3",
+                     {"EA2", "Reg2", "Reg1", "EA1", "Multiplier", "Offset"}),
+         clause_meta("<=", {"Steps", n2d(4)}),
+         clause_meta("*", {"Multiplier", "Multiplier2"}),
+         //  clause_meta("*", {"Offset2", "Multiplier"}),
+         clause_meta("+", {"Offset", "Offset2"}),
+         clause_meta("+", {"Steps", n2d(5)})},
+        // -->
+        clause_meta("value_reg", {"EA1", "Reg1", "EA3", "Reg3", "Multiplier",
+                                  "Offset", "Steps"}));
+
+    // value_reg(EA,Reg,EA,"NONE",0,as(Address, number),1) :-
+    //    def_used_for_address(EA,Reg,_),
+    //    instruction_has_relocation(EA,EA_rel),
+    //    symbolic_expr_from_relocation(EA_rel,_,_,_,Address).
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 90,
+        {clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
+         clause_meta("instruction_has_relocation", {"EA", "EA_rel"}),
+         clause_meta("symbolic_expr_from_relocation",
+                     {"EA_rel", "_", "_", "_", "Address"})},
+        // -->
+        clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
+                                  "Address", n2d(1)}));
+
+    // value_reg(EALoad,Reg2,EALoad,"NONE",0,Immediate,1) :-
+    //    arch_store_immediate(EAStore,_,_,Immediate,RegBaseStore,"NONE",_,StackPosStore),
+    //    stack_def_use_def_used(EAStore,[RegBaseStore,StackPosStore],EALoad,[RegBaseLoad,StackPosLoad],_),
+    //    arch_memory_access("LOAD",EALoad,_,_,Reg2,RegBaseLoad,"NONE",_,StackPosLoad),
+    //    def_used_for_address(EALoad,Reg2,_).
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 91,
+        {clause_meta("arch_store_immediate",
+                     {"EAStore", "_", "_", "Immediate", "RegBaseStore",
+                      s2d("NONE"), "_", "StackPosStore"}),
+         clause_meta("stack_def_use_def_used",
+                     {"EAStore", "RegBaseStore", "StackPosStore", "EALoad",
+                      "RegBaseLoad", "StackPosLoad", "_"}),
+         clause_meta("arch_memory_access",
+                     {s2d("LOAD"), "EALoad", "_", "_", "Reg2", "RegBaseLoad",
+                      s2d("NONE"), "_", "StackPosLoad"}),
+         clause_meta("def_used_for_address", {"EALoad", "Reg2", "_"})},
+        // -->
+        clause_meta("value_reg", {"EALoad", "Reg2", "EALoad", s2d("NONE"),
+                                  n2d(0), "Immediate", n2d(1)}));
+
+    // value_reg_debug(EA,Reg_def,EA_third,Reg3,Tmp3,Tmp6,Tmp8),
+    // value_reg(EA,Reg_def,EA_third,Reg3,Tmp3,Tmp6,Tmp8) :-
+    //    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
+    //    value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
+    //    Steps1 <= 7,
+    //    EA != EA_third,
+    //    value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
+    //    Steps2 <= 7,
+    //    Tmp2 = (Mult*Mult2),
+    //    Tmp3 = (Mult1+Tmp2),
+    //    Tmp4 = (Offset+Offset1),
+    //    Tmp5 = (Offset2*Mult),
+    //    Tmp6 = (Tmp4+Tmp5),
+    //    Tmp7 = max(Steps1,Steps2),
+    //    Tmp8 = (Tmp7+2).
+    DECLARE_RELATION_OUTPUT(analysis_scc, value_reg_tmp_92, 10, 4);
+    ALIAS_RELATION(analysis_scc, analysis_scc_init, "value_reg_tmp_92",
+                   "value_reg_tmp_92__0_1_2_3_4_5_6_7_8_9__4");
+
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 9200,
+        {clause_meta("reg_reg_arithmetic_operation_defs",
+                     {"EA", "Reg_def", "EA_def1", "Reg1", "EA_def2", "Reg2",
+                      "Mult", "Offset"}),
+         clause_meta("value_reg", {"EA_def2", "Reg2", "EA_third", "Reg3",
+                                   "Mult2", "Offset2", "Steps2"}),
+         clause_meta("<=", {"Steps2", n2d(7)}),
+         clause_meta("=/=", {"EA", "EA_third"}),
+        //  clause_meta("*", {"Offset2", "Mult2"}),
+         clause_meta("*", {"Mult", "Mult2"})
+         },
+        // -->
+        clause_meta("value_reg_tmp_92",
+                    {"EA_def1", "Reg1", "EA_third", "Reg3", "Mult", "Mult2", "Offset",
+                     "Steps2", "EA", "Reg_def"}), true);
+    // DATALOG_RECURSIVE_RULE(
+    //     analysis_scc, analysis_scc_init, 9201,
+    //     {clause_meta("value_reg_tmp_92",
+    //                  {"EA_def1", "Reg1", "EA_third", "Reg3", "Mult", "Offset", "Offset2",
+    //                   "Steps2", "EA", "Reg_def"}),
+    //      clause_meta("value_reg", {"EA_def1", "Reg1", "EA_third", "Reg3",
+    //                                "Mult1", "Offset1", "Steps1"}),
+    //      clause_meta("<=", {"Steps1", n2d(7)}),
+    //     //  clause_meta("+", {"Mult", "Mult1"}),
+    //     //  clause_meta("+", {"Offset", "Offset1"}),
+    //     //  clause_meta("+", {"Offset", "Offset2"}),
+    //      clause_meta("MAX", {"Steps1", "Steps2"}),
+    //      clause_meta("+", {"Steps1", n2d(2)})},
+    //     // -->
+    //     clause_meta("value_reg_debug", {"EA", "Reg_def", "EA_third", "Reg3",
+    //                                     "Mult", "Offset", "Steps1"}));
+
+    // value_reg(EA,Reg,EA,"NONE",0,as(TargetAddr, number),1) :-
+    //    def_used_for_address(EA,Reg,_),
+    //    arch_memory_access("LOAD",EA,SrcOp,_,Reg,_,_,_,_),
+    //    simple_data_access_pattern(MemAddr,SrcOp,Size,EA),
+    //    4 <= Size,
+    //    Size <= 8,
+    //    symbolic_expr_from_relocation(MemAddr,Size,Symbol,_,TargetAddr),
+    //    defined_symbol(_,_,_,_,_,_,_,_,Symbol),
+    //    as(TargetAddr, number) >= 0.
+    DATALOG_RECURSIVE_RULE(
+        analysis_scc, analysis_scc_init, 96,
+        {
+            clause_meta("def_used_for_address", {"EA", "Reg", "_"}),
+            clause_meta("arch_memory_access", {s2d("LOAD"), "EA", "SrcOp", "_",
+                                               "Reg", "_", "_", "_", "_"}),
+            clause_meta("simple_data_access_pattern",
+                        {"MemAddr", "SrcOp", "Size", "EA"}),
+            clause_meta(">=", {"Size", n2d(4)}),
+            clause_meta("<=", {"Size", n2d(8)}),
+            clause_meta("symbolic_expr_from_relocation",
+                        {"MemAddr", "Size", "Symbol", "_", "TargetAddr"}),
+            clause_meta("defined_symbol",
+                        {"_", "_", "_", "_", "_", "_", "_", "_", "Symbol"}),
+            //  clause_meta(">=", {"TargetAddr", n2d(0)})
+        },
+        // -->
+        clause_meta("value_reg", {"EA", "Reg", "EA", s2d("NONE"), n2d(0),
+                                  "TargetAddr", n2d(1)}));
 
     DATALOG_RECURSIVE_RULE(
         analysis_scc, analysis_scc_init, 97,
@@ -1573,10 +1794,17 @@ void run(int argc, char *argv[], int block_size, int grid_size) {
     PRINT_REL_SIZE(analysis_scc, "value_reg_edge");
     PRINT_REL_SIZE(analysis_scc, "value_reg_edge_tmp1");
     PRINT_REL_SIZE(analysis_scc, "value_reg");
+    PRINT_REL_SIZE(analysis_scc, "value_reg_debug");
+    PRINT_REL_SIZE(analysis_scc, "value_reg_tmp_92");
+    dump_tuple_rows(value_reg_debug->full, "value_reg_debug",
+                    "value_reg_debug");
     // PRINT_REL_SIZE(analysis_scc, "def_used_for_address_load");
     // PRINT_REL_SIZE(analysis_scc, "def_used_for_address_store");
     // PRINT_REL_SIZE(analysis_scc, "def_used_for_address_load_store");
     // dump_tuple_rows(value_reg->full, "value_reg", "value_reg");
+    dump_tuple_rows(value_reg_tmp_92->full, "value_reg_tmp_92",
+                    "value_reg_tmp_92");
+    std::cout << "String Map >> : " << s2d("NONE") << std::endl;
 }
 
 MAIN_ENTRANCE(run)

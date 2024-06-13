@@ -23,7 +23,7 @@ using tuple_size_t = unsigned long long;
 using tuple_permutation_t = int;
 
 #define EMPTY_HASH_ENTRY UINT64_MAX
-#define MAX_ARITY 10
+#define MAX_ARITY 12
 
 inline column_type s2d(std::string const &str) {
     return std::hash<std::string>{}(str) & 0x7FFFFFFF;
@@ -62,11 +62,11 @@ struct TupleGenerator {
             if (reorder_map[i] < inner_arity && reorder_map[i] >= 0) {
                 result[i] = inner[reorder_map[i]];
                 continue;
-            } else if (reorder_map[i] >= inner_arity && reorder_map[i] < MAX_ARITY) {
+            } else if (reorder_map[i] >= inner_arity && reorder_map[i] < 2*MAX_ARITY) {
                 result[i] = outer[reorder_map[i] - inner_arity];
                 continue;
             }
-            if (reorder_map[i] >= MAX_ARITY) {
+            if (reorder_map[i] >= 2*MAX_ARITY) {
                 if (reorder_map[i] == C_ZERO) {
                     result[i] = 0;
                 } else {
@@ -75,7 +75,7 @@ struct TupleGenerator {
                 continue;
             }
             if (reorder_map[i] < 0) {
-                printf("reorder_map[i] %d\n", reorder_map[i]);
+                // printf("reorder_map[i] %d\n", reorder_map[i]);
                 result[i] = -reorder_map[i] - 16;
                 continue;
             }

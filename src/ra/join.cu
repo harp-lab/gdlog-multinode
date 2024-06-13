@@ -59,7 +59,7 @@ get_join_result_size(MEntity *inner_index_map,
                 // hack to apply filter
                 // TODO: this will cause max arity of a relation is 20
                 if (tp_pred.arity > 0) {
-                    column_type tmp[10] = {0};
+                    column_type tmp[MAX_ARITY] = {0};
                     tp_gen(cur_inner_tuple, outer_tuple, tmp);
                     if (tp_pred(tmp)) {
                         current_size++;
@@ -137,9 +137,9 @@ get_join_result(MEntity *inner_index_map, tuple_size_t inner_index_map_size,
                     (res_offset[i] + current_new_tuple_cnt) * output_arity;
 
                 // for (int j = 0; j < output_arity; j++) {
-                // TODO: this will cause max arity of a relation is 20
+                // TODO: this will cause max arity of a relation is MAX_ARITY
                 if (tp_pred.arity > 0) {
-                    column_type tmp[20];
+                    column_type tmp[MAX_ARITY];
                     tp_gen(inner_tuple, outer_tuple, tmp);
                     if (tp_pred(tmp)) {
                         tp_gen(inner_tuple, outer_tuple, new_tuple);

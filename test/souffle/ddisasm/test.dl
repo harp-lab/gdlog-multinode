@@ -286,6 +286,28 @@
 .decl reg_def_use_flow_def(EA:address,Var:register,EA_next:address,Value:number)
 .input reg_def_use_flow_def
 
+.decl symbolic_expr_from_relocation(EA:address,Size:unsigned,Symbol:symbol,Offset:number,TargetEA:address)
+.input symbolic_expr_from_relocation
+
+.decl got_relative_operand(EA:address,Index:operand_index,Dest:address)
+.input got_relative_operand
+
+.decl op_regdirect_contains_reg(Op:operand_code,Reg:register)
+.input op_regdirect_contains_reg
+
+.decl reg_reg_arithmetic_operation_defs(EA:address,Reg_def:register,EA_def1:address,Reg1:register,EA_def2:address,Reg2:register,Mult:number,Offset:number)
+.input reg_reg_arithmetic_operation_defs
+
+.decl defined_symbol(ea:address,size:unsigned,type:symbol,scope:symbol,visibility:symbol,sectionIndex:unsigned,originTable:symbol,tableIndex:unsigned,name:symbol)
+.input defined_symbol
+
+.decl simple_data_access_pattern(Address:address,Op_index:unsigned,Size:unsigned,FromWhere:address)
+.input simple_data_access_pattern
+
+.decl arch_store_immediate(EA:address,SrcOp:operand_index,DstOp:operand_index,
+    Immediate:number,BaseReg:reg_nullable,IndexReg:reg_nullable,Mult:number,Offset:number)
+.input arch_store_immediate
+
 block_next(Block,EA,Dest) :- 
    block_last_instruction(Block,EA),
    jump_table_target(EA,Dest).
@@ -873,75 +895,80 @@ value_reg(EA,Reg,EA,Reg,1,0,1) :-
    value_reg_unsupported(EA,Reg).
 
 
-// value_reg(EA,Reg,EA_from,"Unknown",Immediate,Base,Tmp2) :- 
-//    step_limit(StepLimit),
-//    value_reg(EA,Reg,EA_from,"NONE",0,Base,Steps),
-//    Tmp1 = (StepLimit-2)
-//    Steps <= Tmp1,
-//    value_reg_edge(EA,Reg,EA,Reg,1,Immediate),
-//    Immediate != 0,
-//    Tmp2 = (Steps+1).
+value_reg(EA,Reg,EA_from,"Unknown",Immediate,Base,Tmp2) :- 
+   value_reg(EA,Reg,EA_from,"NONE",0,Base,Steps),
+   Tmp1 = 10,
+   Steps <= Tmp1,
+   value_reg_edge(EA,Reg,EA,Reg,1,Immediate),
+   Immediate != 0,
+   Tmp2 = (Steps+1).
 
-// value_reg(EA1,Reg1,EA3,Reg3,Tmp2,Tmp4,Tmp5) :- 
-//    step_limit(StepLimit),
-//    value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
-//    Tmp1 = (StepLimit-2)
-//    Steps <= Tmp1,
-//    value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
-//    EA1 > EA2,
-//    Tmp2 = (Multiplier*Multiplier2),
-//    Tmp3 = (Offset2*Multiplier),
-//    Tmp4 = (Tmp3+Offset),
-//    Tmp5 = (Steps+1).
+value_reg(EA1,Reg1,EA3,Reg3,Tmp2,Tmp4,Tmp5) :-
+   value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
+   Steps <= 10,
+   value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
+   EA1 > EA2,
+   Tmp2 = (Multiplier*Multiplier2),
+   Tmp3 = (Offset2*Multiplier),
+   Tmp4 = (Offset2+Offset),
+   Tmp5 = (Steps+1).
 
-// value_reg(EA1,Reg1,EA3,Reg3,Tmp1,Tmp3,Tmp4) :- 
-//    step_limit(StepLimit),
-//    value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
-//    Steps <= (StepLimit-6),
-//    value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
-//    EA1 < EA2,
-//    Tmp1 = (Multiplier*Multiplier2),
-//    Tmp2 = (Offset2*Multiplier),
-//    Tmp3 = (Tmp2+Offset),
-//    Tmp4 = (Steps+5).
+value_reg(EA1,Reg1,EA3,Reg3,Tmp1,Tmp3,Tmp4) :- 
+   value_reg(EA2,Reg2,EA3,Reg3,Multiplier2,Offset2,Steps),
+   Steps <= 4,
+   value_reg_edge(EA1,Reg1,EA2,Reg2,Multiplier,Offset),
+   EA1 < EA2,
+   Tmp1 = (Multiplier*Multiplier2),
+   Tmp2 = (Offset2*Multiplier),
+   Tmp3 = (Offset2+Offset),
+   Tmp4 = (Steps+5).
 
-// value_reg(EA,Reg,EA,"NONE",0,as(Address, number),1) :- 
-//    def_used_for_address(EA,Reg,_),
-//    instruction_has_relocation(EA,EA_rel),
-//    symbolic_expr_from_relocation(EA_rel,_,_,_,Address).
+value_reg(EA,Reg,EA,"NONE",0,as(Address, number),1) :- 
+   def_used_for_address(EA,Reg,_),
+   instruction_has_relocation(EA,EA_rel),
+   symbolic_expr_from_relocation(EA_rel,_,_,_,Address).
 
-// value_reg(EA,Reg,EA,"NONE",0,as(Offset, number),1) :- 
-//    binary_format("ELF"),
-//    got_relative_operand(EA,1,Offset),
-//    instruction(EA,_,_,"LEA",_,Op2,0,0,_,_),
-//    op_regdirect_contains_reg(Op2,Reg),
-//    track_register(Reg).
+value_reg(EA,Reg,EA,"NONE",0,as(Offset, number),1) :- 
+   // binary_format("ELF"),
+   got_relative_operand(EA,1,Offset),
+   instruction(EA,_,_,"LEA",_,Op2,0,0,_,_),
+   op_regdirect_contains_reg(Op2,Reg),
+   track_register(Reg).
 
-// value_reg(EA,Reg_def,EA_third,Reg3,Tmp3,Tmp6,Tmp8) :- 
-//    step_limit(StepLimit),
-//    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
-//    value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
-//    Tmp1 = (StepLimit-3),
-//    Steps1 <= Tmp1,
-//    EA != EA_third,
-//    value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
-//    Steps2 <= Tmp1,
-//    Tmp2 = (Mult*Mult2),
-//    Tmp3 = (Mult1+Tmp2),
-//    Tmp4 = (Offset+Offset1),
-//    Tmp5 = (Offset2*Mult),
-//    Tmp6 = (Tmp4+Tmp5),
-//    Tmp7 = max(Steps1,Steps2),
-//    Tmp8 = (Tmp7+2).
+.decl value_reg_tmp_92(EA_def1:address, Reg1:register, EA_third:address, Reg3:reg_nullable, Mult:number, Offset:number,
+                       Offset2:number, Steps:unsigned, EA:address, Reg_def:register)
+.output value_reg_tmp_92
+.printsize value_reg_tmp_92
+value_reg_tmp_92(EA_def1, Reg1, EA_third, Reg3, Tmp2, Offset,Offset2,
+                 Steps2, EA, Reg_def) :- 
+   reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
+   value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
+   Steps2 <= 7,
+   EA != EA_third,
+   Tmp2 = (Mult*Mult2).
+
+// value_reg(EA,Reg_def,EA_third,Reg3,Tmp3,Tmp6,Tmp8),
+value_reg_debug(EA,Reg_def,EA_third,Reg3,Tmp3,Tmp6,Tmp8) :- 
+   reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
+   value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
+   Steps1 <= 7,
+   EA != EA_third,
+   value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
+   Steps2 <= 7,
+   Tmp2 = (Mult*Mult2),
+   Tmp3 = (Mult1+Tmp2),
+   Tmp4 = (Offset+Offset1),
+   Tmp5 = (Offset2*Mult),
+   Tmp6 = (Tmp4+Tmp5),
+   Tmp7 = max(Steps1,Steps2),
+   Tmp8 = (Tmp7+2).
 
 // value_reg(EA,Reg_def,EA_third,Reg3,Tmp2,Tmp5,Tmp7) :- 
-//    step_limit(StepLimit),
 //    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
 //    value_reg(EA_def1,Reg1,_,"NONE",_,Offset1,Steps1),
-//    Tmp1 = (StepLimit-3),
-//    Steps1 <= Tmp1,
+//    Steps1 <= 7,
 //    value_reg(EA_def2,Reg2,EA_third,Reg3,Mult2,Offset2,Steps2),
-//    Steps2 <= Tmp1,
+//    Steps2 <= 7,
 //    EA != EA_third,
 //    Reg3 != "NONE",
 //    Tmp2 = (Mult*Mult2),
@@ -952,10 +979,9 @@ value_reg(EA,Reg,EA,Reg,1,0,1) :-
 //    Tmp7 = (Tmp6+2).
 
 // value_reg(EA,Reg_def,EA_third,Reg3,Mult1,Tmp4,Tmp6) :- 
-//    step_limit(StepLimit),
 //    reg_reg_arithmetic_operation_defs(EA,Reg_def,EA_def1,Reg1,EA_def2,Reg2,Mult,Offset),
 //    value_reg(EA_def2,Reg2,_,"NONE",_,Offset2,Steps2),
-//    Tmp1 = (StepLimit-3),
+//    Tmp1 = 4,
 //    Steps2 <= Tmp1,
 //    value_reg(EA_def1,Reg1,EA_third,Reg3,Mult1,Offset1,Steps1),
 //    Steps1 <= Tmp1,
@@ -967,22 +993,23 @@ value_reg(EA,Reg,EA,Reg,1,0,1) :-
 //    Tmp5 = max(Steps1,Steps2),
 //    Tmp6 = (Tmp5+2).
 
-// value_reg(EALoad,Reg2,EALoad,"NONE",0,Immediate,1) :- 
-//    arch_store_immediate(EAStore,_,_,Immediate,RegBaseStore,"NONE",_,StackPosStore),
-//    stack_def_use_def_used(EAStore,[RegBaseStore,StackPosStore],EALoad,[RegBaseLoad,StackPosLoad],_),
-//    arch_memory_access("LOAD",EALoad,_,_,Reg2,RegBaseLoad,inlined_IndexReg_452,_,StackPosLoad),
-//    inlined_IndexReg_452 = "NONE",
-//    def_used_for_address(EALoad,Reg2,_).
+// value_reg_debug(EALoad,Reg2,EALoad,"NONE",0,Immediate,1), 
+value_reg(EALoad,Reg2,EALoad,"NONE",0,Immediate,1) :- 
+   arch_store_immediate(EAStore,_,_,Immediate,RegBaseStore,"NONE",_,StackPosStore),
+   stack_def_use_def_used(EAStore,[RegBaseStore,StackPosStore],EALoad,[RegBaseLoad,StackPosLoad],_),
+   arch_memory_access("LOAD",EALoad,_,_,Reg2,RegBaseLoad,inlined_IndexReg_452,_,StackPosLoad),
+   inlined_IndexReg_452 = "NONE",
+   def_used_for_address(EALoad,Reg2,_).
 
-// value_reg(EA,Reg,EA,"NONE",0,as(TargetAddr, number),1) :- 
-//    def_used_for_address(EA,Reg,_),
-//    arch_memory_access("LOAD",EA,SrcOp,_,Reg,_,_,_,_),
-//    simple_data_access_pattern(MemAddr,SrcOp,Size,EA),
-//    4 <= Size,
-//    Size <= 8,
-//    symbolic_expr_from_relocation(MemAddr,Size,Symbol,_,TargetAddr),
-//    defined_symbol(_,_,_,_,_,_,_,_,Symbol),
-//    as(TargetAddr, number) >= 0.
+value_reg(EA,Reg,EA,"NONE",0,as(TargetAddr, number),1) :- 
+   def_used_for_address(EA,Reg,_),
+   arch_memory_access("LOAD",EA,SrcOp,_,Reg,_,_,_,_),
+   simple_data_access_pattern(MemAddr,SrcOp,Size,EA),
+   4 <= Size,
+   Size <= 8,
+   symbolic_expr_from_relocation(MemAddr,Size,Symbol,_,TargetAddr),
+   defined_symbol(_,_,_,_,_,_,_,_,Symbol),
+   as(TargetAddr, number) >= 0.
 
 
 
