@@ -3,6 +3,16 @@ project(gdlog LANGUAGES CXX CUDA)
 
 find_package(MPI REQUIRED)
 
+find_package(OpenMP REQUIRED)
+find_package(TBB REQUIRED)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    # set nvcc cmake flag for openmp
+    set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -fopenmp")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 option(POLARIS_RDMA "Turn on GPU direct on polaris" OFF)
 option(FORCE_GPU_DIRECT "Force GPU direct to be on" OFF)
 option(USE_64BIT_DOMAIN "Use u64 as builtin type for column domain" OFF)
@@ -251,13 +261,13 @@ set_target_properties(TC PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECT
 # target_compile_features(BLOCK_OVERLAP PUBLIC cxx_std_17)
 # set_target_properties(BLOCK_OVERLAP PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
-# file(GLOB source_file_value_analysis
-#     "${test_dir}/value_analysis.cu"
-# )
-# add_executable(VALUE_ANALYSIS ${source_file_value_analysis})
-# target_link_libraries(VALUE_ANALYSIS gpu_ra)
-# target_compile_features(VALUE_ANALYSIS PUBLIC cxx_std_17)
-# set_target_properties(VALUE_ANALYSIS PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+file(GLOB source_file_sort
+    "${test_dir}/sort.cu"
+)
+add_executable(SORT ${source_file_sort})
+target_link_libraries(SORT gpu_ra OpenMP::OpenMP_CXX TBB::tbb)
+target_compile_features(SORT PUBLIC cxx_std_17)
+set_target_properties(SORT PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
 file(GLOB source_file_value_analysis_test
     "${test_dir}/value_analysis_debug.cu"
