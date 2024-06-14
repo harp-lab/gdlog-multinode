@@ -15,7 +15,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/gdlog_RAPIDS.cmake)
-file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-24.04/RAPIDS.cmake
+file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-24.06/RAPIDS.cmake
 ${CMAKE_CURRENT_BINARY_DIR}/gdlog_RAPIDS.cmake)
 endif()
 
@@ -78,7 +78,7 @@ set(cuco_ADDED "${cuco_ADDED}" PARENT_SCOPE)
 set(cuco_VERSION ${version} PARENT_SCOPE)
 endfunction()
 
-# rapids_cpm_cuco()
+rapids_cpm_cuco()
 function(rapids_cpm_rmm)
 list(APPEND CMAKE_MESSAGE_CONTEXT "rapids.cpm.rmm")
 
@@ -152,6 +152,7 @@ file(GLOB source_file_gpu_ra
     "${gpu_ra_include}/comm.cuh"
     "${gpu_ra_include}/rt_incl.h"
     "${gpu_ra_src}/tuple.cu"
+    "${gpu_ra_src}/hashtrie.cu"
     "${gpu_ra_src}/print.cu"
     "${gpu_ra_src}/relation.cu"
     "${gpu_ra_src}/lie.cu"
@@ -211,7 +212,7 @@ else()
     if (FORCE_GPU_DIRECT)
         target_compile_definitions(gpu_ra PUBLIC DEFAULT_GPU_RDMA=1)
     endif()
-    target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm)
+    target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm cuco)
 endif()
 
 set_target_properties(gpu_ra PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
