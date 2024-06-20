@@ -16,8 +16,6 @@
 #include <rmm/mr/device/per_device_resource.hpp>
 #include <rmm/mr/device/pool_memory_resource.hpp>
 
-#include "../include/hashtrie.cuh"
-
 void analysis_bench(int argc, char *argv[], int block_size, int grid_size) {
     const char *dataset_path = argv[1];
     KernelTimer timer;

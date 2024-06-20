@@ -3,6 +3,16 @@ project(gdlog LANGUAGES CXX CUDA)
 
 find_package(MPI REQUIRED)
 
+find_package(OpenMP REQUIRED)
+find_package(TBB REQUIRED)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    # set nvcc cmake flag for openmp
+    set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -fopenmp")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 option(POLARIS_RDMA "Turn on GPU direct on polaris" OFF)
 option(FORCE_GPU_DIRECT "Force GPU direct to be on" OFF)
 option(USE_64BIT_DOMAIN "Use u64 as builtin type for column domain" OFF)
@@ -201,6 +211,7 @@ file(GLOB source_file_merge
 
 add_library(gpu_ra "${source_file_gpu_ra}")
 target_compile_features(gpu_ra PUBLIC cxx_std_17)
+target_compile_definitions(gpu_ra PUBLIC)
 
 if(POLARIS_RDMA)
     add_library(mpi_gtl SHARED IMPORTED)
@@ -212,7 +223,7 @@ else()
     if (FORCE_GPU_DIRECT)
         target_compile_definitions(gpu_ra PUBLIC DEFAULT_GPU_RDMA=1)
     endif()
-    target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm cuco)
+    target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm cuco TBB::tbb)
 endif()
 
 set_target_properties(gpu_ra PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
@@ -266,5 +277,13 @@ add_executable(VALUE_ANALYSIS_TEST ${source_file_value_analysis_test})
 target_link_libraries(VALUE_ANALYSIS_TEST gpu_ra)
 target_compile_features(VALUE_ANALYSIS_TEST PUBLIC cxx_std_17)
 set_target_properties(VALUE_ANALYSIS_TEST PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
+
+file(GLOB source_file_data_test
+    "${test_dir}/data_test.cu"
+)
+add_executable(DATA_TEST ${source_file_data_test})
+target_link_libraries(DATA_TEST gpu_ra OpenMP::OpenMP_CXX TBB::tbb)
+target_compile_features(DATA_TEST PUBLIC cxx_std_20)
+set_target_properties(DATA_TEST PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
 
 
