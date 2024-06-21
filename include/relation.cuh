@@ -1,6 +1,7 @@
 #pragma once
 #include "builtin.h"
 #include "tuple.cuh"
+#include "utils.h"
 
 #include <map>
 #include <rmm/device_vector.hpp>
@@ -15,7 +16,6 @@
 #define FULL_BUFFER_VEC_MULTIPLIER 5
 #endif
 
-enum RelationVersion { DELTA, FULL, NEWT };
 
 /**
  * @brief A hash table entry
@@ -188,6 +188,8 @@ struct Relation {
     // build relation index, and only indexed columns can be used to join
     int index_column_size;
     std::string name;
+
+    float detail_time[10];
 
     // the last <dependent_column_size> will be used a dependant columns,
     // these column can be used to store recurisve aggreagtion/choice

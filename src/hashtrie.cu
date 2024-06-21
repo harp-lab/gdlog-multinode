@@ -1,12 +1,16 @@
 
 #include "../include/hashtrie.cuh"
 
+#include <cuda/functional>
+
 #include <thrust/adjacent_difference.h>
+#include <thrust/device_ptr.h>
 #include <thrust/fill.h>
 #include <thrust/gather.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/discard_iterator.h>
 #include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/remove.h>
 #include <thrust/sequence.h>
@@ -17,11 +21,27 @@
 
 namespace hisa {
 
-// hashtrie::load(const std::vector<internal_data_type> &tuple) {
+// hashtrie::load(const thrust::host_vector<internal_data_type> &tuple) {
 
 // }
 
-void hisa_cpu::load(const std::vector<tuple_type> &tuples) {
+// write a gpu functor kernel do parallel on multiple value, binary search on a
+// sorted array
+struct BinarySearch {
+    BinarySearch(const internal_data_type *sorted_data, size_t size)
+        : sorted_data(sorted_data), size(size) {}
+
+    __device__ internal_data_type operator()(internal_data_type value) {
+        auto it = thrust::lower_bound(thrust::seq, sorted_data,
+                                      sorted_data + size, value);
+        return it - sorted_data;
+    }
+
+    const internal_data_type *sorted_data;
+    size_t size;
+};
+
+void hisa_cpu::load(const thrust::host_vector<tuple_type> &tuples) {
 
     this->columns.resize(arity);
 
@@ -38,7 +58,7 @@ void hisa_cpu::load(const std::vector<tuple_type> &tuples) {
 }
 
 void hisa_cpu::load_vectical(
-    std::vector<std::vector<internal_data_type>> &tuples) {
+    thrust::host_vector<thrust::host_vector<internal_data_type>> &tuples) {
 
     this->columns.resize(arity);
 
@@ -63,8 +83,9 @@ void hisa_cpu::deduplicate() {
         auto &column = columns[i];
         auto &column_data = column.raw_data;
         // gather the column data
-        thrust::gather(lexical_order_indices.begin(), lexical_order_indices.end(),
-                       column_data.begin(), tmp_raw.begin());
+        thrust::gather(lexical_order_indices.begin(),
+                       lexical_order_indices.end(), column_data.begin(),
+                       tmp_raw.begin());
         thrust::stable_sort_by_key(tmp_raw.begin(), tmp_raw.end(),
                                    lexical_order_indices.begin());
         if (i == 0) {
@@ -476,4 +497,660 @@ void hisa_cpu::clear() {
     indexed = false;
 }
 
-} // namespace hashtrie
+// simple map
+void simple_map::insert(device_data_t &keys, device_ranges_t &values) {
+    // swap in
+    this->keys.swap(keys);
+    this->values.swap(values);
+}
+
+void simple_map::find(device_data_t &keys, device_ranges_t &result) {
+    // keys is the input, values is the output
+    result.resize(keys.size());
+    device_data_t found_keys(keys.size());
+
+    thrust::transform(
+        keys.begin(), keys.end(), found_keys.begin(),
+        [map_keys = this->keys.data().get(), map_vs = this->values.data().get(),
+         ksize = this->keys.size()] __device__(internal_data_type key)
+            -> comp_range_t {
+            auto it = thrust::lower_bound(thrust::seq, map_keys,
+                                          map_keys + ksize, key);
+            return map_vs[it - map_keys];
+        });
+
+    result.resize(keys.size());
+}
+
+// multi_hisa
+void VerticalColumnGpu::clear_unique_v() {
+    if (!unique_v_map) {
+        // delete unique_v_map;
+        unique_v_map = nullptr;
+    }
+}
+
+VerticalColumnGpu::~VerticalColumnGpu() { clear_unique_v(); }
+
+multi_hisa::multi_hisa(int arity) {
+    this->arity = arity;
+    newt_size = 0;
+    full_size = 0;
+    delta_size = 0;
+    full_columns.resize(arity);
+    delta_columns.resize(arity);
+    newt_columns.resize(arity);
+    data.resize(arity);
+}
+
+void multi_hisa::init_load_vectical(
+    thrust::host_vector<thrust::host_vector<internal_data_type>> &tuples,
+    size_t rows) {
+    auto load_start = std::chrono::high_resolution_clock::now();
+    auto total_tuples = tuples[0].size();
+    for (int i = 0; i < arity; i++) {
+        // extract the i-th column
+        // thrust::device_vector<internal_data_type> column_data(total_tuples);
+        data[i].resize(total_tuples);
+        cudaMemcpy(data[i].data().get(), tuples[i].data(),
+                   tuples[i].size() * sizeof(internal_data_type),
+                   cudaMemcpyHostToDevice);
+        // save columns raw
+    }
+    this->total_tuples = total_tuples;
+    this->newt_size = total_tuples;
+    // set newt
+    for (int i = 0; i < arity; i++) {
+        newt_columns[i].raw_data = data[i].data();
+    }
+    auto load_end = std::chrono::high_resolution_clock::now();
+    this->load_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                           load_end - load_start)
+                           .count();
+}
+
+void multi_hisa::print_all(bool sorted) {
+    // print all columns in full
+    thrust::host_vector<internal_data_type> column(total_tuples);
+    thrust::host_vector<internal_data_type> unique_value(total_tuples);
+    for (int i = 0; i < arity; i++) {
+        thrust::copy(full_columns[i].raw_data,
+                     full_columns[i].raw_data + full_size, column.begin());
+        std::cout << "column data " << i << " " << total_tuples << ":\n";
+        for (int j = 0; j < column.size(); j++) {
+            std::cout << column[j] << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "unique values " << i << " "
+                  << full_columns[i].unique_v.size() << ":\n";
+        unique_value.resize(full_columns[i].unique_v.size());
+        thrust::copy(full_columns[i].unique_v.begin(),
+                     full_columns[i].unique_v.end(), unique_value.begin());
+        for (int j = 0; j < full_columns[i].unique_v.size(); j++) {
+            std::cout << unique_value[j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void multi_hisa::build_index(RelationVersion version, bool sorted) {
+    auto &columns = get_versioned_columns(version);
+    auto version_size = get_versioned_size(version);
+
+    device_data_t unique_offset(total_tuples);
+    device_data_t unique_diff(total_tuples);
+    for (size_t i = 0; i < arity; i++) {
+        device_data_t column_data(total_tuples);
+        // std::cout << "build index " << i << std::endl;
+        auto sorte_start = std::chrono::high_resolution_clock::now();
+        if (!sorted) {
+            columns[i].sorted_indices.resize(total_tuples);
+            thrust::sequence(DEFAULT_DEVICE_POLICY,
+                             columns[i].sorted_indices.begin(),
+                             columns[i].sorted_indices.end());
+            // sort all values in the column
+            thrust::copy(DEFAULT_DEVICE_POLICY, columns[i].raw_data,
+                         columns[i].raw_data + version_size,
+                         column_data.begin());
+            // if (i != 0) {
+            thrust::sort_by_key(DEFAULT_DEVICE_POLICY, column_data.begin(),
+                                column_data.end(),
+                                columns[i].sorted_indices.begin());
+            // }
+        } else {
+            thrust::gather(DEFAULT_DEVICE_POLICY,
+                           columns[i].sorted_indices.begin(),
+                           columns[i].sorted_indices.end(), columns[i].raw_data,
+                           column_data.begin());
+        }
+        auto sort_end = std::chrono::high_resolution_clock::now();
+        this->sort_time +=
+            std::chrono::duration_cast<std::chrono::microseconds>(sort_end -
+                                                                  sorte_start)
+                .count();
+        // compress the column, save unique values and their counts
+        thrust::sequence(DEFAULT_DEVICE_POLICY, unique_offset.begin(),
+                         unique_offset.end());
+        // using thrust parallel algorithm to compress the column
+        // mark non-unique values as 0
+        // print column_data
+        // for (int j = 0; j < column_data.size(); j++) {
+        //     std::cout << column_data[j] << " ";
+        // }s
+        // std::cout << std::endl;
+
+        auto uniq_end =
+            thrust::unique_by_key(DEFAULT_DEVICE_POLICY, column_data.begin(),
+                                  column_data.end(), unique_offset.begin());
+        auto uniq_size = uniq_end.first - column_data.begin();
+        // column_data.resize(uniq_size);
+        // unique_offset.resize(uniq_size);
+        // columns[i].unique_v.swap(column_data);
+        auto &uniq_val = column_data;
+        // columns[i].unique_v.resize(uniq_size);
+        // thrust::copy(DEFAULT_DEVICE_POLICY, column_data.begin(),
+        //              column_data.begin() + uniq_size,
+        //              columns[i].unique_v.begin());
+        // column_data.resize(0);
+        // column_data.shrink_to_fit();
+
+        unique_offset.resize(uniq_size);
+        // device_data_t unique_diff = unique_offset;
+        thrust::copy(DEFAULT_DEVICE_POLICY, unique_offset.begin(),
+                     unique_offset.end(), unique_diff.begin());
+        unique_diff.resize(uniq_size);
+        unique_diff.push_back(total_tuples);
+        // calculate offset by minus the previous value
+        thrust::adjacent_difference(DEFAULT_DEVICE_POLICY, unique_diff.begin(),
+                                    unique_diff.end(), unique_diff.begin());
+        // the first value is always 0, in following code, we will use the
+        // 1th as the start index
+        unique_diff.erase(unique_diff.begin());
+        unique_diff.resize(uniq_size);
+
+        // update map
+        auto start = std::chrono::high_resolution_clock::now();
+        if (columns[i].use_real_map) {
+            if (columns[i].unique_v_map) {
+                // columns[i].unique_v_map->reserve(uniq_size);
+                columns[i].unique_v_map = nullptr;
+                columns[i].unique_v_map = std::make_unique<GpuMap>(
+                    uniq_size, 0.8,
+                    cuco::empty_key<internal_data_type>{UINT32_MAX},
+                    cuco::empty_value<offset_type>{UINT32_MAX});
+            } else {
+                columns[i].unique_v_map = std::make_unique<GpuMap>(
+                    uniq_size, 0.8,
+                    cuco::empty_key<internal_data_type>{UINT32_MAX},
+                    cuco::empty_value<offset_type>{UINT32_MAX});
+            }
+            auto insertpair_begin = thrust::make_transform_iterator(
+                thrust::make_zip_iterator(
+                    thrust::make_tuple(uniq_val.begin(), unique_offset.begin(),
+                                       unique_diff.begin())),
+                cuda::proclaim_return_type<GpuMapPair>([] __device__(auto &t) {
+                    return cuco::make_pair(
+                        thrust::get<0>(t),
+                        (static_cast<uint64_t>(thrust::get<1>(t)) << 32) +
+                            (static_cast<uint64_t>(thrust::get<2>(t))));
+                }));
+            columns[i].unique_v_map->insert(insertpair_begin,
+                                            insertpair_begin + uniq_size);
+        } else {
+            device_ranges_t ranges(uniq_size);
+            // compress offset and diff to u64 ranges
+            thrust::transform(
+                DEFAULT_DEVICE_POLICY, unique_offset.begin(),
+                unique_offset.end(), unique_diff.begin(), ranges.begin(),
+                [] __device__(auto &offset, auto &diff) -> uint64_t {
+                    return (static_cast<uint64_t>(offset) << 32) +
+                           (static_cast<uint64_t>(diff));
+                });
+            columns[i].unique_v_map_simp.insert(uniq_val, ranges);
+            // std::cout << "ranges size: " << ranges.size() << std::endl;
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        this->hash_time +=
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+                .count();
+    }
+    indexed = true;
+}
+
+void multi_hisa::deduplicate() {
+    auto start = std::chrono::high_resolution_clock::now();
+    VersionedColumns &columns = newt_columns;
+    auto version_size = newt_size;
+    // radix sort the raw data of each column
+    device_data_t dup_indices(version_size);
+    thrust::sequence(DEFAULT_DEVICE_POLICY, dup_indices.begin(),
+                     dup_indices.end());
+    device_data_t tmp_raw(version_size);
+    thrust::device_vector<bool> dup_flags(version_size, false);
+    thrust::device_vector<bool> dup_left_flags(version_size, false);
+    for (int i = arity - 1; i >= 0; i--) {
+        auto &column = columns[i];
+        auto &column_data = column.raw_data;
+        // gather the column data
+        thrust::gather(DEFAULT_DEVICE_POLICY, dup_indices.begin(),
+                       dup_indices.end(), column_data, tmp_raw.begin());
+        thrust::stable_sort_by_key(DEFAULT_DEVICE_POLICY, tmp_raw.begin(),
+                                   tmp_raw.end(), dup_indices.begin());
+        // check if a value is duplicated to the left
+        thrust::adjacent_difference(DEFAULT_DEVICE_POLICY, tmp_raw.begin(),
+                                    tmp_raw.end(), dup_left_flags.begin(),
+                                    thrust::equal_to<internal_data_type>());
+        // print tmp_raw here
+        // std::cout << "tmp_raw:\n";
+        // thrust::host_vector<internal_data_type> h_tmp_raw = tmp_raw;
+        // for (int i = 0; i < h_tmp_raw.size(); i++) {
+        //     std::cout << h_tmp_raw[i] << " ";
+        // }
+        // std::cout << std::endl;
+        // std::cout << "dup_indices:\n";
+        // thrust::host_vector<internal_data_type> h_dup_indices = dup_indices;
+        // for (int j = 0; j < h_dup_indices.size(); j++) {
+        //     std::cout << h_dup_indices[j] << " ";
+        // }
+        // std::cout << std::endl;
+        if (i != 0) {
+            // check if a value is duplicated to the right
+            thrust::adjacent_difference(DEFAULT_DEVICE_POLICY, tmp_raw.begin(),
+                                        tmp_raw.end(), dup_flags.begin(),
+                                        thrust::equal_to<internal_data_type>());
+            // either left or right is duplicated
+            thrust::transform(dup_flags.begin(), dup_flags.end(),
+                              dup_left_flags.begin(), dup_flags.begin(),
+                              thrust::logical_or<bool>());
+        } else {
+            dup_flags.swap(dup_left_flags);
+        }
+        // print dup_flags
+        //  std::cout << "dup_flags:\n";
+        //  thrust::host_vector<bool> h_dup_flags = dup_flags;
+        //  for (int j = 0; j < h_dup_flags.size(); j++) {
+        //      std::cout << h_dup_flags[j] << " ";
+        //  }
+        //  std::cout << std::endl;
+        //  filter keep only duplicates, the one whose dup_flags is true
+        auto new_dup_indices_end = thrust::remove_if(
+            DEFAULT_DEVICE_POLICY, dup_indices.begin(), dup_indices.end(),
+            dup_flags.begin(), thrust::logical_not<bool>());
+        auto new_dup_size = new_dup_indices_end - dup_indices.begin();
+        dup_indices.resize(new_dup_size);
+        // resize and reset flags
+        dup_flags.resize(new_dup_size);
+        tmp_raw.resize(new_dup_size);
+        dup_left_flags.resize(new_dup_size);
+    }
+    // print dup_indices
+
+    // tmp_raw.resize(0);
+    // tmp_raw.shrink_to_fit();
+
+    for (int i = 0; i < arity; i++) {
+        thrust::fill(DEFAULT_DEVICE_POLICY,
+                     thrust::make_permutation_iterator(columns[i].raw_data,
+                                                       dup_indices.begin()),
+                     thrust::make_permutation_iterator(columns[i].raw_data,
+                                                       dup_indices.end()),
+                     UINT32_MAX);
+    }
+
+    // remove dup in raw_data
+    uint32_t new_size = 0;
+    for (int i = 0; i < arity; i++) {
+        auto new_col_end =
+            thrust::remove(DEFAULT_DEVICE_POLICY, columns[i].raw_data,
+                           columns[i].raw_data + version_size, UINT32_MAX);
+        new_size = new_col_end - columns[i].raw_data;
+        columns[i].indexed = false;
+    }
+    newt_size = new_size;
+    total_tuples = newt_size + full_size;
+    for (size_t i = 0; i < arity; i++) {
+        data[i].resize(total_tuples);
+    }
+    indexed = false;
+    auto end = std::chrono::high_resolution_clock::now();
+    dedup_time +=
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+            .count();
+}
+
+// void multi_hisa::deduplicate() {
+//     auto start = std::chrono::high_resolution_clock::now();
+//     VersionedColumns &columns = newt_columns;
+//     auto version_size = newt_size;
+//     // radix sort the raw data of each column
+//     device_data_t lexical_order_indices(total_tuples);
+//     thrust::sequence(DEFAULT_DEVICE_POLICY, lexical_order_indices.begin(),
+//                      lexical_order_indices.end());
+//     device_data_t tmp_raw(total_tuples);
+//     for (int i = arity - 1; i >= 0; i--) {
+//         auto &column = columns[i];
+//         auto &column_data = column.raw_data;
+//         // gather the column data
+//         thrust::gather(DEFAULT_DEVICE_POLICY, lexical_order_indices.begin(),
+//                        lexical_order_indices.end(), column_data,
+//                        tmp_raw.begin());
+//         thrust::stable_sort_by_key(DEFAULT_DEVICE_POLICY, tmp_raw.begin(),
+//                                    tmp_raw.end(),
+//                                    lexical_order_indices.begin());
+//         if (i == 0) {
+//             thrust::copy(tmp_raw.begin(), tmp_raw.end(), column_data);
+//         }
+//     }
+//     for (int i = 1; i < arity; i++) {
+//         thrust::gather(DEFAULT_DEVICE_POLICY, lexical_order_indices.begin(),
+//                        lexical_order_indices.end(), columns[i].raw_data,
+//                        tmp_raw.begin());
+//         thrust::copy(tmp_raw.begin(), tmp_raw.end(), columns[i].raw_data);
+//     }
+//     // remove lexical_order_indices
+//     // lexical_order_indices.resize(0);
+//     // lexical_order_indices.shrink_to_fit();
+//     // tmp_raw.resize(0);
+//     // tmp_raw.shrink_to_fit();
+
+//     thrust::device_vector<bool> dup_flags(version_size, true);
+//     thrust::device_vector<bool> cur_col_dup_flags(version_size, false);
+//     dup_flags[0] = false;
+//     for (int i = 0; i < arity; i++) {
+//         thrust::adjacent_difference(DEFAULT_DEVICE_POLICY,
+//         columns[i].raw_data,
+//                                     columns[i].raw_data + version_size,
+//                                     cur_col_dup_flags.begin(),
+//                                     thrust::equal_to<internal_data_type>());
+//         thrust::transform(DEFAULT_DEVICE_POLICY, cur_col_dup_flags.begin(),
+//                           cur_col_dup_flags.end(), dup_flags.begin(),
+//                           dup_flags.begin(), thrust::logical_and<bool>());
+//     }
+
+//     // remove dup in each column using gather
+//     uint32_t new_size = 0;
+//     // TODO: need optimize
+//     for (int i = 0; i < arity; i++) {
+//         auto new_col_end =
+//             thrust::remove_if(DEFAULT_DEVICE_POLICY, columns[i].raw_data,
+//                               columns[i].raw_data + version_size,
+//                               dup_flags.begin(), thrust::identity<bool>());
+//         new_size = new_col_end - columns[i].raw_data;
+//         // full_columns[i].raw_data.resize(new_size);
+//         columns[i].indexed = false;
+//     }
+//     newt_size = new_size;
+//     total_tuples = new_size + full_size;
+//     for (size_t i = 0; i < arity; i++) {
+//         data[i].resize(total_tuples);
+//     }
+
+//     indexed = false;
+//     auto end = std::chrono::high_resolution_clock::now();
+//     dedup_time +=
+//         std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+//             .count();
+// }
+
+void multi_hisa::fit() {
+    total_tuples = newt_size + full_size;
+    for (int i = 0; i < arity; i++) {
+        data[i].resize(total_tuples);
+        data[i].shrink_to_fit();
+    }
+}
+
+void multi_hisa::new_to_delta() {
+    // if (delta_size != 0) {
+    //     throw std::runtime_error("delta is not empty before load new to
+    //     delta");
+    // }
+
+    delta_size = newt_size;
+    thrust::swap(newt_columns, delta_columns);
+    // This is redundant
+    for (int i = 0; i < arity; i++) {
+        newt_columns[i].raw_data = nullptr;
+    }
+}
+
+void remove_mismatch(VerticalColumnGpu &full_column,
+                     VerticalColumnGpu &newt_column, device_data_t &match_newt,
+                     device_pairs_t &matched_pair) {
+    auto matched_size = matched_pair.size();
+    device_data_t matched_newt_pos(matched_size);
+    thrust::transform(
+        DEFAULT_DEVICE_POLICY, matched_pair.begin(), matched_pair.end(),
+        matched_newt_pos.begin(),
+        [] __device__(auto &t) { return static_cast<uint32_t>(t >> 32); });
+    device_data_t matched_full_pos(matched_size);
+    thrust::transform(
+        DEFAULT_DEVICE_POLICY, matched_pair.begin(), matched_pair.end(),
+        matched_full_pos.begin(),
+        [] __device__(auto &t) { return static_cast<uint32_t>(t); });
+    // check if they agree on the value
+    thrust::device_vector<bool> unmatched_flags(matched_size, true);
+    thrust::transform(
+        thrust::make_permutation_iterator(newt_column.raw_data,
+                                          matched_newt_pos.begin()),
+        thrust::make_permutation_iterator(newt_column.raw_data,
+                                          matched_newt_pos.end()),
+        thrust::make_permutation_iterator(full_column.raw_data,
+                                          matched_full_pos.begin()),
+        unmatched_flags.begin(), thrust::not_equal_to<internal_data_type>());
+    // filter
+    auto new_matched_pair_end =
+        thrust::remove_if(matched_pair.begin(), matched_pair.end(),
+                          unmatched_flags.begin(), thrust::identity<bool>());
+    auto new_matched_pair_size = new_matched_pair_end - matched_pair.begin();
+    matched_pair.resize(new_matched_pair_size);
+    match_newt.resize(new_matched_pair_size);
+    match_newt.shrink_to_fit();
+    // populate the tuple need match later
+    thrust::transform(
+        DEFAULT_DEVICE_POLICY, matched_pair.begin(), matched_pair.end(),
+        match_newt.begin(),
+        cuda::proclaim_return_type<uint32_t>(
+            [] __device__(auto &t) { return static_cast<uint32_t>(t >> 32); }));
+}
+
+void multi_hisa::persist_newt() {
+    // clear the index of delta
+    for (int i = 0; i < arity; i++) {
+        delta_columns[i].sorted_indices.resize(0);
+        delta_columns[i].sorted_indices.shrink_to_fit();
+        delta_columns[i].unique_v.resize(0);
+        delta_columns[i].unique_v.shrink_to_fit();
+        delta_columns[i].clear_unique_v();
+        delta_columns[i].unique_v_map = nullptr;
+        delta_columns[i].raw_data = nullptr;
+    }
+    // merge newt to full
+    if (full_size == 0) {
+        full_size = newt_size;
+        // thrust::swap(newt_columns, full_columns);
+        for (int i = 0; i < arity; i++) {
+            full_columns[i].raw_data = newt_columns[i].raw_data;
+            newt_columns[i].raw_data = nullptr;
+        }
+        build_index(RelationVersion::FULL);
+        return;
+    }
+
+    // difference newt and full, this a join
+    // thrust::device_vector<internal_data_type> newt_full_diff(newt_size);
+    device_pairs_t matched_pair;
+    thrust::sequence(DEFAULT_DEVICE_POLICY, matched_pair.begin(),
+                     matched_pair.end());
+    device_data_t match_newt(newt_size);
+    thrust::sequence(DEFAULT_DEVICE_POLICY, match_newt.begin(),
+                     match_newt.end());
+    for (size_t i = 0; i < arity; i++) {
+        auto &newt_column = newt_columns[i];
+        auto &full_column = full_columns[i];
+        if (matched_pair.size() != 0) {
+            remove_mismatch(full_column, newt_column, match_newt, matched_pair);
+        }
+        if (match_newt.size() == 0) {
+            break;
+        }
+        column_join(full_column, newt_column, match_newt, matched_pair);
+    }
+
+    // clear newt only keep match_newt
+    if (match_newt.size() != 0) {
+        device_data_t dup_newt_flags(newt_size, false);
+        thrust::fill(DEFAULT_DEVICE_POLICY,
+                     thrust::make_permutation_iterator(dup_newt_flags.begin(),
+                                                       match_newt.begin()),
+                     thrust::make_permutation_iterator(dup_newt_flags.begin(),
+                                                       match_newt.end()),
+                     true);
+        auto new_newt_end =
+            thrust::remove_if(DEFAULT_DEVICE_POLICY, newt_columns[0].raw_data,
+                              newt_columns[0].raw_data + newt_size,
+                              dup_newt_flags.begin(), thrust::identity<bool>());
+        newt_size = new_newt_end - newt_columns[0].raw_data;
+    }
+
+    // sort and merge newt
+    device_data_t merged_column(full_size + newt_size);
+    device_data_t tmp_newt_v(newt_size);
+    for (size_t i = 0; i < arity; i++) {
+        auto &newt_column = newt_columns[i];
+        auto &full_column = full_columns[i];
+
+        newt_column.sorted_indices.resize(newt_size);
+        thrust::copy(DEFAULT_DEVICE_POLICY, newt_column.raw_data,
+                     newt_column.raw_data + newt_size, tmp_newt_v.begin());
+        thrust::sequence(DEFAULT_DEVICE_POLICY,
+                         newt_column.sorted_indices.begin(),
+                         newt_column.sorted_indices.end(), full_size);
+        thrust::sort_by_key(tmp_newt_v.begin(), tmp_newt_v.end(),
+                            newt_column.sorted_indices.begin());
+
+        // merge
+        thrust::merge_by_key(
+            DEFAULT_DEVICE_POLICY,
+            thrust::make_permutation_iterator(
+                full_column.raw_data, newt_column.sorted_indices.begin()),
+            thrust::make_permutation_iterator(full_column.raw_data,
+                                              newt_column.sorted_indices.end()),
+            thrust::make_permutation_iterator(
+                full_column.raw_data, full_column.sorted_indices.begin()),
+            thrust::make_permutation_iterator(full_column.raw_data,
+                                              full_column.sorted_indices.end()),
+            newt_column.sorted_indices.begin(),
+            full_column.sorted_indices.begin(), thrust::make_discard_iterator(),
+            merged_column.begin());
+        full_column.sorted_indices.swap(newt_column.sorted_indices);
+        // minus size of full on all newt indices
+        thrust::transform(DEFAULT_DEVICE_POLICY,
+                          newt_column.sorted_indices.begin(),
+                          newt_column.sorted_indices.end(),
+                          thrust::make_constant_iterator(full_size),
+                          newt_column.sorted_indices.begin(),
+                          thrust::minus<internal_data_type>());
+    }
+    full_size += newt_size;
+
+    // swap newt and delta
+    delta_size = newt_size;
+    newt_size = 0;
+    // thrust::swap(newt_columns, delta_columns);
+    for (int i = 0; i < arity; i++) {
+        delta_columns[i].raw_data = newt_columns[i].raw_data;
+        newt_columns[i].raw_data = nullptr;
+    }
+
+    // build indices on full
+    build_index(RelationVersion::FULL, true);
+    build_index(RelationVersion::DELTA, true);
+}
+
+void multi_hisa::clear() {
+    for (int i = 0; i < arity; i++) {
+        full_columns[i].raw_data = nullptr;
+        full_columns[i].sorted_indices.resize(0);
+        full_columns[i].sorted_indices.shrink_to_fit();
+        full_columns[i].clear_unique_v();
+
+        delta_columns[i].raw_data = nullptr;
+        delta_columns[i].sorted_indices.resize(0);
+        delta_columns[i].sorted_indices.shrink_to_fit();
+        delta_columns[i].clear_unique_v();
+
+        newt_columns[i].raw_data = nullptr;
+        newt_columns[i].sorted_indices.resize(0);
+        newt_columns[i].sorted_indices.shrink_to_fit();
+        newt_columns[i].clear_unique_v();
+
+        data[i].resize(0);
+        data[i].shrink_to_fit();
+    }
+    total_tuples = 0;
+}
+
+void column_join(VerticalColumnGpu &inner_column,
+                 VerticalColumnGpu &outer_column,
+                 device_data_t &outer_tuple_indices,
+                 device_pairs_t &matched_indices) {
+    auto outer_size = outer_tuple_indices.size();
+
+    device_ranges_t range_result(inner_column.size());
+
+    inner_column.unique_v_map->find(
+        thrust::make_permutation_iterator(inner_column.raw_data,
+                                          outer_tuple_indices.begin()),
+        thrust::make_permutation_iterator(inner_column.raw_data,
+                                          outer_tuple_indices.end()),
+        range_result.begin());
+
+    // materialize the comp_ranges
+
+    // fecth all range size
+    device_data_t size_vec(range_result.size());
+    thrust::transform(
+        DEFAULT_DEVICE_POLICY, range_result.begin(), range_result.end(),
+        size_vec.begin(),
+        [] __device__(auto &t) { return static_cast<uint32_t>(t); });
+
+    device_ranges_t offset_vec;
+    offset_vec.swap(range_result);
+    thrust::transform(
+        DEFAULT_DEVICE_POLICY, offset_vec.begin(), offset_vec.end(),
+        offset_vec.begin(),
+        [] __device__(auto &t) { return static_cast<uint64_t>(t >> 32); });
+
+    uint32_t total_matched_size =
+        thrust::reduce(DEFAULT_DEVICE_POLICY, size_vec.begin(), size_vec.end());
+    device_data_t size_offset_tmp(outer_size);
+    thrust::inclusive_scan(DEFAULT_DEVICE_POLICY, size_vec.begin(),
+                           size_vec.end(), size_offset_tmp.begin());
+
+    // materialize the matched_indices
+    matched_indices.resize(total_matched_size);
+    thrust::for_each(
+        DEFAULT_DEVICE_POLICY,
+        thrust::make_zip_iterator(
+            thrust::make_tuple(outer_tuple_indices.begin(), offset_vec.begin(),
+                               size_vec.begin(), size_offset_tmp.begin())),
+        thrust::make_zip_iterator(
+            thrust::make_tuple(outer_tuple_indices.end(), offset_vec.end(),
+                               size_vec.end(), size_offset_tmp.end())),
+        [res = matched_indices.data().get(),
+         inner_sorted_idx =
+             inner_column.sorted_indices.data().get()] __device__(auto &t) {
+            auto &outer_idx = thrust::get<0>(t);
+            auto &inner_pos = thrust::get<1>(t);
+            auto &size = thrust::get<2>(t);
+            auto &start = thrust::get<3>(t);
+            for (int i = 0; i < size; i++) {
+                res[start + i] =
+                    (static_cast<comp_pair_t>(outer_idx) << 32) +
+                    static_cast<comp_pair_t>(inner_sorted_idx[inner_pos + i]);
+            }
+        });
+}
+
+} // namespace hisa
