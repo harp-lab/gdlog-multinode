@@ -6,6 +6,8 @@
 
 #define THRUST_HOST_SYSTEM THRUST_HOST_SYSTEM_TBB
 
+#include <cuda/functional>
+
 #include "../include/relation.cuh"
 #include "utils.h"
 #include <cstdint>
@@ -24,10 +26,33 @@
 #include <rmm/device_vector.hpp>
 #include <rmm/exec_policy.hpp>
 #include <thrust/execution_policy.h>
+
+#include <bght/bcht.hpp>
+
 // #define DEFAULT_DEVICE_POLICY thrust::device
 // #define DEVICE_VECTOR thrust::device_vector
 #define DEFAULT_DEVICE_POLICY rmm::exec_policy()
 #define DEVICE_VECTOR rmm::device_vector
+#define DEFAULT_SET_HASH_MAP true
+#define DEFAULT_LOAD_FACTOR 0.9
+
+#define CREATE_V_MAP(uniq_size)                                                \
+    std::make_unique<hisa::GpuMap>(                                            \
+        uniq_size, DEFAULT_LOAD_FACTOR,                                        \
+        cuco::empty_key<hisa::internal_data_type>{UINT32_MAX},                 \
+        cuco::empty_value<hisa::offset_type>{UINT32_MAX})
+#define HASH_NAMESPACE cuco
+// #define CREATE_V_MAP(uniq_size) \
+//     std::make_unique<hisa::GpuMap>((size_t)(uniq_size / DEFAULT_LOAD_FACTOR),
+//     \
+//                              UINT32_MAX, UINT32_MAX)
+// #define HASH_NAMESPACE bght
+
+namespace bght {
+template <typename K, typename V> inline __device__ auto make_pair(K k, V v) {
+    return bght::pair<K, V>(k, v);
+}
+} // namespace bght
 
 namespace hisa {
 
@@ -42,11 +67,11 @@ using comp_pair_t = uint64_t;
 using device_pairs_t = DEVICE_VECTOR<comp_pair_t>;
 
 // a simple Device Map, its a wrapper of the device_vector
-struct simple_map {
+struct GpuSimplMap {
     device_data_t keys;
     device_ranges_t values;
 
-    simple_map() = default;
+    GpuSimplMap() = default;
 
     // bulk insert
     void insert(device_data_t &keys, device_ranges_t &values);
@@ -63,6 +88,13 @@ using GpuMap = cuco::static_map<internal_data_type, comp_range_t>;
 // using GpuMap = cuco::dynamic_map<internal_data_type, comp_range_t>;
 using GpuMapPair = cuco::pair<internal_data_type, comp_range_t>;
 
+inline uint64_t __device__ __host__ compress_u32(uint32_t &a, uint32_t &b) {
+    return ((uint64_t)a << 32) | b;
+}
+
+// using GpuMap = bght::bcht<internal_data_type, comp_range_t>;
+// using GpuMapPair = bght::pair<internal_data_type, comp_range_t>;
+
 // CSR stype column entryunique values aray in the column, sharing the same
 // prefix
 struct VerticalColumnGpu {
@@ -70,12 +102,12 @@ struct VerticalColumnGpu {
     // FIXME: remove this, this is redundant
     // all unique values in the column, sharing the same prefix
     device_data_t unique_v;
-    // a mapping from the unique value to the range of tuple share the same value
-    // in the next column
+    // a mapping from the unique value to the range of tuple share the same
+    // value in the next column
     std::shared_ptr<GpuMap> unique_v_map = nullptr;
     // std::unique_ptr<GpuMap> unique_v_map = nullptr;
 
-    simple_map unique_v_map_simp;
+    GpuSimplMap unique_v_map_simp;
 
     device_data_t sorted_indices;
     // thrust::device_vector<internal_data_type> raw_data;
@@ -87,7 +119,7 @@ struct VerticalColumnGpu {
 
     bool indexed = false;
 
-    bool use_real_map = false;
+    bool use_real_map = DEFAULT_SET_HASH_MAP;
 
     void clear_unique_v();
 
@@ -181,9 +213,10 @@ struct multi_hisa {
     uint32_t get_total_tuples() const { return total_tuples; }
 };
 
-void remove_mismatch(VerticalColumnGpu &column1, VerticalColumnGpu &column2,
-                     device_data_t &match_tuple_indices,
-                     device_pairs_t &matched_pair);
+// filter the matched_pairs (id_1, id2) with respect to column2,
+// only keep the matched pair
+void column_match(VerticalColumnGpu &column1, VerticalColumnGpu &column2,
+                  device_pairs_t &matched_pair);
 
 void column_join(VerticalColumnGpu &inner_column,
                  VerticalColumnGpu &outer_column,

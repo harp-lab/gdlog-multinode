@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 project(gdlog LANGUAGES CXX CUDA)
 
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES 80)
+endif()
+
 find_package(MPI REQUIRED)
 
 find_package(OpenMP REQUIRED)
@@ -137,6 +141,14 @@ endfunction()
 
 rapids_cpm_rmm()
 
+CPMAddPackage(
+  NAME bght
+  GITHUB_REPOSITORY owensgroup/BGHT
+  GIT_TAG main
+  OPTIONS
+     "build_tests OFF"
+     "build_benchmarks OFF"
+)
 # using test
 include(CTest)
 
@@ -223,7 +235,7 @@ else()
     if (FORCE_GPU_DIRECT)
         target_compile_definitions(gpu_ra PUBLIC DEFAULT_GPU_RDMA=1)
     endif()
-    target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm cuco TBB::tbb)
+    target_link_libraries(gpu_ra MPI::MPI_CXX rmm::rmm cuco TBB::tbb bght)
 endif()
 
 set_target_properties(gpu_ra PROPERTIES CUDA_SEPARABLE_COMPILATION ON CUDA_ARCHITECTURES "80")
