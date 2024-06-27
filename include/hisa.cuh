@@ -4,8 +4,6 @@
 
 #pragma once
 
-#define THRUST_HOST_SYSTEM THRUST_HOST_SYSTEM_TBB
-
 #include <cuda/functional>
 
 #include "../include/relation.cuh"
@@ -16,11 +14,9 @@
 #include <cuda/std/chrono>
 #include <iostream>
 #include <memory>
-#include <tbb/concurrent_hash_map.h>
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-#include <unordered_map>
 #include <vector>
 
 #include <rmm/device_vector.hpp>
@@ -56,14 +52,10 @@ template <typename K, typename V> inline __device__ auto make_pair(K k, V v) {
 
 namespace hisa {
 
-using internal_data_type = uint32_t;
 using device_data_t = DEVICE_VECTOR<internal_data_type>;
 
-using offset_type = uint64_t;
 // higher 32 bit is the postion in sorted indices, lower is offset
-using comp_range_t = uint64_t;
 using device_ranges_t = DEVICE_VECTOR<comp_range_t>;
-using comp_pair_t = uint64_t;
 using device_pairs_t = DEVICE_VECTOR<comp_pair_t>;
 
 // a simple Device Map, its a wrapper of the device_vector
@@ -83,14 +75,10 @@ struct GpuSimplMap {
 // higher 32 bit is the value, lower is offset in data
 // using index_value = uint64_t;
 // using Map = std::unordered_map<internal_data_type, offset_type>;
-using Map = tbb::concurrent_hash_map<internal_data_type, offset_type>;
 using GpuMap = cuco::static_map<internal_data_type, comp_range_t>;
 // using GpuMap = cuco::dynamic_map<internal_data_type, comp_range_t>;
 using GpuMapPair = cuco::pair<internal_data_type, comp_range_t>;
 
-inline uint64_t __device__ __host__ compress_u32(uint32_t &a, uint32_t &b) {
-    return ((uint64_t)a << 32) | b;
-}
 
 // using GpuMap = bght::bcht<internal_data_type, comp_range_t>;
 // using GpuMapPair = bght::pair<internal_data_type, comp_range_t>;
@@ -222,75 +210,5 @@ void column_join(VerticalColumnGpu &inner_column,
                  VerticalColumnGpu &outer_column,
                  device_data_t &outer_tuple_indices,
                  device_pairs_t &matched_indices);
-
-// cpu version of the vertical column
-struct VerticalColumnCpu {
-    // size of unique values in the column
-    thrust::host_vector<internal_data_type> unique_v;
-    thrust::host_vector<uint32_t> v_offset;
-    // thrust::host_vector<uint32_t> v_index;
-    // map from unique value to permutation of v_index
-    // TODO: should this be map? or maybe normal vector? is it faster?
-    Map unique_v_map;
-    // size of tuples
-    // sorted indices of this column
-    thrust::host_vector<internal_data_type> sorted_indices;
-    thrust::host_vector<internal_data_type> raw_data;
-
-    // check
-    // https://oneapi-src.github.io/oneTBB/main/tbb_userguide/concurrent_hash_map.html
-
-    VerticalColumnCpu() = default;
-
-    size_t size() const { return sorted_indices.size(); }
-};
-
-using tuple_type = thrust::host_vector<internal_data_type>;
-
-// cpu version of the hash trie
-struct hisa_cpu {
-    int arity;
-    thrust::host_vector<VerticalColumnCpu> columns;
-
-    // thrust::host_vector<int> indexed_columns;
-    uint64_t hash_time = 0;
-
-    bool indexed = false;
-
-    offset_type total_tuples;
-
-    hisa_cpu(int arity) : arity(arity), total_tuples(0) {}
-
-    void fetch_column_values(int column,
-                             thrust::host_vector<internal_data_type> &values,
-                             bool sorted = false);
-
-    void
-    fetch_column_unique_values(int column,
-                               thrust::host_vector<internal_data_type> &values);
-
-    void load(const thrust::host_vector<tuple_type> &tuples);
-    void load_vectical(
-        thrust::host_vector<thrust::host_vector<internal_data_type>> &tuples);
-
-    // merge will move out the undupilcaate  data from other
-    void merge(hisa_cpu &other);
-
-    void remove_dup_in(hisa_cpu &other);
-
-    void build_index(bool sorted = false);
-
-    void deduplicate();
-
-    void column_join(int column, hisa_cpu &other, int other_column,
-                     thrust::host_vector<uint32_t> &result);
-
-    void print_all(bool sorted = false);
-
-    void clear();
-
-    // void deduplicate();
-    uint32_t get_total_tuples() const { return total_tuples; }
-};
 
 } // namespace hisa

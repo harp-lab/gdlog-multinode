@@ -5,7 +5,8 @@
 // thrust use TBB
 // #define THRUST_HOST_SYSTEM THRUST_HOST_SYSTEM_TBB
 
-#include "../include/hashtrie.cuh"
+#include "../include/hisa.cuh"
+#include "../include/chisa.h"
 
 #include "../include/exception.cuh"
 #include "../include/lie.cuh"
@@ -17,6 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include <thrust/sequence.h>
 
 // use librmm
 #include <rmm/mr/device/cuda_memory_resource.hpp>
